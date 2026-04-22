@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JoPass — Owner Portal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- View Toggle -->
+  <div class="view-toggle" id="viewToggle">
+    <button class="toggle-btn active" data-mode="mobile" onclick="setViewMode('mobile')">Phone</button>
+    <button class="toggle-btn" data-mode="desktop" onclick="setViewMode('desktop')">Desktop</button>
+  </div>
+
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+
+    <div class="app">
+      <!-- Mobile Header -->
+      <header class="mobile-header">
+        <div class="mobile-header-left">
+          <span class="logo-icon">⚡</span>
+          <span class="mobile-logo">JoPass</span>
+        </div>
+        <div class="mobile-header-right">
+          <span style="font-size:.7rem; color:var(--text-muted); font-weight:600; margin-right:10px;">OWNER</span>
+          <a href="index.html" style="font-size:.8rem; color:var(--text-muted); font-weight:500;">🚪 Log out</a>
+        </div>
+      </header>
+
+      <!-- Desktop Sidebar -->
+      <aside class="sidebar">
+        <div class="logo">
+          <span class="logo-icon">⚡</span>
+          <h1>JoPass</h1>
+        </div>
+        <div style="padding:8px 24px 16px; font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase;">Owner Portal</div>
+        <nav class="sidebar-nav">
+          <a href="#" class="active" data-view="listings" onclick="ownerNav('listings'); return false;">
+            <span class="icon">📋</span> My Openings
+          </a>
+          <a href="#" data-view="add" onclick="ownerNav('add'); return false;">
+            <span class="icon">➕</span> Add Opening
+          </a>
+          <a href="#" data-view="received" onclick="ownerNav('received'); return false;">
+            <span class="icon">📥</span> Bookings Received
+            <span id="sidebarBadge" style="display:none; margin-left:auto; background:var(--danger); color:#fff; font-size:.7rem; padding:2px 7px; border-radius:12px;"></span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <div class="user-avatar">FZ</div>
+            <div class="user-details">
+              <div class="name">FitZone Gym</div>
+              <div class="email">owner@fitzone.com</div>
+            </div>
+          </div>
+          <a href="index.html" style="display:block; margin-top:12px; font-size:.8rem; color:var(--text-muted);">← Log out</a>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main" id="ownerMain"></main>
+
+      <!-- Bottom Tab Bar -->
+      <nav class="bottom-nav">
+        <a href="#" class="bottom-nav-item active" data-view="listings" onclick="ownerNav('listings'); return false;">
+          <span class="bottom-nav-icon">📋</span>
+          <span class="bottom-nav-label">Openings</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-view="add" onclick="ownerNav('add'); return false;">
+          <span class="bottom-nav-icon">➕</span>
+          <span class="bottom-nav-label">Add</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-view="received" onclick="ownerNav('received'); return false;">
+          <span class="bottom-nav-icon">📥</span>
+          <span class="bottom-nav-label">Bookings</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/owner.js"></script>
+  <script>setViewMode('mobile');</script>
+</body>
+</html>

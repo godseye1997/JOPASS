@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JoPass — Login</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body mode-mobile">
+
+  <!-- View Toggle -->
+  <div class="view-toggle" id="viewToggle">
+    <button class="toggle-btn active" data-mode="mobile" onclick="setLoginViewMode('mobile')">Phone</button>
+    <button class="toggle-btn" data-mode="desktop" onclick="setLoginViewMode('desktop')">Desktop</button>
+  </div>
+
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+    <div class="login-scroll">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="logo">
+            <span class="logo-icon">⚡</span>
+            <h1>JoPass</h1>
+          </div>
+          <p class="tagline">Book amazing experiences for less.</p>
+
+          <form id="loginForm">
+            <div class="input-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" placeholder="you@example.com" value="demo@jopass.com">
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" placeholder="••••••••" value="password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Log In</button>
+          </form>
+
+          <div class="login-divider"><span>or</span></div>
+
+          <button id="testLogin" class="btn btn-outline btn-full">Continue as Test User</button>
+
+          <p class="login-footer">Don't have an account? <a href="#">Sign up</a></p>
+
+          <div class="login-divider"><span>for businesses</span></div>
+          <a href="owner.html" class="btn btn-outline btn-full" style="font-size:.85rem;">🏢 Owner Portal — List Your Openings</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setLoginViewMode(mode) {
+      document.body.className = `login-body mode-${mode}`;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      window.location.href = 'dashboard.html';
+    });
+    document.getElementById('testLogin').addEventListener('click', () => {
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>
