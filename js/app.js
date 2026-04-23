@@ -259,25 +259,39 @@ function renderBrowse(container) {
 function renderVendorCards(vendors) {
   return vendors.map(v => {
     const services = getServicesForVendor(v.id);
-    if (!services.length) return '';
-    const cheapest = services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
-    const reviews  = getReviewsForVendor(v.id);
+    const openings = getOpeningsForVendor(v.id);
+    if (!services.length && !openings.length) return '';
+
+    const reviews   = getReviewsForVendor(v.id);
     const avgRating = reviews.length
       ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
       : null;
-    const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
+
+    let badge, priceHtml;
+    if (services.length) {
+      const cheapest = services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
+      const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
+      badge     = discount > 0 ? `<span class="badge">${discount}% OFF</span>` : '';
+      priceHtml = discount > 0
+        ? `<span class="original-price" style="margin-left:0;">${toJOD(cheapest.price)} JOD</span>
+           <span class="price">From ${toJOD(cheapest.jopassPrice)} JOD</span>`
+        : `<span class="price">From ${toJOD(cheapest.price)} JOD</span>`;
+    } else {
+      const totalSlots = openings.reduce((n, o) => n + o.slots.length, 0);
+      badge     = `<span class="badge" style="background:var(--accent);">${totalSlots} Slot${totalSlots !== 1 ? 's' : ''}</span>`;
+      const next = openings[0];
+      priceHtml = `<span class="price">${fmtDate(next.date)}</span>`;
+    }
+
     return `
       <div class="vendor-card" onclick="navigateTo('vendor', ${v.id})">
         <div class="thumb" style="background-image:url('${v.image}')">
-          <span class="badge">${discount}% OFF</span>
+          ${badge}
         </div>
         <div class="card-body">
           <h3>${v.icon} ${v.name}</h3>
           <p class="category">${v.category}</p>
-          <p>
-            <span class="original-price" style="margin-left:0;">${toJOD(cheapest.price)} JOD</span>
-            <span class="price">From ${toJOD(cheapest.jopassPrice)} JOD</span>
-          </p>
+          <p>${priceHtml}</p>
           ${avgRating ? `<p style="font-size:.78rem; color:#f4b942; margin-top:4px;">★ ${avgRating} <span style="color:var(--text-muted);">(${reviews.length})</span></p>` : ''}
         </div>
       </div>
