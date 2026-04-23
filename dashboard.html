@@ -121,6 +121,21 @@
     </div>
   </div>
 
+  <!-- Review Modal -->
+  <div class="modal-overlay" id="reviewModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Leave a Review</h3>
+        <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="reviewModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeReviewModal()">Skip</button>
+        <button class="btn btn-primary" id="submitReviewBtn" disabled onclick="submitReview()">Submit</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toasts -->
   <div class="toast-container" id="toastContainer"></div>
 

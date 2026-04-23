@@ -22,26 +22,8 @@ const ownerState = {
       booked: [],
     },
   ],
-  receivedBookings: [
-    {
-      id: 1,
-      customer: 'Sarah K.',
-      avatar: 'SK',
-      service: OWNER_VENDOR.services[0],
-      date: new Date(2026, 3, 25),
-      time: '10:00 AM',
-      status: 'confirmed',
-    },
-    {
-      id: 2,
-      customer: 'Mohammed A.',
-      avatar: 'MA',
-      service: OWNER_VENDOR.services[2],
-      date: new Date(2026, 3, 27),
-      time: '3:00 PM',
-      status: 'confirmed',
-    },
-  ],
+  receivedBookings: [],
+  reviews: {},
   addForm: {
     serviceName: '',
     duration: '',
@@ -53,6 +35,8 @@ const ownerState = {
   },
 };
 
+const OWNER_TZ = 'Asia/Amman';
+
 const ALL_SLOTS = [
   '8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
   '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
@@ -62,9 +46,54 @@ const ALL_SLOTS = [
 document.addEventListener('DOMContentLoaded', () => {
   loadServicesFromStorage();
   loadOpeningsFromStorage();
+  loadBookingsAndReviews();
   ownerNav('listings');
   updateBadge();
+  setInterval(() => {
+    checkOwnerBookingStatuses();
+    updateBadge();
+  }, 60000);
 });
+
+/* ── GMT+3 helper ── */
+function ownerFmtDate(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: OWNER_TZ });
+}
+
+/* ── Bookings + reviews from localStorage ── */
+function loadBookingsAndReviews() {
+  const bStored = localStorage.getItem('jopass_bookings');
+  if (bStored) {
+    ownerState.receivedBookings = JSON.parse(bStored)
+      .filter(b => b.vendorId === OWNER_VENDOR.id)
+      .map(b => ({ ...b, date: new Date(b.date) }));
+  }
+  const rStored = localStorage.getItem('jopass_reviews');
+  if (rStored) ownerState.reviews = JSON.parse(rStored);
+}
+
+function getOwnerBookingDateTime(b) {
+  const d = new Date(b.date);
+  const m = b.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return d;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
+  d.setHours(h, min, 0, 0);
+  return d;
+}
+
+function checkOwnerBookingStatuses() {
+  const now = new Date();
+  ownerState.receivedBookings.forEach(b => {
+    if (b.status === 'confirmed' && getOwnerBookingDateTime(b) < now) {
+      b.status = 'completed';
+    }
+  });
+  // re-read reviews in case consumer submitted one since last check
+  const rStored = localStorage.getItem('jopass_reviews');
+  if (rStored) ownerState.reviews = JSON.parse(rStored);
+}
 
 /* ── Services localStorage ── */
 let ownerServices = [];
@@ -247,24 +276,21 @@ function ownerNav(view) {
   });
   const main = document.getElementById('ownerMain');
   switch (view) {
-    case 'services': renderServices(main); break;
-    case 'listings': renderListings(main); break;
-    case 'add':      renderAddOpening(main); break;
-    case 'received': renderReceived(main); break;
+    case 'services':  renderServices(main); break;
+    case 'listings':  renderListings(main); break;
+    case 'add':       renderAddOpening(main); break;
+    case 'received':  loadBookingsAndReviews(); renderReceived(main); break;
   }
   main.scrollTop = 0;
 }
 
 function updateBadge() {
-  const count = ownerState.receivedBookings.filter(b => b.status === 'confirmed').length;
+  loadBookingsAndReviews();
+  const count = ownerState.receivedBookings.length;
   const badge = document.getElementById('sidebarBadge');
   if (!badge) return;
-  if (count > 0) {
-    badge.style.display = 'inline-block';
-    badge.textContent = count;
-  } else {
-    badge.style.display = 'none';
-  }
+  badge.style.display = count > 0 ? 'inline-block' : 'none';
+  badge.textContent = count;
 }
 
 /* ── My Openings ── */
@@ -490,25 +516,33 @@ function ownerSubmitOpening() {
 
 /* ── Bookings Received ── */
 function renderReceived(container) {
+  loadBookingsAndReviews();
+  checkOwnerBookingStatuses();
   const bookings = ownerState.receivedBookings;
+  const completed = bookings.filter(b => b.status === 'completed').length;
+  const reviewed  = bookings.filter(b => ownerState.reviews[b.id]).length;
 
   container.innerHTML = `
     <div class="page-header">
       <h2>Bookings Received</h2>
     </div>
 
-    <div class="card" style="margin-bottom:16px; display:flex; gap:24px; text-align:center;">
-      <div style="flex:1; border-right:1px solid var(--border);">
-        <div style="font-size:1.6rem; font-weight:700; color:var(--primary);">${bookings.length}</div>
-        <div style="font-size:.75rem; color:var(--text-muted);">Total</div>
+    <div class="card" style="margin-bottom:16px; display:flex; gap:0; text-align:center;">
+      <div style="flex:1; border-right:1px solid var(--border); padding:8px 0;">
+        <div style="font-size:1.4rem; font-weight:700; color:var(--primary);">${bookings.length}</div>
+        <div style="font-size:.7rem; color:var(--text-muted);">Total</div>
       </div>
-      <div style="flex:1; border-right:1px solid var(--border);">
-        <div style="font-size:1.6rem; font-weight:700; color:var(--success);">${bookings.filter(b => b.status === 'confirmed').length}</div>
-        <div style="font-size:.75rem; color:var(--text-muted);">Confirmed</div>
+      <div style="flex:1; border-right:1px solid var(--border); padding:8px 0;">
+        <div style="font-size:1.4rem; font-weight:700; color:var(--success);">${bookings.filter(b => b.status === 'confirmed').length}</div>
+        <div style="font-size:.7rem; color:var(--text-muted);">Upcoming</div>
       </div>
-      <div style="flex:1;">
-        <div style="font-size:1.6rem; font-weight:700; color:var(--accent);">${ownerState.openings.reduce((n, o) => n + o.slots.filter(s => !o.booked.includes(s)).length, 0)}</div>
-        <div style="font-size:.75rem; color:var(--text-muted);">Open Slots</div>
+      <div style="flex:1; border-right:1px solid var(--border); padding:8px 0;">
+        <div style="font-size:1.4rem; font-weight:700; color:var(--accent);">${completed}</div>
+        <div style="font-size:.7rem; color:var(--text-muted);">Completed</div>
+      </div>
+      <div style="flex:1; padding:8px 0;">
+        <div style="font-size:1.4rem; font-weight:700; color:#f4b942;">${reviewed}</div>
+        <div style="font-size:.7rem; color:var(--text-muted);">Reviewed</div>
       </div>
     </div>
 
@@ -516,21 +550,38 @@ function renderReceived(container) {
       <div class="empty-state">
         <div class="icon">📥</div>
         <h3>No Bookings Yet</h3>
-        <p>Once customers book your openings, they'll appear here.</p>
+        <p>Once customers book your services or openings, they'll appear here.</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add an Opening</button>
       </div>
-    ` : bookings.map(b => {
-      const dateStr = b.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    ` : [...bookings].reverse().map(b => {
+      const dateStr   = ownerFmtDate(b.date);
+      const isComp    = b.status === 'completed';
+      const review    = ownerState.reviews[b.id];
+      const initials  = (b.service?.name || 'SV').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+      const reviewBlock = review ? `
+        <div style="margin-top:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); border-left:3px solid #f4b942;">
+          <div style="color:#f4b942; font-size:.95rem; margin-bottom:4px;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div>
+          ${review.comment ? `<p style="font-size:.8rem; color:var(--text-muted); margin:0;">"${review.comment}"</p>` : ''}
+        </div>` : (isComp ? `<p style="font-size:.75rem; color:var(--text-muted); margin-top:6px; font-style:italic;">No review yet</p>` : '');
+
       return `
-        <div class="booking-item">
-          <div class="booking-icon" style="background:var(--primary)15; color:var(--primary); font-size:.85rem; font-weight:700;">
-            ${b.avatar}
+        <div class="card" style="margin-bottom:10px; ${isComp ? 'opacity:.9;' : ''}">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:var(--radius-sm); background:var(--primary)15; color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; flex-shrink:0;">
+              ${initials}
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:600; font-size:.9rem;">${b.service?.name || 'Service'}</div>
+              <div style="font-size:.78rem; color:var(--text-muted);">${dateStr} at ${b.time}</div>
+            </div>
+            <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0;
+              background:${isComp ? 'rgba(0,184,148,.1)' : 'rgba(108,92,231,.1)'};
+              color:${isComp ? 'var(--success)' : 'var(--primary)'};">
+              ${isComp ? 'Completed' : 'Confirmed'}
+            </span>
           </div>
-          <div class="booking-details">
-            <h4>${b.service.name}</h4>
-            <p>${b.customer} · ${dateStr} at ${b.time}</p>
-          </div>
-          <span class="booking-status confirmed">${b.status}</span>
+          ${reviewBlock}
         </div>
       `;
     }).join('')}

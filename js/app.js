@@ -2,21 +2,103 @@
 const state = {
   credits: 15,
   bookings: [],
+  reviews: {},
   currentView: 'browse',
   viewMode: 'mobile',
   selectedVendor: null,
   selectedService: null,
   selectedDate: null,
   selectedTime: null,
+  selectedReviewBookingId: null,
+  selectedReviewRating: 0,
   calendarMonth: new Date().getMonth(),
   calendarYear: new Date().getFullYear(),
 };
 
+const TZ = 'Asia/Amman'; // GMT+3
+
+/* ── Booking & review localStorage ── */
+function saveBookingsToStorage() {
+  localStorage.setItem('jopass_bookings', JSON.stringify(
+    state.bookings.map(b => ({ ...b, vendorId: b.vendor?.id, vendor: undefined, date: b.date.toISOString() }))
+  ));
+}
+
+function saveReviewsToStorage() {
+  localStorage.setItem('jopass_reviews', JSON.stringify(state.reviews));
+}
+
+function loadBookingsFromStorage() {
+  const stored = localStorage.getItem('jopass_bookings');
+  if (stored) {
+    state.bookings = JSON.parse(stored).map(b => ({
+      ...b,
+      vendor: VENDORS.find(v => v.id === b.vendorId),
+      date: new Date(b.date),
+    }));
+  } else {
+    state.bookings = [{
+      id: 1,
+      vendorId: 1,
+      vendor: VENDORS.find(v => v.id === 1),
+      service: { name: 'Open Gym Session', duration: '60 min', credits: 3, jopassPrice: 3 },
+      date: new Date(2026, 3, 22),
+      time: '10:00 AM',
+      status: 'completed',
+    }];
+    saveBookingsToStorage();
+  }
+}
+
+function loadReviewsFromStorage() {
+  const stored = localStorage.getItem('jopass_reviews');
+  if (stored) state.reviews = JSON.parse(stored);
+}
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
+  loadBookingsFromStorage();
+  loadReviewsFromStorage();
   updateCreditDisplay();
   navigateTo('browse');
+  setInterval(checkBookingStatuses, 60000);
 });
+
+/* ── GMT+3 date helpers ── */
+function fmtDate(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ });
+}
+function fmtDateLong(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: TZ });
+}
+
+/* ── Session completion ── */
+function getBookingDateTime(booking) {
+  const d = new Date(booking.date);
+  const m = booking.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return d;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
+  d.setHours(h, min, 0, 0);
+  return d;
+}
+
+function checkBookingStatuses() {
+  const now = new Date();
+  let changed = false;
+  state.bookings.forEach(b => {
+    if (b.status === 'confirmed' && getBookingDateTime(b) < now) {
+      b.status = 'completed';
+      changed = true;
+      if (!state.reviews[b.id]) openReviewModal(b.id);
+    }
+  });
+  if (changed) {
+    saveBookingsToStorage();
+    if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
+  }
+}
 
 /* ── View Mode Toggle ── */
 function setViewMode(mode) {
@@ -106,6 +188,10 @@ function renderVendorCards(vendors) {
     const services = getServicesForVendor(v.id);
     if (!services.length) return '';
     const cheapest = services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
+    const reviews  = getReviewsForVendor(v.id);
+    const avgRating = reviews.length
+      ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+      : null;
     const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
     return `
       <div class="vendor-card" onclick="navigateTo('vendor', ${v.id})">
@@ -119,6 +205,7 @@ function renderVendorCards(vendors) {
             <span class="original-price" style="margin-left:0;">${toJOD(cheapest.price)} JOD</span>
             <span class="price">From ${toJOD(cheapest.jopassPrice)} JOD</span>
           </p>
+          ${avgRating ? `<p style="font-size:.78rem; color:#f4b942; margin-top:4px;">★ ${avgRating} <span style="color:var(--text-muted);">(${reviews.length})</span></p>` : ''}
         </div>
       </div>
     `;
@@ -126,6 +213,17 @@ function renderVendorCards(vendors) {
 }
 
 /* ── Vendor Detail ── */
+function getReviewsForVendor(vendorId) {
+  const bStored = localStorage.getItem('jopass_bookings');
+  const rStored = localStorage.getItem('jopass_reviews');
+  if (!bStored || !rStored) return [];
+  const bookings = JSON.parse(bStored).filter(b => b.vendorId === vendorId);
+  const reviews  = JSON.parse(rStored);
+  return bookings
+    .filter(b => reviews[b.id])
+    .map(b => ({ ...reviews[b.id], service: b.service?.name, date: new Date(b.date) }));
+}
+
 function getServicesForVendor(vendorId) {
   const stored = localStorage.getItem(`jopass_services_${vendorId}`);
   if (stored) return JSON.parse(stored);
@@ -184,6 +282,8 @@ function renderVendorDetail(container) {
       `}).join('')}
     </div>
 
+    ${renderVendorReviews(v.id)}
+
     ${openings.length > 0 ? `
       <h4 style="margin:20px 0 12px;">Open Slots</h4>
       ${openings.map(o => {
@@ -216,6 +316,41 @@ function renderVendorDetail(container) {
   `;
 }
 
+function renderVendorReviews(vendorId) {
+  const reviews = getReviewsForVendor(vendorId);
+  if (reviews.length === 0) return '';
+
+  const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  const rounded = Math.round(avg * 10) / 10;
+
+  return `
+    <div style="margin-top:20px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <h4>Reviews</h4>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="color:#f4b942; font-size:1rem;">${'★'.repeat(Math.round(avg))}${'☆'.repeat(5 - Math.round(avg))}</span>
+          <span style="font-weight:700; font-size:.9rem;">${rounded}</span>
+          <span style="font-size:.8rem; color:var(--text-muted);">(${reviews.length})</span>
+        </div>
+      </div>
+      ${reviews.map(r => `
+        <div class="card" style="margin-bottom:10px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:6px;">
+            <div>
+              <div style="color:#f4b942; font-size:.95rem;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+              <div style="font-size:.75rem; color:var(--text-muted); margin-top:2px;">
+                ${r.service ? r.service + ' · ' : ''}${fmtDate(r.date)}
+              </div>
+            </div>
+            <span style="font-size:.7rem; color:var(--text-muted); background:var(--bg); padding:2px 8px; border-radius:20px;">Verified</span>
+          </div>
+          ${r.comment ? `<p style="font-size:.85rem; color:var(--text); margin:0;">"${r.comment}"</p>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function reserveOpeningSlot(openingId, slot) {
   const stored = localStorage.getItem('jopass_openings');
   if (!stored) return;
@@ -232,6 +367,7 @@ function reserveOpeningSlot(openingId, slot) {
 
   state.bookings.push({
     id: Date.now(),
+    vendorId: state.selectedVendor.id,
     vendor: state.selectedVendor,
     service: { name: opening.service.name, duration: opening.service.duration, credits: 0, jopassPrice: 0 },
     date: new Date(opening.date),
@@ -239,6 +375,7 @@ function reserveOpeningSlot(openingId, slot) {
     status: 'confirmed',
   });
 
+  saveBookingsToStorage();
   showToast(`Reserved ${slot} for ${opening.service.name}!`, 'success');
   renderVendorDetail(document.getElementById('mainContent'));
 }
@@ -387,7 +524,7 @@ function showBookingSummary() {
   const content = document.getElementById('summaryContent');
   container.style.display = 'block';
 
-  const dateStr = state.selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = fmtDateLong(state.selectedDate);
   const s = state.selectedService;
   const saved = s.price - s.jopassPrice;
   content.innerHTML = `
@@ -430,6 +567,7 @@ function confirmBooking() {
   state.credits -= s.credits;
   state.bookings.push({
     id: Date.now(),
+    vendorId: state.selectedVendor.id,
     vendor: state.selectedVendor,
     service: s,
     date: state.selectedDate,
@@ -437,6 +575,7 @@ function confirmBooking() {
     status: 'confirmed',
   });
 
+  saveBookingsToStorage();
   updateCreditDisplay();
   closeBookingModal();
   showToast(`Booked ${s.name} at ${state.selectedVendor.name}!`, 'success');
@@ -633,6 +772,7 @@ function processPayment() {
 
 /* ── Bookings View ── */
 function renderBookings(container) {
+  checkBookingStatuses();
   container.innerHTML = `
     <div class="page-header">
       <h2>My Bookings</h2>
@@ -644,25 +784,98 @@ function renderBookings(container) {
         <p>Browse deals and book your first experience!</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('browse')">Browse Deals</button>
       </div>
-    ` : `
-      ${state.bookings.map(b => {
-        const dateStr = b.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        return `
-          <div class="booking-item">
-            <div class="booking-icon" style="background:${b.vendor.color}15; color:${b.vendor.color};">
-              ${b.vendor.icon}
-            </div>
-            <div class="booking-details">
-              <h4>${b.service.name}</h4>
-              <p>${b.vendor.name} · ${dateStr} at ${b.time}</p>
-            </div>
-            <span class="booking-status confirmed">Confirmed</span>
-            <button class="btn btn-sm btn-outline" onclick="cancelBooking(${b.id})">Cancel</button>
+    ` : state.bookings.map(b => {
+      const dateStr = fmtDate(b.date);
+      const review  = state.reviews[b.id];
+      const isCompleted = b.status === 'completed';
+
+      const stars = review
+        ? `<div style="color:#f4b942; font-size:1rem; margin-top:4px;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div>`
+        : '';
+
+      const action = isCompleted
+        ? (review
+            ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>`
+            : `<button class="btn btn-sm btn-primary" onclick="openReviewModal(${b.id})">Review</button>`)
+        : `<button class="btn btn-sm btn-outline" onclick="cancelBooking(${b.id})">Cancel</button>`;
+
+      return `
+        <div class="booking-item" style="${isCompleted ? 'opacity:.85;' : ''}">
+          <div class="booking-icon" style="background:${b.vendor.color}15; color:${b.vendor.color};">
+            ${b.vendor.icon}
           </div>
-        `;
-      }).join('')}
-    `}
+          <div class="booking-details">
+            <h4>${b.service.name}</h4>
+            <p>${b.vendor.name} · ${dateStr} at ${b.time}</p>
+            ${stars}
+          </div>
+          <span class="booking-status ${isCompleted ? '' : 'confirmed'}" style="${isCompleted && !review ? 'background:rgba(0,184,148,.1); color:var(--success);' : ''}">
+            ${isCompleted ? 'Completed' : 'Confirmed'}
+          </span>
+          ${action}
+        </div>
+      `;
+    }).join('')}
   `;
+}
+
+/* ── Review Modal ── */
+function openReviewModal(bookingId) {
+  const booking = state.bookings.find(b => b.id === bookingId);
+  if (!booking) return;
+  state.selectedReviewBookingId = bookingId;
+  state.selectedReviewRating = 0;
+
+  document.getElementById('reviewModalBody').innerHTML = `
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+      <div style="width:42px; height:42px; border-radius:var(--radius-sm); background:${booking.vendor.color}15; color:${booking.vendor.color}; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+        ${booking.vendor.icon}
+      </div>
+      <div>
+        <div style="font-weight:600; font-size:.9rem;">${booking.service.name}</div>
+        <div style="font-size:.8rem; color:var(--text-muted);">${booking.vendor.name} · ${fmtDate(booking.date)} at ${booking.time}</div>
+      </div>
+    </div>
+    <p style="font-size:.85rem; font-weight:600; margin-bottom:10px;">How was your experience?</p>
+    <div id="starRow" style="display:flex; gap:8px; margin-bottom:16px;">
+      ${[1,2,3,4,5].map(n => `
+        <span data-star="${n}" onclick="setReviewRating(${n})"
+          style="font-size:2rem; cursor:pointer; color:#dfe6e9; transition:color .15s;">★</span>
+      `).join('')}
+    </div>
+    <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:6px;">Comments <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+    <textarea id="reviewComment" rows="3" placeholder="Tell others about your experience…"
+      style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; resize:none; background:var(--surface); color:var(--text);"></textarea>
+  `;
+
+  document.getElementById('submitReviewBtn').disabled = true;
+  document.getElementById('reviewModal').classList.add('open');
+}
+
+function setReviewRating(rating) {
+  state.selectedReviewRating = rating;
+  document.querySelectorAll('#starRow span').forEach(el => {
+    el.style.color = parseInt(el.dataset.star) <= rating ? '#f4b942' : '#dfe6e9';
+  });
+  document.getElementById('submitReviewBtn').disabled = false;
+}
+
+function submitReview() {
+  const id      = state.selectedReviewBookingId;
+  const rating  = state.selectedReviewRating;
+  const comment = document.getElementById('reviewComment').value.trim();
+  if (!id || !rating) return;
+
+  state.reviews[id] = { rating, comment, bookingId: id };
+  saveBookingsToStorage();
+  saveReviewsToStorage();
+  closeReviewModal();
+  showToast('Thanks for your review!', 'success');
+  if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
+}
+
+function closeReviewModal() {
+  document.getElementById('reviewModal').classList.remove('open');
 }
 
 function cancelBooking(id) {
@@ -671,6 +884,7 @@ function cancelBooking(id) {
   const booking = state.bookings[idx];
   state.credits += booking.service.credits;
   state.bookings.splice(idx, 1);
+  saveBookingsToStorage();
   updateCreditDisplay();
   showToast(`Booking cancelled. ${booking.service.credits} credits refunded.`, 'info');
   renderBookings(document.getElementById('mainContent'));
