@@ -10,6 +10,7 @@ const ownerState = {
       service: OWNER_VENDOR.services[0],
       date: new Date(2026, 3, 25),
       slots: ['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM'],
+      capacity: 10,
       booked: ['10:00 AM'],
     },
     {
@@ -17,6 +18,7 @@ const ownerState = {
       service: OWNER_VENDOR.services[1],
       date: new Date(2026, 3, 28),
       slots: ['9:00 AM', '11:00 AM', '3:00 PM'],
+      capacity: 5,
       booked: [],
     },
   ],
@@ -43,6 +45,7 @@ const ownerState = {
   addForm: {
     serviceName: '',
     duration: '',
+    capacity: 1,
     date: null,
     selectedSlots: [],
     calendarMonth: new Date().getMonth(),
@@ -57,9 +60,173 @@ const ALL_SLOTS = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadServicesFromStorage();
+  loadOpeningsFromStorage();
   ownerNav('listings');
   updateBadge();
 });
+
+/* ── Services localStorage ── */
+let ownerServices = [];
+let ownerServicesNextId = 1;
+
+function loadServicesFromStorage() {
+  const stored = localStorage.getItem(`jopass_services_${OWNER_VENDOR.id}`);
+  if (stored) {
+    ownerServices = JSON.parse(stored);
+    ownerServicesNextId = Math.max(...ownerServices.map(s => s.id), 0) + 1;
+  } else {
+    // seed with vendor's existing services
+    ownerServices = OWNER_VENDOR.services.map(s => ({
+      id: s.id,
+      name: s.name,
+      duration: s.duration,
+      price: s.price,
+      jopassPrice: s.jopassPrice,
+      credits: s.jopassPrice,
+    }));
+    ownerServicesNextId = Math.max(...ownerServices.map(s => s.id), 0) + 1;
+    saveServicesToStorage();
+  }
+}
+
+function saveServicesToStorage() {
+  localStorage.setItem(`jopass_services_${OWNER_VENDOR.id}`, JSON.stringify(ownerServices));
+}
+
+/* ── My Services view ── */
+function renderServices(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h2>My Services</h2>
+    </div>
+    <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">
+      These are your fixed offerings that customers can book anytime.
+    </p>
+
+    ${ownerServices.map(s => `
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:8px;">
+          <div>
+            <div style="font-weight:600; font-size:.9rem;">${s.name}</div>
+            <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${s.duration || '—'}</div>
+          </div>
+          <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); padding:4px 10px; flex-shrink:0;" onclick="removeService(${s.id})">✕</button>
+        </div>
+        <div style="display:flex; gap:16px;">
+          <div>
+            <div style="font-size:.7rem; color:var(--text-muted);">Regular</div>
+            <div style="font-size:.9rem; text-decoration:line-through; color:var(--text-muted);">${parseFloat(s.price).toFixed(2)} JOD</div>
+          </div>
+          <div>
+            <div style="font-size:.7rem; color:var(--text-muted);">JoPass Price</div>
+            <div style="font-size:.9rem; font-weight:700; color:var(--primary);">${parseFloat(s.jopassPrice).toFixed(2)} JOD</div>
+          </div>
+          <div style="margin-left:auto; text-align:right;">
+            <div style="font-size:.7rem; color:var(--text-muted);">Discount</div>
+            <div style="font-size:.9rem; font-weight:600; color:var(--success);">${Math.round((1 - s.jopassPrice / s.price) * 100)}% off</div>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+
+    ${ownerServices.length === 0 ? `
+      <div class="empty-state" style="padding:24px 0;">
+        <div class="icon">🛎️</div>
+        <h3>No Services Yet</h3>
+        <p>Add your first service below.</p>
+      </div>
+    ` : ''}
+
+    <div class="card" style="margin-top:8px; border:2px dashed var(--border); box-shadow:none;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">+ Add New Service</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
+          <input id="svcName" type="text" placeholder="e.g. Hot Yoga Class"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
+            oninput="updateAddServiceBtn()">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <input id="svcDuration" type="text" placeholder="e.g. 60 min"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <div style="flex:1;">
+            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
+            <input id="svcPrice" type="number" min="0" step="0.5" placeholder="15.00"
+              style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
+              oninput="updateAddServiceBtn()">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">JoPass Price (JOD)</label>
+            <input id="svcJopassPrice" type="number" min="0" step="0.5" placeholder="10.00"
+              style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
+              oninput="updateAddServiceBtn()">
+          </div>
+        </div>
+        <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Service</button>
+      </div>
+    </div>
+  `;
+}
+
+function updateAddServiceBtn() {
+  const name   = document.getElementById('svcName')?.value.trim();
+  const price  = parseFloat(document.getElementById('svcPrice')?.value);
+  const jPrice = parseFloat(document.getElementById('svcJopassPrice')?.value);
+  const btn    = document.getElementById('addServiceBtn');
+  if (btn) btn.disabled = !(name && price > 0 && jPrice > 0 && jPrice <= price);
+}
+
+function addService() {
+  const name    = document.getElementById('svcName').value.trim();
+  const duration = document.getElementById('svcDuration').value.trim();
+  const price   = parseFloat(document.getElementById('svcPrice').value);
+  const jPrice  = parseFloat(document.getElementById('svcJopassPrice').value);
+  if (!name || !price || !jPrice || jPrice > price) return;
+
+  ownerServices.push({
+    id: ownerServicesNextId++,
+    name,
+    duration: duration || null,
+    price,
+    jopassPrice: jPrice,
+    credits: jPrice,
+  });
+  saveServicesToStorage();
+  showOwnerToast('Service added!', 'success');
+  renderServices(document.getElementById('ownerMain'));
+}
+
+function removeService(id) {
+  ownerServices = ownerServices.filter(s => s.id !== id);
+  saveServicesToStorage();
+  showOwnerToast('Service removed.', 'info');
+  renderServices(document.getElementById('ownerMain'));
+}
+
+/* ── localStorage sync ── */
+function saveOpeningsToStorage() {
+  const serialized = ownerState.openings.map(o => ({
+    ...o,
+    vendorId: OWNER_VENDOR.id,
+    date: o.date.toISOString(),
+  }));
+  localStorage.setItem('jopass_openings', JSON.stringify(serialized));
+}
+
+function loadOpeningsFromStorage() {
+  const stored = localStorage.getItem('jopass_openings');
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    ownerState.openings = parsed.map(o => ({ ...o, date: new Date(o.date) }));
+    ownerState.nextId = Math.max(...ownerState.openings.map(o => o.id), 0) + 1;
+  } else {
+    saveOpeningsToStorage(); // seed storage with defaults
+  }
+}
 
 /* ── View Mode ── */
 function setViewMode(mode) {
@@ -80,6 +247,7 @@ function ownerNav(view) {
   });
   const main = document.getElementById('ownerMain');
   switch (view) {
+    case 'services': renderServices(main); break;
     case 'listings': renderListings(main); break;
     case 'add':      renderAddOpening(main); break;
     case 'received': renderReceived(main); break;
@@ -127,8 +295,10 @@ function renderListings(container) {
       </div>
     ` : openings.map(o => {
       const dateStr = o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-      const available = o.slots.filter(s => !o.booked.includes(s)).length;
-      const isFull = available === 0;
+      const capacity = o.capacity || 1;
+      const totalBooked = o.booked.length;
+      const totalCapacity = o.slots.length * capacity;
+      const isFull = totalBooked >= totalCapacity;
       return `
         <div class="card" style="margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
@@ -140,25 +310,25 @@ function renderListings(container) {
               <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px;
                 background:${isFull ? 'rgba(225,112,85,.1)' : 'rgba(0,184,148,.1)'};
                 color:${isFull ? 'var(--danger)' : 'var(--success)'};">
-                ${isFull ? 'Full' : `${available} open`}
+                ${isFull ? 'Full' : `${totalCapacity - totalBooked} open`}
               </span>
               <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); padding:4px 10px;" onclick="removeOpening(${o.id})">✕</button>
             </div>
           </div>
           <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
             ${o.slots.map(slot => {
-              const isBooked = o.booked.includes(slot);
+              const bookedCount = o.booked.filter(b => b === slot).length;
+              const slotFull = bookedCount >= capacity;
               return `<span style="
                 padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500;
-                background:${isBooked ? 'var(--bg)' : 'rgba(0,184,148,.12)'};
-                color:${isBooked ? 'var(--text-muted)' : 'var(--success)'};
-                border:1px solid ${isBooked ? 'var(--border)' : 'rgba(0,184,148,.3)'};
-                text-decoration:${isBooked ? 'line-through' : 'none'};
-              ">${slot}${isBooked ? ' ·  booked' : ''}</span>`;
+                background:${slotFull ? 'var(--bg)' : 'rgba(0,184,148,.12)'};
+                color:${slotFull ? 'var(--text-muted)' : 'var(--success)'};
+                border:1px solid ${slotFull ? 'var(--border)' : 'rgba(0,184,148,.3)'};
+              ">${slot} · ${bookedCount}/${capacity}</span>`;
             }).join('')}
           </div>
           <div style="font-size:.78rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px; margin-top:2px;">
-            ${o.slots.length} slots total · ${o.booked.length} booked · ${available} remaining
+            ${o.slots.length} time slots · ${capacity} seat${capacity !== 1 ? 's' : ''} each · ${totalBooked} booked · ${totalCapacity - totalBooked} remaining
           </div>
         </div>
       `;
@@ -168,6 +338,7 @@ function renderListings(container) {
 
 function removeOpening(id) {
   ownerState.openings = ownerState.openings.filter(o => o.id !== id);
+  saveOpeningsToStorage();
   showOwnerToast('Opening removed.', 'info');
   renderListings(document.getElementById('ownerMain'));
 }
@@ -219,6 +390,13 @@ function renderAddOpening(container) {
         value="${f.duration}"
         oninput="ownerState.addForm.duration = this.value"
         style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:6px;">Slots Available per Time <span style="font-weight:400; color:var(--text-muted);">(1–100)</span></label>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <input id="ownerCapacity" type="range" min="1" max="100" value="${f.capacity}"
+          oninput="ownerState.addForm.capacity = parseInt(this.value); document.getElementById('ownerCapacityVal').textContent = this.value"
+          style="flex:1; accent-color:var(--primary);">
+        <span id="ownerCapacityVal" style="font-size:1.1rem; font-weight:700; color:var(--primary); min-width:36px; text-align:right;">${f.capacity}</span>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:14px;">
@@ -291,18 +469,21 @@ function ownerSubmitOpening() {
     service: { name: f.serviceName.trim(), duration: f.duration.trim() || null },
     date: new Date(f.date),
     slots: [...f.selectedSlots].sort((a, b) => ALL_SLOTS.indexOf(a) - ALL_SLOTS.indexOf(b)),
+    capacity: f.capacity,
     booked: [],
   });
 
   ownerState.addForm = {
     serviceName: '',
     duration: '',
+    capacity: 1,
     date: null,
     selectedSlots: [],
     calendarMonth: new Date().getMonth(),
     calendarYear: new Date().getFullYear(),
   };
 
+  saveOpeningsToStorage();
   showOwnerToast('Opening published!', 'success');
   ownerNav('listings');
 }

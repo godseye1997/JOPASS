@@ -103,7 +103,9 @@ function renderBrowse(container) {
 
 function renderVendorCards(vendors) {
   return vendors.map(v => {
-    const cheapest = v.services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
+    const services = getServicesForVendor(v.id);
+    if (!services.length) return '';
+    const cheapest = services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
     const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
     return `
       <div class="vendor-card" onclick="navigateTo('vendor', ${v.id})">
@@ -124,9 +126,28 @@ function renderVendorCards(vendors) {
 }
 
 /* ── Vendor Detail ── */
+function getServicesForVendor(vendorId) {
+  const stored = localStorage.getItem(`jopass_services_${vendorId}`);
+  if (stored) return JSON.parse(stored);
+  return VENDORS.find(v => v.id === vendorId)?.services || [];
+}
+
+function getOpeningsForVendor(vendorId) {
+  const stored = localStorage.getItem('jopass_openings');
+  if (!stored) return [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return JSON.parse(stored)
+    .filter(o => o.vendorId === vendorId && new Date(o.date) >= today)
+    .map(o => ({ ...o, date: new Date(o.date) }))
+    .sort((a, b) => a.date - b.date);
+}
+
 function renderVendorDetail(container) {
   const v = state.selectedVendor;
   if (!v) return navigateTo('browse');
+
+  const openings = getOpeningsForVendor(v.id);
+  const services = getServicesForVendor(v.id);
 
   container.innerHTML = `
     <div class="page-header">
@@ -138,9 +159,9 @@ function renderVendorDetail(container) {
       <h3>${v.icon} ${v.name}</h3>
       <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${v.description}</p>
     </div>
-    <h4 style="margin-bottom:12px;">Available Services</h4>
+    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Available Services</h4>` : ''}
     <div class="grid grid-2">
-      ${v.services.map(s => {
+      ${services.map(s => {
         const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
         return `
         <div class="card" style="cursor:pointer;" onclick="openBookingModal(${v.id}, ${s.id})">
@@ -162,13 +183,71 @@ function renderVendorDetail(container) {
         </div>
       `}).join('')}
     </div>
+
+    ${openings.length > 0 ? `
+      <h4 style="margin:20px 0 12px;">Open Slots</h4>
+      ${openings.map(o => {
+        const capacity = o.capacity || 1;
+        const dateStr = o.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return `
+          <div class="card" style="margin-bottom:12px;">
+            <div style="margin-bottom:10px;">
+              <div style="font-weight:600; font-size:.9rem;">${o.service.name}</div>
+              <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${dateStr}${o.service.duration ? ' · ' + o.service.duration : ''}</div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              ${o.slots.map(slot => {
+                const bookedCount = o.booked.filter(b => b === slot).length;
+                const isFull = bookedCount >= capacity;
+                return `
+                  <button
+                    onclick="${isFull ? '' : `reserveOpeningSlot(${o.id}, '${slot}')`}"
+                    style="padding:7px 14px; border-radius:var(--radius-sm); font-size:.8rem; font-weight:500; cursor:${isFull ? 'default' : 'pointer'};
+                      border:2px solid ${isFull ? 'var(--border)' : 'var(--primary)'};
+                      background:${isFull ? 'var(--bg)' : 'transparent'};
+                      color:${isFull ? 'var(--text-muted)' : 'var(--primary)'};">
+                    ${slot}${capacity > 1 ? ` · ${capacity - bookedCount} left` : ''}${isFull ? ' · Full' : ''}
+                  </button>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }).join('')}
+    ` : ''}
   `;
+}
+
+function reserveOpeningSlot(openingId, slot) {
+  const stored = localStorage.getItem('jopass_openings');
+  if (!stored) return;
+  const openings = JSON.parse(stored);
+  const opening = openings.find(o => o.id === openingId);
+  if (!opening) return;
+
+  const capacity = opening.capacity || 1;
+  const bookedCount = opening.booked.filter(b => b === slot).length;
+  if (bookedCount >= capacity) return;
+
+  opening.booked.push(slot);
+  localStorage.setItem('jopass_openings', JSON.stringify(openings));
+
+  state.bookings.push({
+    id: Date.now(),
+    vendor: state.selectedVendor,
+    service: { name: opening.service.name, duration: opening.service.duration, credits: 0, jopassPrice: 0 },
+    date: new Date(opening.date),
+    time: slot,
+    status: 'confirmed',
+  });
+
+  showToast(`Reserved ${slot} for ${opening.service.name}!`, 'success');
+  renderVendorDetail(document.getElementById('mainContent'));
 }
 
 /* ── Booking Modal ── */
 function openBookingModal(vendorId, serviceId) {
   const vendor = VENDORS.find(v => v.id === vendorId);
-  const service = vendor.services.find(s => s.id === serviceId);
+  const services = getServicesForVendor(vendorId);
+  const service = services.find(s => s.id === serviceId);
   state.selectedVendor = vendor;
   state.selectedService = service;
   state.selectedDate = null;
@@ -412,10 +491,144 @@ function renderCredits(container) {
 
 function buyCredits(packId) {
   const pack = CREDIT_PACKS.find(p => p.id === packId);
-  state.credits += pack.credits;
-  updateCreditDisplay();
-  showToast(`Added ${pack.credits} credits to your balance!`, 'success');
-  renderCredits(document.getElementById('mainContent'));
+  openPaymentModal(pack);
+}
+
+/* ── Payment Modal ── */
+function openPaymentModal(pack) {
+  state.selectedPack = pack;
+  const body = document.getElementById('paymentModalBody');
+
+  body.innerHTML = `
+    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; color:#fff;">
+      <div style="font-size:.75rem; opacity:.8; margin-bottom:4px;">Purchasing</div>
+      <div style="font-size:1.1rem; font-weight:700;">${pack.label} — ${pack.credits} Credits</div>
+      <div style="font-size:1.5rem; font-weight:800; margin-top:4px;">${pack.price.toFixed(2)} JOD</div>
+    </div>
+
+    <div id="cardPreview" style="
+      background:linear-gradient(135deg,#2d3436,#636e72);
+      border-radius:12px; padding:18px; margin-bottom:20px; color:#fff; font-family:monospace;
+      display:flex; flex-direction:column; gap:10px; min-height:96px; position:relative;
+    ">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:.7rem; opacity:.7; letter-spacing:.05em;">CARD NUMBER</span>
+        <span id="cardBrand" style="font-size:1rem; font-weight:700; letter-spacing:.05em; opacity:.9;"></span>
+      </div>
+      <div id="cardNumPreview" style="font-size:1rem; letter-spacing:.18em; opacity:.9;">•••• •••• •••• ••••</div>
+      <div style="display:flex; justify-content:space-between;">
+        <div>
+          <div style="font-size:.6rem; opacity:.6; margin-bottom:2px;">CARDHOLDER</div>
+          <div id="cardNamePreview" style="font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; opacity:.85;">YOUR NAME</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:.6rem; opacity:.6; margin-bottom:2px;">EXPIRES</div>
+          <div id="cardExpiryPreview" style="font-size:.8rem; letter-spacing:.05em; opacity:.85;">MM/YY</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div>
+        <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:6px;">Cardholder Name</label>
+        <input id="cardName" type="text" placeholder="Yazeed Hijazi" autocomplete="cc-name"
+          oninput="updateCardPreview()"
+          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+      </div>
+      <div>
+        <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:6px;">Card Number</label>
+        <input id="cardNumber" type="text" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number"
+          oninput="formatCardNumber(this); updateCardPreview()"
+          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text); letter-spacing:.05em;">
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1;">
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:6px;">Expiry</label>
+          <input id="cardExpiry" type="text" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp"
+            oninput="formatExpiry(this); updateCardPreview()"
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:6px;">CVV</label>
+          <input id="cardCVV" type="password" placeholder="•••" maxlength="4" autocomplete="cc-csc"
+            oninput="updateCardPreview()"
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('payBtn').textContent = `Pay ${pack.price.toFixed(2)} JOD`;
+  document.getElementById('payBtn').disabled = true;
+  document.getElementById('paymentModal').classList.add('open');
+}
+
+function closePaymentModal() {
+  document.getElementById('paymentModal').classList.remove('open');
+}
+
+function formatCardNumber(input) {
+  const digits = input.value.replace(/\D/g, '').slice(0, 16);
+  input.value = digits.match(/.{1,4}/g)?.join(' ') || digits;
+}
+
+function formatExpiry(input) {
+  const digits = input.value.replace(/\D/g, '').slice(0, 4);
+  input.value = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+}
+
+function updateCardPreview() {
+  const name    = document.getElementById('cardName')?.value.trim() || '';
+  const number  = document.getElementById('cardNumber')?.value || '';
+  const expiry  = document.getElementById('cardExpiry')?.value || '';
+  const cvv     = document.getElementById('cardCVV')?.value || '';
+  const digits  = number.replace(/\D/g, '');
+
+  // Card number preview
+  const padded = digits.padEnd(16, '•');
+  const grouped = padded.match(/.{1,4}/g).join(' ');
+  document.getElementById('cardNumPreview').textContent = grouped;
+
+  // Cardholder name
+  document.getElementById('cardNamePreview').textContent = name.toUpperCase() || 'YOUR NAME';
+
+  // Expiry
+  document.getElementById('cardExpiryPreview').textContent = expiry || 'MM/YY';
+
+  // Brand detection
+  const brand = digits[0] === '4' ? 'VISA' : digits[0] === '5' ? 'MASTERCARD' : digits.startsWith('34') || digits.startsWith('37') ? 'AMEX' : '';
+  document.getElementById('cardBrand').textContent = brand;
+
+  // Card gradient by brand
+  const preview = document.getElementById('cardPreview');
+  const gradients = {
+    VISA:       'linear-gradient(135deg,#1a1a6e,#2d5be3)',
+    MASTERCARD: 'linear-gradient(135deg,#8b0000,#c0392b)',
+    AMEX:       'linear-gradient(135deg,#006241,#00a878)',
+  };
+  preview.style.background = gradients[brand] || 'linear-gradient(135deg,#2d3436,#636e72)';
+
+  // Enable pay button when all fields are valid
+  const validNumber  = digits.length === 16;
+  const validExpiry  = /^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry);
+  const validCVV     = cvv.length >= 3;
+  const validName    = name.length > 0;
+  document.getElementById('payBtn').disabled = !(validNumber && validExpiry && validCVV && validName);
+}
+
+function processPayment() {
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+
+  setTimeout(() => {
+    const pack = state.selectedPack;
+    state.credits += pack.credits;
+    updateCreditDisplay();
+    closePaymentModal();
+    showToast(`${pack.credits} credits added to your balance!`, 'success');
+    renderCredits(document.getElementById('mainContent'));
+  }, 1800);
 }
 
 /* ── Bookings View ── */

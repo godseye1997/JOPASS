@@ -106,6 +106,21 @@
     </div>
   </div>
 
+  <!-- Payment Modal -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Complete Payment</h3>
+        <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="paymentModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closePaymentModal()">Cancel</button>
+        <button class="btn btn-primary" id="payBtn" disabled onclick="processPayment()">Pay</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toasts -->
   <div class="toast-container" id="toastContainer"></div>
 

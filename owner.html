@@ -38,6 +38,9 @@
         </div>
         <div style="padding:8px 24px 16px; font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase;">Owner Portal</div>
         <nav class="sidebar-nav">
+          <a href="#" data-view="services" onclick="ownerNav('services'); return false;">
+            <span class="icon">🛎️</span> My Services
+          </a>
           <a href="#" class="active" data-view="listings" onclick="ownerNav('listings'); return false;">
             <span class="icon">📋</span> My Openings
           </a>
@@ -66,6 +69,10 @@
 
       <!-- Bottom Tab Bar -->
       <nav class="bottom-nav">
+        <a href="#" class="bottom-nav-item" data-view="services" onclick="ownerNav('services'); return false;">
+          <span class="bottom-nav-icon">🛎️</span>
+          <span class="bottom-nav-label">Services</span>
+        </a>
         <a href="#" class="bottom-nav-item active" data-view="listings" onclick="ownerNav('listings'); return false;">
           <span class="bottom-nav-icon">📋</span>
           <span class="bottom-nav-label">Openings</span>
