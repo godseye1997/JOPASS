@@ -59,9 +59,12 @@ function loadReviewsFromStorage() {
 document.addEventListener('DOMContentLoaded', () => {
   loadBookingsFromStorage();
   loadReviewsFromStorage();
+  checkCancelledBookings();
+  scheduleReminders();
   updateCreditDisplay();
   navigateTo('browse');
   setInterval(checkBookingStatuses, 30000);
+  setInterval(() => { checkCancelledBookings(); scheduleReminders(); }, 30000);
 });
 
 /* ── GMT+3 date helpers ── */
@@ -70,6 +73,74 @@ function fmtDate(date) {
 }
 function fmtDateLong(date) {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: TZ });
+}
+
+/* ── Notifications ── */
+function sendNotification(title, body) {
+  if (Notification.permission !== 'granted') return;
+  new Notification(title, { body, icon: '⚡' });
+}
+
+function requestNotifications() {
+  if (!('Notification' in window)) {
+    showToast('Notifications are not supported in this browser.', 'error');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    showToast('Notifications are already enabled.', 'info');
+    scheduleReminders();
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    showToast('Notifications are blocked. Go to your browser settings → Site Settings → Notifications and allow this page.', 'error');
+    return;
+  }
+  Notification.requestPermission().then(permission => {
+    if (permission === 'granted') {
+      showToast('Notifications enabled!', 'success');
+      scheduleReminders();
+    } else {
+      showToast('Notifications blocked. You can allow them in browser settings.', 'error');
+    }
+    if (state.currentView === 'profile') renderProfile(document.getElementById('mainContent'));
+  });
+}
+
+const _scheduledReminders = new Set();
+
+function scheduleReminders() {
+  if (Notification.permission !== 'granted') return;
+  loadBookingsFromStorage();
+  state.bookings
+    .filter(b => b.status === 'confirmed')
+    .forEach(b => {
+      const key = `reminder_${b.id}`;
+      if (_scheduledReminders.has(key)) return;
+      const sessionTime = getBookingDateTime(b);
+      const reminderTime = new Date(sessionTime.getTime() - 60 * 60 * 1000);
+      const delay = reminderTime.getTime() - Date.now();
+      if (delay > 0) {
+        _scheduledReminders.add(key);
+        setTimeout(() => {
+          sendNotification('Session Reminder ⚡', `Your ${b.service.name} at ${b.vendor?.name || 'venue'} starts in 1 hour!`);
+        }, delay);
+      }
+    });
+}
+
+function checkCancelledBookings() {
+  loadBookingsFromStorage();
+  const notified = JSON.parse(localStorage.getItem('jopass_notified_cancellations') || '[]');
+  let changed = false;
+  state.bookings
+    .filter(b => b.status === 'cancelled' && !notified.includes(b.id))
+    .forEach(b => {
+      sendNotification('Booking Cancelled', `Your ${b.service.name} at ${b.vendor?.name || 'venue'} has been cancelled by the venue.`);
+      showToast(`Your ${b.service.name} booking was cancelled by the venue.`, 'error');
+      notified.push(b.id);
+      changed = true;
+    });
+  if (changed) localStorage.setItem('jopass_notified_cancellations', JSON.stringify(notified));
 }
 
 /* ── Session completion ── */
@@ -131,7 +202,8 @@ function navigateTo(view, vendorId) {
     case 'vendor': renderVendorDetail(main); break;
     case 'credits': renderCredits(main); break;
     case 'bookings': renderBookings(main); break;
-    case 'profile': renderProfile(main); break;
+    case 'profile':   renderProfile(main); break;
+    case 'settings':  renderSettings(main); break;
   }
 
   // Scroll main to top
@@ -257,12 +329,19 @@ function getOpeningsForVendor(vendorId) {
     .sort((a, b) => a.date - b.date);
 }
 
+function getVendorProfile(vendorId) {
+  const stored = localStorage.getItem(`jopass_profile_${vendorId}`);
+  return stored ? JSON.parse(stored) : null;
+}
+
 function renderVendorDetail(container) {
   const v = state.selectedVendor;
   if (!v) return navigateTo('browse');
 
   const openings = getOpeningsForVendor(v.id);
   const services = getServicesForVendor(v.id);
+  const profile  = getVendorProfile(v.id);
+  const photos   = profile?.photos?.filter(u => u) || [];
 
   container.innerHTML = `
     <div class="page-header">
@@ -270,10 +349,64 @@ function renderVendorDetail(container) {
         <a href="#" onclick="navigateTo('browse'); return false;" style="color:var(--text-muted); font-size:.9rem;">← Back</a>
       </h2>
     </div>
+
+    ${photos.length > 0 ? `
+      <div style="display:flex; gap:6px; overflow-x:auto; margin-bottom:16px; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
+        ${photos.map(url => `
+          <img src="${url}" onerror="this.style.display='none'"
+            style="height:140px; min-width:200px; object-fit:cover; border-radius:var(--radius-sm); flex-shrink:0;">
+        `).join('')}
+      </div>
+    ` : ''}
+
     <div style="margin-bottom:16px;">
       <h3>${v.icon} ${v.name}</h3>
-      <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${v.description}</p>
+      <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description}</p>
+
+      ${profile?.phone || profile?.website ? `
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+          ${profile.phone ? `<a href="tel:${profile.phone}" style="font-size:.82rem; color:var(--primary);">📞 ${profile.phone}</a>` : ''}
+          ${profile.website ? `<a href="${profile.website}" target="_blank" style="font-size:.82rem; color:var(--primary);">🌐 Website</a>` : ''}
+        </div>
+      ` : ''}
+
+      ${profile?.socials ? (() => {
+        const s = profile.socials;
+        const links = [
+          s.instagram ? `<a href="https://instagram.com/${s.instagram.replace('@','')}" target="_blank" style="font-size:1.3rem;" title="Instagram">📸</a>` : '',
+          s.facebook  ? `<a href="${s.facebook.startsWith('http') ? s.facebook : 'https://'+s.facebook}" target="_blank" style="font-size:1.3rem;" title="Facebook">👥</a>` : '',
+          s.whatsapp  ? `<a href="https://wa.me/${s.whatsapp.replace(/\D/g,'')}" target="_blank" style="font-size:1.3rem;" title="WhatsApp">💬</a>` : '',
+          s.twitter   ? `<a href="https://twitter.com/${s.twitter.replace('@','')}" target="_blank" style="font-size:1.3rem;" title="Twitter">🐦</a>` : '',
+        ].filter(Boolean).join('');
+        return links ? `<div style="display:flex; gap:12px; margin-top:10px;">${links}</div>` : '';
+      })() : ''}
     </div>
+
+    ${profile?.amenities?.length > 0 ? `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">AMENITIES</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${profile.amenities.map(a => `
+            <span style="padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; background:var(--bg); border:1px solid var(--border);">${a}</span>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${profile?.location?.address || profile?.location?.lat ? `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">LOCATION</div>
+        ${profile.location.address ? `<p style="font-size:.85rem; margin-bottom:8px;">📍 ${profile.location.address}</p>` : ''}
+        ${profile.location.lat ? `
+          <iframe
+            src="https://www.openstreetmap.org/export/embed.html?bbox=${profile.location.lng-0.008},${profile.location.lat-0.008},${profile.location.lng+0.008},${profile.location.lat+0.008}&layer=mapnik&marker=${profile.location.lat},${profile.location.lng}"
+            style="width:100%; height:160px; border:1px solid var(--border); border-radius:var(--radius-sm);" loading="lazy">
+          </iframe>
+          <a href="https://www.google.com/maps?q=${profile.location.lat},${profile.location.lng}" target="_blank"
+            style="display:block; text-align:center; font-size:.78rem; margin-top:6px; color:var(--primary);">Open in Google Maps ↗</a>
+        ` : ''}
+      </div>
+    ` : ''}
     ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Available Services</h4>` : ''}
     <div class="grid grid-2">
       ${services.map(s => {
@@ -814,21 +947,23 @@ function renderBookings(container) {
       </div>
     ` : state.bookings.map(b => {
       const dateStr = fmtDate(b.date);
-      const review  = state.reviews[b.id];
+      const review      = state.reviews[b.id];
       const isCompleted = b.status === 'completed';
+      const isCancelled = b.status === 'cancelled';
 
       const stars = review
         ? `<div style="color:#f4b942; font-size:1rem; margin-top:4px;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div>`
         : '';
 
-      const action = isCompleted
-        ? (review
-            ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>`
-            : `<button class="btn btn-sm btn-primary" onclick="openReviewModal(${b.id})">Review</button>`)
-        : `<button class="btn btn-sm btn-outline" onclick="cancelBooking(${b.id})">Cancel</button>`;
+      const action = isCancelled ? '' :
+        isCompleted
+          ? (review
+              ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>`
+              : `<button class="btn btn-sm btn-primary" onclick="openReviewModal(${b.id})">Review</button>`)
+          : `<button class="btn btn-sm btn-outline" onclick="cancelBooking(${b.id})">Cancel</button>`;
 
       return `
-        <div class="booking-item" style="${isCompleted ? 'opacity:.85;' : ''}">
+        <div class="booking-item" style="${isCancelled ? 'opacity:.6;' : isCompleted ? 'opacity:.85;' : ''}">
           <div class="booking-icon" style="background:${b.vendor.color}15; color:${b.vendor.color};">
             ${b.vendor.icon}
           </div>
@@ -837,8 +972,10 @@ function renderBookings(container) {
             <p>${b.vendor.name} · ${dateStr} at ${b.time}</p>
             ${stars}
           </div>
-          <span class="booking-status ${isCompleted ? '' : 'confirmed'}" style="${isCompleted && !review ? 'background:rgba(0,184,148,.1); color:var(--success);' : ''}">
-            ${isCompleted ? 'Completed' : 'Confirmed'}
+          <span class="booking-status ${isCompleted ? '' : isCancelled ? '' : 'confirmed'}" style="
+            ${isCancelled ? 'background:rgba(225,112,85,.1); color:var(--danger);' :
+              isCompleted && !review ? 'background:rgba(0,184,148,.1); color:var(--success);' : ''}">
+            ${isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Confirmed'}
           </span>
           ${action}
         </div>
@@ -920,6 +1057,12 @@ function cancelBooking(id) {
 
 /* ── Profile View ── */
 function renderProfile(container) {
+  const notifSupported = 'Notification' in window;
+  const notifPerm = notifSupported ? Notification.permission : 'unsupported';
+  const notifLabel = notifPerm === 'granted' ? 'On' : notifPerm === 'denied' ? 'Blocked' : 'Off';
+  const notifBg    = notifPerm === 'granted' ? 'rgba(0,184,148,.1)' : notifPerm === 'denied' ? 'rgba(225,112,85,.1)' : 'rgba(253,203,110,.2)';
+  const notifColor = notifPerm === 'granted' ? 'var(--success)' : notifPerm === 'denied' ? 'var(--danger)' : 'var(--warning)';
+
   container.innerHTML = `
     <div class="page-header">
       <h2>Profile</h2>
@@ -950,12 +1093,14 @@ function renderProfile(container) {
       <span class="pm-label">Buy Credits</span>
       <span class="pm-arrow">›</span>
     </div>
-    <div class="profile-menu-item">
+    <div class="profile-menu-item" onclick="requestNotifications()" style="cursor:pointer;">
       <span class="pm-icon">🔔</span>
       <span class="pm-label">Notifications</span>
-      <span class="pm-arrow">›</span>
+      <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; margin-left:auto; background:${notifBg}; color:${notifColor};">
+        ${notifLabel}
+      </span>
     </div>
-    <div class="profile-menu-item">
+    <div class="profile-menu-item" onclick="navigateTo('settings')">
       <span class="pm-icon">⚙️</span>
       <span class="pm-label">Settings</span>
       <span class="pm-arrow">›</span>
@@ -972,6 +1117,118 @@ function renderProfile(container) {
       <span class="pm-arrow">›</span>
     </a>
   `;
+}
+
+/* ── Settings View ── */
+const SETTINGS_SECTIONS = [
+  {
+    id: 'about',
+    icon: '⚡',
+    title: 'About JoPass',
+    content: `
+      <p style="margin-bottom:10px;">JoPass is a pass-based booking platform that lets you discover and book fitness, wellness, and beauty services at discounted rates across Jordan.</p>
+      <p style="margin-bottom:10px;">Buy a credit pack once and use your credits to book sessions at any partnered venue — no subscriptions, no hidden fees.</p>
+      <p style="color:var(--text-muted); font-size:.8rem;">Version 1.0.0 · Built with ❤️ in Jordan</p>
+    `,
+  },
+  {
+    id: 'support',
+    icon: '🎧',
+    title: 'Help & Support',
+    content: `
+      <p style="margin-bottom:12px;">We're here to help. Reach out through any of the channels below:</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a href="mailto:support@jopass.jo" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
+          <span style="font-size:1.2rem;">📧</span>
+          <div><div style="font-weight:600; font-size:.88rem;">Email Support</div><div style="font-size:.78rem; color:var(--text-muted);">support@jopass.jo</div></div>
+        </a>
+        <a href="https://wa.me/96279000000" target="_blank" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
+          <span style="font-size:1.2rem;">💬</span>
+          <div><div style="font-weight:600; font-size:.88rem;">WhatsApp</div><div style="font-size:.78rem; color:var(--text-muted);">+962 79 000 0000</div></div>
+        </a>
+        <a href="https://instagram.com/jopassjo" target="_blank" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
+          <span style="font-size:1.2rem;">📸</span>
+          <div><div style="font-weight:600; font-size:.88rem;">Instagram</div><div style="font-size:.78rem; color:var(--text-muted);">@jopassjo</div></div>
+        </a>
+      </div>
+      <p style="font-size:.78rem; color:var(--text-muted); margin-top:12px;">Support hours: Sun–Thu, 9:00 AM – 6:00 PM (GMT+3)</p>
+    `,
+  },
+  {
+    id: 'terms',
+    icon: '📄',
+    title: 'Terms & Conditions',
+    content: `
+      <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
+      <p style="margin-bottom:10px;">By using JoPass you agree to the following terms:</p>
+      <p style="margin-bottom:8px;"><strong>1. Credits</strong> — Credits are non-refundable once purchased. Unused credits do not expire.</p>
+      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel a confirmed booking up to 2 hours before the session start time for a full credit refund. Cancellations within 2 hours are non-refundable.</p>
+      <p style="margin-bottom:8px;"><strong>3. Venue Changes</strong> — JoPass is not responsible for cancellations made by venues. In such cases, full credits are automatically refunded.</p>
+      <p style="margin-bottom:8px;"><strong>4. Account</strong> — You are responsible for keeping your login credentials secure. JoPass is not liable for unauthorised account access.</p>
+      <p style="margin-bottom:8px;"><strong>5. Conduct</strong> — Users must comply with the rules and policies of each venue. JoPass reserves the right to suspend accounts for misconduct.</p>
+      <p style="margin-bottom:8px;"><strong>6. Changes</strong> — JoPass may update these terms at any time. Continued use of the app constitutes acceptance of the updated terms.</p>
+    `,
+  },
+  {
+    id: 'privacy',
+    icon: '🔒',
+    title: 'Privacy Policy',
+    content: `
+      <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
+      <p style="margin-bottom:10px;">Your privacy matters to us. Here's how JoPass handles your data:</p>
+      <p style="margin-bottom:8px;"><strong>What we collect</strong> — Name, email address, phone number, and booking history.</p>
+      <p style="margin-bottom:8px;"><strong>How we use it</strong> — To process bookings, send reminders, and improve the service. We do not sell your data to third parties.</p>
+      <p style="margin-bottom:8px;"><strong>Data storage</strong> — Your data is stored securely and retained only as long as your account is active.</p>
+      <p style="margin-bottom:8px;"><strong>Notifications</strong> — Push notifications are optional and can be disabled at any time from your Profile settings.</p>
+      <p style="margin-bottom:8px;"><strong>Cookies</strong> — JoPass uses local storage to save your session and preferences on your device only.</p>
+      <p style="margin-bottom:8px;"><strong>Your rights</strong> — You may request deletion of your account and data at any time by contacting support@jopass.jo.</p>
+    `,
+  },
+  {
+    id: 'faq',
+    icon: '❓',
+    title: 'FAQ',
+    content: `
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do credits work?</p><p style="font-size:.83rem; color:var(--text-muted);">1 credit = 1 JOD. Buy a pack and spend credits on any service. The JoPass price is always lower than the walk-in rate.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">Can I use credits at any venue?</p><p style="font-size:.83rem; color:var(--text-muted);">Yes — credits work across all partnered venues on the platform.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">Do credits expire?</p><p style="font-size:.83rem; color:var(--text-muted);">No. Your credits stay in your account until you use them.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I cancel a booking?</p><p style="font-size:.83rem; color:var(--text-muted);">Go to My Bookings and tap Cancel on a confirmed booking. Credits are refunded immediately.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">What if a venue cancels my session?</p><p style="font-size:.83rem; color:var(--text-muted);">Your credits are automatically refunded and you'll receive a notification.</p></div>
+      </div>
+    `,
+  },
+];
+
+function renderSettings(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h2>
+        <a href="#" onclick="navigateTo('profile'); return false;" style="color:var(--text-muted); font-size:.9rem;">← Back</a>
+      </h2>
+    </div>
+    <h2 style="margin-bottom:20px;">Settings</h2>
+    ${SETTINGS_SECTIONS.map(s => `
+      <div class="card" style="margin-bottom:10px; padding:0; overflow:hidden;">
+        <div onclick="toggleSettingsSection('${s.id}')" style="display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer;">
+          <span style="font-size:1.2rem; width:28px; text-align:center;">${s.icon}</span>
+          <span style="flex:1; font-weight:500; font-size:.92rem;">${s.title}</span>
+          <span id="arrow_${s.id}" style="color:var(--text-muted); font-size:.9rem; transition:transform .2s;">›</span>
+        </div>
+        <div id="section_${s.id}" style="display:none; padding:0 16px 16px; font-size:.83rem; line-height:1.65; color:var(--text); border-top:1px solid var(--border);">
+          <div style="padding-top:14px;">${s.content}</div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function toggleSettingsSection(id) {
+  const section = document.getElementById(`section_${id}`);
+  const arrow   = document.getElementById(`arrow_${id}`);
+  const open    = section.style.display !== 'none';
+  section.style.display = open ? 'none' : 'block';
+  arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
 }
 
 /* ── Toast ── */

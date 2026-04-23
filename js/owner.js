@@ -155,19 +155,29 @@ function renderServices(container) {
           </div>
           <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); padding:4px 10px; flex-shrink:0;" onclick="removeService(${s.id})">✕</button>
         </div>
-        <div style="display:flex; gap:16px;">
-          <div>
-            <div style="font-size:.7rem; color:var(--text-muted);">Regular</div>
-            <div style="font-size:.9rem; text-decoration:line-through; color:var(--text-muted);">${parseFloat(s.price).toFixed(2)} JOD</div>
-          </div>
-          <div>
-            <div style="font-size:.7rem; color:var(--text-muted);">JoPass Price</div>
-            <div style="font-size:.9rem; font-weight:700; color:var(--primary);">${parseFloat(s.jopassPrice).toFixed(2)} JOD</div>
-          </div>
-          <div style="margin-left:auto; text-align:right;">
-            <div style="font-size:.7rem; color:var(--text-muted);">Discount</div>
-            <div style="font-size:.9rem; font-weight:600; color:var(--success);">${Math.round((1 - s.jopassPrice / s.price) * 100)}% off</div>
-          </div>
+        <div style="display:flex; gap:16px; align-items:center;">
+          ${s.jopassPrice < s.price ? `
+            <div>
+              <div style="font-size:.7rem; color:var(--text-muted);">Regular</div>
+              <div style="font-size:.9rem; text-decoration:line-through; color:var(--text-muted);">${parseFloat(s.price).toFixed(2)} JOD</div>
+            </div>
+            <div>
+              <div style="font-size:.7rem; color:var(--text-muted);">JoPass Price</div>
+              <div style="font-size:.9rem; font-weight:700; color:var(--primary);">${parseFloat(s.jopassPrice).toFixed(2)} JOD</div>
+            </div>
+            <div style="margin-left:auto; text-align:right;">
+              <div style="font-size:.7rem; color:var(--text-muted);">Discount</div>
+              <div style="font-size:.9rem; font-weight:600; color:var(--success);">${Math.round((1 - s.jopassPrice / s.price) * 100)}% off</div>
+            </div>
+          ` : `
+            <div>
+              <div style="font-size:.7rem; color:var(--text-muted);">Price</div>
+              <div style="font-size:.9rem; font-weight:700; color:var(--text);">${parseFloat(s.price).toFixed(2)} JOD</div>
+            </div>
+            <div style="margin-left:auto;">
+              <span style="font-size:.75rem; color:var(--text-muted); background:var(--bg); padding:3px 9px; border-radius:20px;">No discount</span>
+            </div>
+          `}
         </div>
       </div>
     `).join('')}
@@ -194,19 +204,26 @@ function renderServices(container) {
           <input id="svcDuration" type="text" placeholder="e.g. 60 min"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
-        <div style="display:flex; gap:10px;">
-          <div style="flex:1;">
-            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
-            <input id="svcPrice" type="number" min="0" step="0.5" placeholder="15.00"
-              style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
-              oninput="updateAddServiceBtn()">
-          </div>
-          <div style="flex:1;">
-            <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">JoPass Price (JOD)</label>
-            <input id="svcJopassPrice" type="number" min="0" step="0.5" placeholder="10.00"
-              style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
-              oninput="updateAddServiceBtn()">
-          </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
+          <input id="svcPrice" type="number" min="0" step="0.5" placeholder="15.00"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
+            oninput="updateAddServiceBtn()">
+        </div>
+        <div>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.88rem; font-weight:500; user-select:none;">
+            <input type="checkbox" id="svcNoDiscount" onchange="toggleJopassPriceField()"
+              style="width:16px; height:16px; accent-color:var(--primary); cursor:pointer;">
+            No discount — list at regular price
+          </label>
+        </div>
+        <div id="svcJopassWrapper">
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">JoPass Price (JOD)</label>
+          <input id="svcJopassPrice" type="number" min="0" step="0.5" placeholder="e.g. 10.00"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
+            oninput="updateAddServiceBtn()">
+        </div>
+        <div style="display:none;">
         </div>
         <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Service</button>
       </div>
@@ -214,20 +231,32 @@ function renderServices(container) {
   `;
 }
 
+function toggleJopassPriceField() {
+  const noDiscount = document.getElementById('svcNoDiscount')?.checked;
+  const wrapper    = document.getElementById('svcJopassWrapper');
+  if (wrapper) wrapper.style.display = noDiscount ? 'none' : 'block';
+  updateAddServiceBtn();
+}
+
 function updateAddServiceBtn() {
-  const name   = document.getElementById('svcName')?.value.trim();
-  const price  = parseFloat(document.getElementById('svcPrice')?.value);
-  const jPrice = parseFloat(document.getElementById('svcJopassPrice')?.value);
-  const btn    = document.getElementById('addServiceBtn');
-  if (btn) btn.disabled = !(name && price > 0 && jPrice > 0 && jPrice <= price);
+  const name       = document.getElementById('svcName')?.value.trim();
+  const price      = parseFloat(document.getElementById('svcPrice')?.value);
+  const noDiscount = document.getElementById('svcNoDiscount')?.checked;
+  const jPrice     = parseFloat(document.getElementById('svcJopassPrice')?.value);
+  const btn        = document.getElementById('addServiceBtn');
+  if (!btn) return;
+  const jopassOk = noDiscount || (jPrice > 0 && jPrice <= price);
+  btn.disabled = !(name && price > 0 && jopassOk);
 }
 
 function addService() {
-  const name    = document.getElementById('svcName').value.trim();
-  const duration = document.getElementById('svcDuration').value.trim();
-  const price   = parseFloat(document.getElementById('svcPrice').value);
-  const jPrice  = parseFloat(document.getElementById('svcJopassPrice').value);
-  if (!name || !price || !jPrice || jPrice > price) return;
+  const name       = document.getElementById('svcName').value.trim();
+  const duration   = document.getElementById('svcDuration').value.trim();
+  const price      = parseFloat(document.getElementById('svcPrice').value);
+  const noDiscount = document.getElementById('svcNoDiscount').checked;
+  const rawJ       = document.getElementById('svcJopassPrice').value.trim();
+  const jPrice     = noDiscount ? price : parseFloat(rawJ);
+  if (!name || !price || (!noDiscount && (!jPrice || jPrice > price))) return;
 
   ownerServices.push({
     id: ownerServicesNextId++,
@@ -289,6 +318,7 @@ function ownerNav(view) {
   });
   const main = document.getElementById('ownerMain');
   switch (view) {
+    case 'profile':   renderBusinessProfile(main); break;
     case 'services':  renderServices(main); break;
     case 'listings':  renderListings(main); break;
     case 'add':       renderAddOpening(main); break;
@@ -398,10 +428,40 @@ function renderListings(container) {
 }
 
 function removeOpening(id) {
+  const opening = ownerState.openings.find(o => o.id === id);
+  if (opening) cancelBookingsForOpening(opening);
   ownerState.openings = ownerState.openings.filter(o => o.id !== id);
   saveOpeningsToStorage();
-  showOwnerToast('Opening removed.', 'info');
+  showOwnerToast('Opening removed. Affected customers have been notified.', 'info');
   renderListings(document.getElementById('ownerMain'));
+}
+
+function cancelBookingsForOpening(opening) {
+  const bStored = localStorage.getItem('jopass_bookings');
+  if (!bStored) return;
+  const bookings = JSON.parse(bStored);
+  let cancelled = 0;
+  bookings.forEach(b => {
+    if (
+      b.vendorId === OWNER_VENDOR.id &&
+      new Date(b.date).toDateString() === new Date(opening.date).toDateString() &&
+      opening.slots.includes(b.time) &&
+      b.service?.name === opening.service?.name &&
+      b.status === 'confirmed'
+    ) {
+      b.status = 'cancelled';
+      cancelled++;
+    }
+  });
+  if (cancelled > 0) {
+    localStorage.setItem('jopass_bookings', JSON.stringify(bookings));
+    if (Notification.permission === 'granted') {
+      const dateStr = new Date(opening.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Amman' });
+      new Notification('Opening Cancelled — JoPass', {
+        body: `${opening.service.name} at ${OWNER_VENDOR.name} on ${dateStr} has been cancelled. ${cancelled} customer${cancelled > 1 ? 's' : ''} notified.`,
+      });
+    }
+  }
 }
 
 /* ── Add Opening ── */
@@ -621,6 +681,194 @@ function renderReceived(container) {
       `;
     }).join('')}
   `;
+}
+
+/* ── Business Profile ── */
+const AMENITY_OPTIONS = [
+  'Free Parking','Street Parking','WiFi','Air Conditioning','Changing Rooms',
+  'Showers','Lockers','Towels Provided','Coffee & Tea','Juice Bar',
+  'Music','TV Screens','Wheelchair Accessible','Family Friendly','Pet Friendly',
+];
+
+function loadProfile() {
+  const stored = localStorage.getItem(`jopass_profile_${OWNER_VENDOR.id}`);
+  return stored ? JSON.parse(stored) : {
+    about: OWNER_VENDOR.description || '',
+    phone: '',
+    website: '',
+    socials: { instagram: '', facebook: '', whatsapp: '', twitter: '' },
+    amenities: [],
+    photos: ['', '', '', '', '', ''],
+    location: { address: '', lat: null, lng: null },
+  };
+}
+
+function saveProfile(profile) {
+  localStorage.setItem(`jopass_profile_${OWNER_VENDOR.id}`, JSON.stringify(profile));
+}
+
+function renderBusinessProfile(container) {
+  const p = loadProfile();
+
+  container.innerHTML = `
+    <div class="page-header"><h2>Business Profile</h2></div>
+    <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">This information is shown to customers on your venue page.</p>
+
+    <!-- About -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">About</div>
+      <textarea id="profAbout" rows="3" placeholder="Tell customers about your business…"
+        style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; resize:none; background:var(--surface); color:var(--text);">${p.about}</textarea>
+    </div>
+
+    <!-- Contact -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Contact</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <input id="profPhone" type="tel" placeholder="Phone number (e.g. +962 79 123 4567)" value="${p.phone}"
+          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);">
+        <input id="profWebsite" type="url" placeholder="Website (e.g. https://fitzone.jo)" value="${p.website}"
+          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);">
+      </div>
+    </div>
+
+    <!-- Socials -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Social Media</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${[
+          { id: 'profIg',  icon: '📸', key: 'instagram', ph: '@fitzonegym'           },
+          { id: 'profFb',  icon: '👥', key: 'facebook',  ph: 'facebook.com/fitzone'  },
+          { id: 'profWa',  icon: '💬', key: 'whatsapp',  ph: '+962 79 123 4567'      },
+          { id: 'profTw',  icon: '🐦', key: 'twitter',   ph: '@fitzonegym'           },
+        ].map(s => `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.1rem; width:24px; text-align:center;">${s.icon}</span>
+            <input id="${s.id}" type="text" placeholder="${s.ph}" value="${p.socials[s.key] || ''}"
+              style="flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Amenities -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Amenities</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${AMENITY_OPTIONS.map(a => `
+          <label style="display:flex; align-items:center; gap:6px; padding:6px 12px; border:1.5px solid ${p.amenities.includes(a) ? 'var(--primary)' : 'var(--border)'}; border-radius:20px; cursor:pointer; font-size:.8rem; font-weight:500; background:${p.amenities.includes(a) ? 'rgba(108,92,231,.08)' : 'transparent'}; color:${p.amenities.includes(a) ? 'var(--primary)' : 'var(--text)'}; transition:all .15s;">
+            <input type="checkbox" data-amenity="${a}" ${p.amenities.includes(a) ? 'checked' : ''} style="display:none;" onchange="toggleAmenityStyle(this)">
+            ${a}
+          </label>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Photos -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Photos <span style="font-weight:400; color:var(--text-muted); font-size:.8rem;">(paste image URLs)</span></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${p.photos.map((url, i) => `
+          <div>
+            <input id="profPhoto${i}" type="url" placeholder="https://..." value="${url}"
+              oninput="updatePhotoPreview(${i})"
+              style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.85rem; background:var(--surface); color:var(--text);">
+            <div id="photoPreview${i}" style="margin-top:6px; ${url ? '' : 'display:none;'}">
+              <img src="${url}" onerror="this.parentElement.style.display='none'" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm);">
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Location -->
+    <div class="card" style="margin-bottom:20px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Location</div>
+      <input id="profAddress" type="text" placeholder="Street address, city"
+        value="${p.location.address}"
+        style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text); margin-bottom:10px;">
+      <button class="btn btn-outline btn-full" onclick="getGPSLocation()" style="margin-bottom:10px;">
+        📍 Use My Current Location
+      </button>
+      <div id="locationStatus" style="font-size:.78rem; color:var(--text-muted); margin-bottom:10px;">
+        ${p.location.lat ? `📍 Coordinates saved: ${p.location.lat.toFixed(5)}, ${p.location.lng.toFixed(5)}` : ''}
+      </div>
+      ${p.location.lat ? `
+        <iframe
+          src="https://www.openstreetmap.org/export/embed.html?bbox=${p.location.lng - 0.008},${p.location.lat - 0.008},${p.location.lng + 0.008},${p.location.lat + 0.008}&layer=mapnik&marker=${p.location.lat},${p.location.lng}"
+          style="width:100%; height:180px; border:1px solid var(--border); border-radius:var(--radius-sm);" loading="lazy">
+        </iframe>
+        <a href="https://www.google.com/maps?q=${p.location.lat},${p.location.lng}" target="_blank"
+          style="display:block; text-align:center; font-size:.8rem; margin-top:8px;">Open in Google Maps ↗</a>
+      ` : ''}
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveProfileForm()" style="margin-bottom:24px;">Save Profile</button>
+  `;
+}
+
+function toggleAmenityStyle(checkbox) {
+  const label = checkbox.closest('label');
+  const checked = checkbox.checked;
+  label.style.borderColor  = checked ? 'var(--primary)' : 'var(--border)';
+  label.style.background   = checked ? 'rgba(108,92,231,.08)' : 'transparent';
+  label.style.color        = checked ? 'var(--primary)' : 'var(--text)';
+}
+
+function updatePhotoPreview(i) {
+  const url     = document.getElementById(`profPhoto${i}`).value.trim();
+  const preview = document.getElementById(`photoPreview${i}`);
+  if (!url) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+  preview.innerHTML = `<img src="${url}" onerror="this.parentElement.style.display='none'" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm);">`;
+}
+
+function getGPSLocation() {
+  const status = document.getElementById('locationStatus');
+  if (!navigator.geolocation) {
+    status.textContent = 'Geolocation is not supported by your browser.';
+    return;
+  }
+  status.textContent = 'Getting location…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    status.textContent = `📍 Location found: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    status.style.color = 'var(--success)';
+    // Temporarily store so saveProfileForm picks it up
+    status.dataset.lat = lat;
+    status.dataset.lng = lng;
+  }, () => {
+    status.textContent = 'Could not get location. Please allow location access and try again.';
+    status.style.color = 'var(--danger)';
+  });
+}
+
+function saveProfileForm() {
+  const p = loadProfile();
+  const status = document.getElementById('locationStatus');
+
+  p.about   = document.getElementById('profAbout').value.trim();
+  p.phone   = document.getElementById('profPhone').value.trim();
+  p.website = document.getElementById('profWebsite').value.trim();
+  p.socials = {
+    instagram: document.getElementById('profIg').value.trim(),
+    facebook:  document.getElementById('profFb').value.trim(),
+    whatsapp:  document.getElementById('profWa').value.trim(),
+    twitter:   document.getElementById('profTw').value.trim(),
+  };
+  p.amenities = [...document.querySelectorAll('[data-amenity]:checked')].map(el => el.dataset.amenity);
+  p.photos = Array.from({ length: 6 }, (_, i) => document.getElementById(`profPhoto${i}`)?.value.trim() || '');
+
+  if (status.dataset.lat) {
+    p.location.lat = parseFloat(status.dataset.lat);
+    p.location.lng = parseFloat(status.dataset.lng);
+  }
+  p.location.address = document.getElementById('profAddress').value.trim();
+
+  saveProfile(p);
+  showOwnerToast('Profile saved!', 'success');
+  renderBusinessProfile(document.getElementById('ownerMain'));
 }
 
 /* ── Toast ── */
