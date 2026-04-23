@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadReviewsFromStorage();
   updateCreditDisplay();
   navigateTo('browse');
-  setInterval(checkBookingStatuses, 60000);
+  setInterval(checkBookingStatuses, 30000);
 });
 
 /* ── GMT+3 date helpers ── */
@@ -97,6 +97,7 @@ function checkBookingStatuses() {
   if (changed) {
     saveBookingsToStorage();
     if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
+    if (state.currentView === 'vendor')   renderVendorDetail(document.getElementById('mainContent'));
   }
 }
 
@@ -282,8 +283,6 @@ function renderVendorDetail(container) {
       `}).join('')}
     </div>
 
-    ${renderVendorReviews(v.id)}
-
     ${openings.length > 0 ? `
       <h4 style="margin:20px 0 12px;">Open Slots</h4>
       ${openings.map(o => {
@@ -313,6 +312,8 @@ function renderVendorDetail(container) {
           </div>`;
       }).join('')}
     ` : ''}
+
+    ${renderVendorReviews(v.id)}
   `;
 }
 

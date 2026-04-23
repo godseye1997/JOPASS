@@ -52,7 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(() => {
     checkOwnerBookingStatuses();
     updateBadge();
-  }, 60000);
+    if (ownerState.currentView === 'received') {
+      renderReceived(document.getElementById('ownerMain'));
+    }
+  }, 30000);
 });
 
 /* ── GMT+3 helper ── */
