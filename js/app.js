@@ -231,13 +231,29 @@ function getServicesForVendor(vendorId) {
   return VENDORS.find(v => v.id === vendorId)?.services || [];
 }
 
+function slotIsPast(date, slot) {
+  const d = new Date(date);
+  const m = slot.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return false;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
+  d.setHours(h, min, 0, 0);
+  return d < new Date();
+}
+
 function getOpeningsForVendor(vendorId) {
   const stored = localStorage.getItem('jopass_openings');
   if (!stored) return [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
   return JSON.parse(stored)
     .filter(o => o.vendorId === vendorId && new Date(o.date) >= today)
-    .map(o => ({ ...o, date: new Date(o.date) }))
+    .map(o => ({
+      ...o,
+      date: new Date(o.date),
+      slots: o.slots.filter(s => !slotIsPast(new Date(o.date), s)),
+    }))
+    .filter(o => o.slots.length > 0)
     .sort((a, b) => a.date - b.date);
 }
 

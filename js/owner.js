@@ -297,8 +297,30 @@ function updateBadge() {
 }
 
 /* ── My Openings ── */
+function slotIsPast(date, slot) {
+  const d = new Date(date);
+  const m = slot.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return false;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
+  d.setHours(h, min, 0, 0);
+  return d < new Date();
+}
+
 function renderListings(container) {
-  const openings = [...ownerState.openings].sort((a, b) => a.date - b.date);
+  // auto-remove openings where every slot has passed
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const before = ownerState.openings.length;
+  ownerState.openings = ownerState.openings.filter(o => {
+    if (new Date(o.date) < today) return false;
+    return o.slots.some(s => !slotIsPast(o.date, s));
+  });
+  if (ownerState.openings.length !== before) saveOpeningsToStorage();
+
+  const openings = [...ownerState.openings]
+    .sort((a, b) => a.date - b.date)
+    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.date, s)) }));
 
   container.innerHTML = `
     <div class="page-header">
