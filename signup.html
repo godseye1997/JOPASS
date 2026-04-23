@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JoPass — Sign Up</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body mode-mobile">
+
+  <!-- View Toggle -->
+  <div class="view-toggle" id="viewToggle">
+    <button class="toggle-btn active" data-mode="mobile" onclick="setLoginViewMode('mobile')">Phone</button>
+    <button class="toggle-btn" data-mode="desktop" onclick="setLoginViewMode('desktop')">Desktop</button>
+  </div>
+
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+    <div class="login-scroll">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="logo">
+            <span class="logo-icon">⚡</span>
+            <h1>JoPass</h1>
+          </div>
+          <p class="tagline">Create your account and start saving.</p>
+
+          <form id="signupForm">
+            <div class="input-group">
+              <label for="fullName">Full Name</label>
+              <input type="text" id="fullName" placeholder="Yazeed Hijazi">
+            </div>
+            <div class="input-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" placeholder="you@example.com">
+            </div>
+            <div class="input-group">
+              <label for="phone">Phone Number</label>
+              <div style="display:flex; gap:8px;">
+                <select id="phoneCode" style="padding:11px 8px; border:2px solid var(--border); border-radius:var(--radius-sm); font-size:.85rem; background:var(--surface); color:var(--text); flex-shrink:0;">
+                  <option value="+962">🇯🇴 +962</option>
+                  <option value="+966">🇸🇦 +966</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+965">🇰🇼 +965</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+1">🇺🇸 +1</option>
+                </select>
+                <input type="tel" id="phone" placeholder="79 123 4567" style="flex:1;">
+              </div>
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <div class="input-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <input type="password" id="confirmPassword" placeholder="••••••••">
+            </div>
+            <p id="formError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
+            <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+          </form>
+
+          <p class="login-footer">Already have an account? <a href="index.html">Log in</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Welcome overlay -->
+  <div id="welcomeOverlay" onclick="dismissWelcome()" style="
+    display:flex; position:fixed; inset:0; z-index:9999;
+    background:linear-gradient(135deg,#6c5ce7,#a29bfe 50%,#00cec9);
+    align-items:center; justify-content:center; flex-direction:column;
+    text-align:center; padding:40px; cursor:pointer;
+    transition:opacity .4s;
+  ">
+    <div style="font-size:3.5rem; margin-bottom:20px;">⚡</div>
+    <h1 style="color:#fff; font-size:2rem; margin-bottom:10px;">Welcome to JoPass</h1>
+    <p style="color:rgba(255,255,255,.85); font-size:1rem; margin-bottom:40px; max-width:260px; line-height:1.6;">Book amazing experiences for less. Create your account to get started.</p>
+    <div style="background:rgba(255,255,255,.2); color:#fff; font-size:.85rem; font-weight:600; padding:12px 28px; border-radius:24px; border:1.5px solid rgba(255,255,255,.4);">Tap to sign up</div>
+  </div>
+
+  <script>
+    function setLoginViewMode(mode) {
+      document.body.className = `login-body mode-${mode}`;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+
+    function dismissWelcome() {
+      const overlay = document.getElementById('welcomeOverlay');
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.style.display = 'none', 400);
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const name     = document.getElementById('fullName').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const phone    = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm  = document.getElementById('confirmPassword').value;
+      const errorEl  = document.getElementById('formError');
+
+      if (!name || !email || !phone || !password) {
+        errorEl.textContent = 'Please fill in all fields.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (password !== confirm) {
+        errorEl.textContent = 'Passwords do not match.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      errorEl.style.display = 'none';
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>

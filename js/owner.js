@@ -1,5 +1,6 @@
 /* ── Owner Portal ── */
-const OWNER_VENDOR = VENDORS.find(v => v.id === 1); // FitZone Gym as demo owner
+const _currentOwner = JSON.parse(localStorage.getItem('jopass_current_owner') || '{"vendorId":1}');
+const OWNER_VENDOR  = VENDORS.find(v => v.id === _currentOwner.vendorId) || VENDORS[0];
 
 const ownerState = {
   nextId: 3,
@@ -44,6 +45,15 @@ const ALL_SLOTS = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Populate owner identity in sidebar
+  const initials = (_currentOwner.name || OWNER_VENDOR.name).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const nameEl  = document.getElementById('ownerNameDesk');
+  const emailEl = document.getElementById('ownerEmailDesk');
+  const avatarEl = document.getElementById('ownerAvatarDesk');
+  if (nameEl)   nameEl.textContent   = _currentOwner.name || OWNER_VENDOR.name;
+  if (emailEl)  emailEl.textContent  = _currentOwner.email || '';
+  if (avatarEl) avatarEl.textContent = initials;
+
   loadServicesFromStorage();
   loadOpeningsFromStorage();
   loadBookingsAndReviews();

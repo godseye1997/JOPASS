@@ -521,7 +521,18 @@ function showTimeSlots() {
     '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM'];
 
   const seed = state.selectedDate.getDate();
-  const available = allSlots.filter((_, i) => (i * seed + 3) % 3 !== 0);
+  const isToday = state.selectedDate.toDateString() === new Date().toDateString();
+
+  const available = allSlots.filter((slot, i) => {
+    if ((i * seed + 3) % 3 === 0) return false;
+    if (isToday && slotIsPast(state.selectedDate, slot)) return false;
+    return true;
+  });
+
+  if (available.length === 0) {
+    slotsDiv.innerHTML = `<p style="font-size:.82rem; color:var(--text-muted); padding:8px 0;">No more available slots for today. Please select another date.</p>`;
+    return;
+  }
 
   slotsDiv.innerHTML = available.map(t => `
     <div class="time-slot" onclick="selectTime(this, '${t}')">${t}</div>

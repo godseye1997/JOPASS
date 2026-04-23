@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JoPass — Owner Login</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body mode-mobile">
+
+  <div class="view-toggle" id="viewToggle">
+    <button class="toggle-btn active" data-mode="mobile" onclick="setLoginViewMode('mobile')">Phone</button>
+    <button class="toggle-btn" data-mode="desktop" onclick="setLoginViewMode('desktop')">Desktop</button>
+  </div>
+
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+    <div class="login-scroll">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="logo">
+            <span class="logo-icon">⚡</span>
+            <h1>JoPass</h1>
+          </div>
+          <p class="tagline" style="margin-bottom:6px;">Owner & Admin Portal</p>
+          <p style="text-align:center; font-size:.78rem; color:var(--text-muted); margin-bottom:24px;">Access is restricted to approved business accounts.</p>
+
+          <form id="ownerLoginForm">
+            <div class="input-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" placeholder="you@business.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <p id="loginError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
+            <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+          </form>
+
+          <p class="login-footer" style="margin-top:16px;">
+            Not an approved owner? <a href="index.html">Back to customer login</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_EMAIL = 'hijaziyazeed@gmail.com';
+    const ADMIN_PASS  = 'admin123';
+
+    // Pre-seed FitZone Gym owner if the store is empty
+    if (!localStorage.getItem('jopass_approved_owners')) {
+      localStorage.setItem('jopass_approved_owners', JSON.stringify([
+        { email: 'fitzonegym@hotmail.com', password: '123', vendorId: 1, name: 'FitZone Gym' }
+      ]));
+    }
+
+    function setLoginViewMode(mode) {
+      document.body.className = `login-body mode-${mode}`;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+
+    document.getElementById('ownerLoginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const email   = document.getElementById('email').value.trim().toLowerCase();
+      const pass    = document.getElementById('password').value;
+      const errorEl = document.getElementById('loginError');
+
+      if (email === ADMIN_EMAIL && pass === ADMIN_PASS) {
+        window.location.href = 'admin.html';
+        return;
+      }
+
+      const approved = JSON.parse(localStorage.getItem('jopass_approved_owners') || '[]');
+      const owner = approved.find(o => o.email.toLowerCase() === email && o.password === pass);
+      if (owner) {
+        localStorage.setItem('jopass_current_owner', JSON.stringify(owner));
+        window.location.href = 'owner.html';
+        return;
+      }
+
+      errorEl.textContent = 'Incorrect email or password. Contact the platform admin if you need access.';
+      errorEl.style.display = 'block';
+    });
+  </script>
+</body>
+</html>
