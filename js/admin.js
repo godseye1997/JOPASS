@@ -7,36 +7,64 @@ function adminFmtDate(date) {
   });
 }
 
-/* ── Data helpers ── */
-function getAllBookings() {
-  const stored = localStorage.getItem('jopass_bookings');
-  if (!stored) return [];
-  return JSON.parse(stored).map(b => ({ ...b, date: new Date(b.date) }));
+/* ── Data helpers (Supabase) ── */
+async function getAllBookings() {
+  const { data } = await _supabase
+    .from('bookings')
+    .select('*')
+    .order('date', { ascending: false });
+  const vendors = await getAllVendors();
+  const vMap = {};
+  vendors.forEach(v => { vMap[v.id] = v; });
+  return (data || []).map(b => ({
+    id: b.id, vendorId: b.vendor_id,
+    vendor: vMap[b.vendor_id] || { name: 'Unknown', icon: '🏢', color: '#0C5467' },
+    service: { name: b.service_name, credits: b.service_credits },
+    date: new Date(b.date + 'T00:00:00'), time: b.time, status: b.status,
+  }));
 }
 
-function getAllReviews() {
-  const rStored = localStorage.getItem('jopass_reviews');
-  const bStored = localStorage.getItem('jopass_bookings');
-  if (!rStored) return [];
-  const reviews  = JSON.parse(rStored);
-  const bookings = bStored ? JSON.parse(bStored) : [];
-  return Object.values(reviews).map(r => {
-    const booking = bookings.find(b => b.id === r.bookingId);
-    return { ...r, booking };
-  });
+async function getAllReviews() {
+  const { data } = await _supabase
+    .from('reviews')
+    .select('*, bookings(date, vendor_id, vendors(name,icon))')
+    .order('created_at', { ascending: false });
+  return (data || []).map(r => ({
+    id: r.id, rating: r.rating, comment: r.comment,
+    booking: r.bookings ? {
+      date: new Date(r.bookings.date + 'T00:00:00'),
+      vendorId: r.bookings.vendor_id,
+      vendor: r.bookings.vendors,
+    } : null,
+  }));
 }
 
-function getAllOpenings() {
-  const stored = localStorage.getItem('jopass_openings');
-  return stored ? JSON.parse(stored).map(o => ({ ...o, date: new Date(o.date) })) : [];
+async function getAllOpenings() {
+  const { data } = await _supabase.from('openings').select('*').order('date');
+  return (data || []).map(o => ({
+    id: o.id, vendorId: o.vendor_id,
+    service: { name: o.service_name, duration: o.duration },
+    slots: o.slots || [], booked: o.booked_slots || [],
+    capacity: o.capacity, date: new Date(o.date + 'T00:00:00'),
+  }));
 }
 
-function getApprovedOwners() {
-  return JSON.parse(localStorage.getItem('jopass_approved_owners') || '[]');
+async function getAllVendors() {
+  const { data } = await _supabase.from('vendors').select('*').order('name');
+  return data || [];
 }
 
-function saveApprovedOwners(list) {
-  localStorage.setItem('jopass_approved_owners', JSON.stringify(list));
+async function getApprovedOwners() {
+  const { data } = await _supabase.from('approved_owners').select('*').order('created_at');
+  return data || [];
+}
+
+async function saveApprovedOwner(owner) {
+  await _supabase.from('approved_owners').upsert(owner);
+}
+
+async function deleteApprovedOwner(email) {
+  await _supabase.from('approved_owners').delete().eq('email', email);
 }
 
 /* ── Init ── */
@@ -61,20 +89,22 @@ function adminNav(view) {
   const main = document.getElementById('adminMain');
   switch (view) {
     case 'overview': renderOverview(main); break;
-    case 'owners':   renderOwners(main); break;
+    case 'owners':   renderOwners(main);   break;
     case 'bookings': renderAllBookings(main); break;
-    case 'reviews':  renderAllReviews(main); break;
+    case 'reviews':  renderAllReviews(main);  break;
   }
   main.scrollTop = 0;
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Overview ── */
-function renderOverview(container) {
-  const bookings  = getAllBookings();
-  const reviews   = getAllReviews();
-  const openings  = getAllOpenings();
-  const owners    = getApprovedOwners();
+async function renderOverview(container) {
+  container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">Loading…</div>';
+
+  const [bookings, reviews, openings, owners, vendors] = await Promise.all([
+    getAllBookings(), getAllReviews(), getAllOpenings(), getApprovedOwners(), getAllVendors(),
+  ]);
+
   const completed = bookings.filter(b => b.status === 'completed').length;
   const upcoming  = bookings.filter(b => b.status === 'confirmed').length;
 
@@ -87,7 +117,7 @@ function renderOverview(container) {
     return n + o.slots.filter(s => o.booked.filter(b => b === s).length < cap).length;
   }, 0);
 
-  const vendorStats = VENDORS.map(v => {
+  const vendorStats = vendors.map(v => {
     const vBookings = bookings.filter(b => b.vendorId === v.id);
     const vReviews  = reviews.filter(r => r.booking?.vendorId === v.id);
     const vOpenings = openings.filter(o => o.vendorId === v.id);
@@ -143,8 +173,9 @@ function renderOverview(container) {
 }
 
 /* ── Approved Owners ── */
-function renderOwners(container) {
-  const owners = getApprovedOwners();
+async function renderOwners(container) {
+  container.innerHTML = `<div class="page-header"><h2>Approved Owners</h2></div><div class="empty-state"><div class="icon" style="font-size:1.5rem;">⏳</div><p>Loading…</p></div>`;
+  const owners = await getApprovedOwners();
 
   container.innerHTML = `
     <div class="page-header"><h2>Approved Owners</h2></div>
@@ -153,7 +184,7 @@ function renderOwners(container) {
     </p>
 
     <div class="card" style="margin-bottom:20px; border:2px dashed var(--border); box-shadow:none;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:12px;">+ Add New Owner Account</div>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:12px;">+ Approve New Owner</div>
       <div style="display:flex; flex-direction:column; gap:10px;">
         <input id="newOwnerName" type="text" placeholder="Business name (e.g. FitZone Gym)"
           style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
@@ -161,16 +192,9 @@ function renderOwners(container) {
         <input id="newOwnerEmail" type="email" placeholder="owner@business.com"
           style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
           oninput="checkAddOwnerBtn()">
-        <input id="newOwnerPass" type="text" placeholder="Password"
-          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
-          oninput="checkAddOwnerBtn()">
-        <select id="newOwnerVendor"
-          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
-          onchange="checkAddOwnerBtn()">
-          <option value="">Assign to vendor…</option>
-          ${VENDORS.map(v => `<option value="${v.id}">${v.icon} ${v.name}</option>`).join('')}
-        </select>
-        <button id="addOwnerBtn" class="btn btn-primary btn-full" disabled onclick="addOwner()">Add Owner</button>
+        <input id="newOwnerPhone" type="tel" placeholder="Phone number (e.g. +962 79 123 4567)"
+          style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        <button id="addOwnerBtn" class="btn btn-primary btn-full" disabled onclick="addOwner()">Approve Owner</button>
       </div>
     </div>
 
@@ -180,64 +204,57 @@ function renderOwners(container) {
         <h3>No Owners Yet</h3>
         <p>Add an owner account above to grant portal access.</p>
       </div>
-    ` : owners.map(o => {
-      const vendor = VENDORS.find(v => v.id === o.vendorId);
-      return `
+    ` : owners.map(o => `
         <div class="card" style="margin-bottom:10px;">
           <div style="display:flex; align-items:center; gap:12px;">
             <div style="width:38px; height:38px; border-radius:50%; background:var(--primary)20; color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0;">
               ${(o.name || o.email)[0].toUpperCase()}
             </div>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:600; font-size:.88rem;">${o.name || o.email}</div>
+              <div style="font-weight:600; font-size:.88rem;">${o.name || '—'}</div>
               <div style="font-size:.75rem; color:var(--text-muted);">${o.email}</div>
-              ${vendor ? `<div style="font-size:.72rem; color:var(--accent); margin-top:2px;">${vendor.icon} ${vendor.name}</div>` : ''}
+              ${o.phone ? `<div style="font-size:.72rem; color:var(--text-muted);">${o.phone}</div>` : ''}
+              <div style="font-size:.7rem; margin-top:3px;">
+                ${o.claimed ? `<span style="color:var(--success);">✓ Account created</span>` : `<span style="color:var(--warning);">Pending signup</span>`}
+              </div>
             </div>
             <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); flex-shrink:0;" onclick="removeOwner('${o.email}')">Revoke</button>
           </div>
         </div>
-      `;
-    }).join('')}
+      `).join('')}
   `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function checkAddOwnerBtn() {
   const name  = document.getElementById('newOwnerName')?.value.trim();
   const email = document.getElementById('newOwnerEmail')?.value.trim();
-  const pass  = document.getElementById('newOwnerPass')?.value.trim();
-  const vendor = document.getElementById('newOwnerVendor')?.value;
   const btn   = document.getElementById('addOwnerBtn');
-  if (btn) btn.disabled = !(name && email && pass && vendor);
+  if (btn) btn.disabled = !(name && email);
 }
 
-function addOwner() {
-  const name     = document.getElementById('newOwnerName').value.trim();
-  const email    = document.getElementById('newOwnerEmail').value.trim().toLowerCase();
-  const password = document.getElementById('newOwnerPass').value.trim();
-  const vendorId = parseInt(document.getElementById('newOwnerVendor').value);
-  if (!name || !email || !password || !vendorId) return;
+async function addOwner() {
+  const name  = document.getElementById('newOwnerName').value.trim();
+  const email = document.getElementById('newOwnerEmail').value.trim().toLowerCase();
+  const phone = document.getElementById('newOwnerPhone').value.trim();
+  if (!name || !email) return;
 
-  const owners = getApprovedOwners();
-  if (owners.find(o => o.email === email)) {
-    showAdminToast('This email already has an account.', 'info');
-    return;
-  }
-  owners.push({ email, password, vendorId, name });
-  saveApprovedOwners(owners);
-  showAdminToast(`${name} added as owner.`, 'success');
+  const { error } = await _supabase.from('approved_owners').upsert({ email, name, phone, claimed: false });
+  if (error) { showAdminToast('Error: ' + error.message, 'error'); return; }
+  showAdminToast(`${name} approved. They can now sign up at owner-signup.html`, 'success');
   renderOwners(document.getElementById('adminMain'));
 }
 
-function removeOwner(email) {
-  const owners = getApprovedOwners().filter(o => o.email !== email);
-  saveApprovedOwners(owners);
-  showAdminToast(`Access revoked.`, 'info');
+async function removeOwner(email) {
+  await _supabase.from('approved_owners').delete().eq('email', email);
+  showAdminToast('Access revoked.', 'info');
   renderOwners(document.getElementById('adminMain'));
 }
 
 /* ── All Bookings ── */
-function renderAllBookings(container) {
-  const bookings = getAllBookings().reverse();
+async function renderAllBookings(container) {
+  container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">Loading…</div>';
+  const bookings = await getAllBookings();
 
   container.innerHTML = `
     <div class="page-header"><h2>All Bookings</h2></div>
@@ -248,7 +265,7 @@ function renderAllBookings(container) {
         <h3>No Bookings Yet</h3>
       </div>
     ` : bookings.map(b => {
-      const vendor = VENDORS.find(v => v.id === b.vendorId);
+      const vendor = b.vendor;
       const isComp = b.status === 'completed';
       return `
         <div class="card" style="margin-bottom:10px;">
@@ -271,8 +288,9 @@ function renderAllBookings(container) {
 }
 
 /* ── All Reviews ── */
-function renderAllReviews(container) {
-  const reviews = getAllReviews();
+async function renderAllReviews(container) {
+  container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">Loading…</div>';
+  const reviews = await getAllReviews();
   const avg = reviews.length
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : null;
@@ -300,7 +318,7 @@ function renderAllReviews(container) {
         <p>Reviews will appear here once customers complete and rate their sessions.</p>
       </div>
     ` : reviews.map(r => {
-      const vendor = r.booking ? VENDORS.find(v => v.id === r.booking.vendorId) : null;
+      const vendor = r.booking?.vendor || null;
       return `
         <div class="card" style="margin-bottom:10px;">
           <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:8px;">

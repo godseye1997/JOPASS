@@ -1,71 +1,185 @@
 /* ── State ── */
 const state = {
-  credits: 15,
+  userId:   null,
+  userName: '',
+  userEmail: '',
+  credits:  0,
   bookings: [],
-  reviews: {},
-  currentView: 'browse',
-  viewMode: 'mobile',
-  selectedVendor: null,
+  reviews:  {},           // bookingId  → { rating, comment }
+  servicesMap:      {},   // vendorId   → [services]
+  openingsMap:      {},   // vendorId   → [openings]
+  vendorProfilesMap:{},   // vendorId   → profile
+  vendorReviewsMap: {},   // vendorId   → [review objects]
+  currentView:   'browse',
+  viewMode:      'mobile',
+  selectedVendor:  null,
   selectedService: null,
-  selectedDate: null,
-  selectedTime: null,
+  selectedDate:    null,
+  selectedTime:    null,
   selectedReviewBookingId: null,
   selectedReviewRating: 0,
   calendarMonth: new Date().getMonth(),
-  calendarYear: new Date().getFullYear(),
+  calendarYear:  new Date().getFullYear(),
 };
 
 const TZ = 'Asia/Amman'; // GMT+3
 
-/* ── Booking & review localStorage ── */
-function saveBookingsToStorage() {
-  localStorage.setItem('jopass_bookings', JSON.stringify(
-    state.bookings.map(b => ({ ...b, vendorId: b.vendor?.id, vendor: undefined, date: b.date.toISOString() }))
-  ));
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) { window.location.href = 'index.html'; return; }
+
+  state.userId = session.user.id;
+
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div style="padding:60px 20px; text-align:center; color:var(--text-muted);">Loading…</div>';
+
+  try {
+    const d = await dbFetchInitData(state.userId);
+
+    if (d.profile) {
+      state.credits   = d.profile.credits   || 0;
+      state.userName  = d.profile.full_name  || '';
+      state.userEmail = d.profile.email      || session.user.email || '';
+    }
+
+    VENDORS = d.vendors;
+
+    // Services map
+    state.servicesMap = {};
+    d.services.forEach(s => {
+      const vid = s.vendor_id;
+      if (!state.servicesMap[vid]) state.servicesMap[vid] = [];
+      state.servicesMap[vid].push({
+        id: s.id, vendor_id: vid, name: s.name, duration: s.duration,
+        price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits,
+      });
+    });
+
+    // Openings map
+    state.openingsMap = {};
+    d.openings.forEach(o => {
+      const vid = o.vendor_id;
+      if (!state.openingsMap[vid]) state.openingsMap[vid] = [];
+      state.openingsMap[vid].push(dbParseOpening(o));
+    });
+
+    // Vendor profiles map
+    state.vendorProfilesMap = {};
+    d.vendorProfiles.forEach(p => {
+      state.vendorProfilesMap[p.vendor_id] = {
+        logoUrl:   p.logo_url,
+        about:     p.about,
+        phone:     p.phone,
+        website:   p.website,
+        socials: {
+          instagram: p.instagram,
+          facebook:  p.facebook,
+          whatsapp:  p.whatsapp,
+          twitter:   p.twitter,
+        },
+        amenities: p.amenities || [],
+        photos:    p.photos    || [],
+        location: {
+          address: p.location_address,
+          lat: p.location_lat ? parseFloat(p.location_lat) : null,
+          lng: p.location_lng ? parseFloat(p.location_lng) : null,
+        },
+      };
+    });
+
+    // All-vendor reviews map (for browse cards + vendor detail pages)
+    state.vendorReviewsMap = {};
+    d.allReviews.forEach(r => {
+      const vid = r.vendor_id;
+      if (!state.vendorReviewsMap[vid]) state.vendorReviewsMap[vid] = [];
+      state.vendorReviewsMap[vid].push({
+        rating:  r.rating,
+        comment: r.comment,
+        service: r.bookings?.service_name || '',
+        date:    r.bookings?.date ? new Date(r.bookings.date + 'T00:00:00') : new Date(r.created_at),
+      });
+    });
+
+    // User's own bookings
+    state.bookings = _parseBookings(d.bookings);
+
+    // User's reviews keyed by booking_id
+    state.reviews = {};
+    d.userReviews.forEach(r => {
+      state.reviews[r.booking_id] = { rating: r.rating, comment: r.comment, bookingId: r.booking_id };
+    });
+
+    updateCreditDisplay();
+    updateUserDisplay();
+    navigateTo('browse');
+
+    setInterval(() => { checkBookingStatuses(); refreshBookings(); }, 30000);
+    scheduleReminders();
+  } catch (err) {
+    console.error('Init error:', err);
+    main.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--danger);">Failed to load. Please refresh the page.</div>`;
+  }
+});
+
+function _parseBookings(rows) {
+  return rows.map(b => ({
+    id:       b.id,
+    vendorId: b.vendor_id,
+    vendor: b.vendors
+      ? { id: b.vendor_id, name: b.vendors.name, icon: b.vendors.icon, color: b.vendors.color }
+      : VENDORS.find(v => v.id === b.vendor_id) || { id: b.vendor_id, name: 'Unknown', icon: '🏢', color: '#0C5467' },
+    service: {
+      name:        b.service_name,
+      credits:     b.service_credits,
+      jopassPrice: parseFloat(b.service_price),
+      price:       parseFloat(b.original_price),
+    },
+    date:   new Date(b.date + 'T00:00:00'),
+    time:   b.time,
+    status: b.status,
+  }));
 }
 
-function saveReviewsToStorage() {
-  localStorage.setItem('jopass_reviews', JSON.stringify(state.reviews));
-}
+function updateUserDisplay() {
+  const name     = state.userName || 'User';
+  const email    = state.userEmail || '';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
-function loadBookingsFromStorage() {
-  const stored = localStorage.getItem('jopass_bookings');
-  if (stored) {
-    state.bookings = JSON.parse(stored).map(b => ({
-      ...b,
-      vendor: VENDORS.find(v => v.id === b.vendorId),
-      date: new Date(b.date),
-    }));
-  } else {
-    state.bookings = [{
-      id: 1,
-      vendorId: 1,
-      vendor: VENDORS.find(v => v.id === 1),
-      service: { name: 'Open Gym Session', duration: '60 min', credits: 3, jopassPrice: 3 },
-      date: new Date(2026, 3, 22),
-      time: '10:00 AM',
-      status: 'completed',
-    }];
-    saveBookingsToStorage();
+  document.querySelectorAll('.user-avatar').forEach(el => el.textContent = initials);
+  document.querySelectorAll('.user-avatar-sm').forEach(el => el.textContent = initials);
+  const nameEl  = document.querySelector('.sidebar-footer .name');
+  const emailEl = document.querySelector('.sidebar-footer .email');
+  if (nameEl)  nameEl.textContent  = name;
+  if (emailEl) emailEl.textContent = email;
+
+  const logoutLink = document.querySelector('.sidebar-footer a[href="index.html"]');
+  if (logoutLink) {
+    logoutLink.removeAttribute('href');
+    logoutLink.style.cursor = 'pointer';
+    logoutLink.onclick = e => { e.preventDefault(); signOutUser(); };
   }
 }
 
-function loadReviewsFromStorage() {
-  const stored = localStorage.getItem('jopass_reviews');
-  if (stored) state.reviews = JSON.parse(stored);
-}
+async function refreshBookings() {
+  const rows = await dbFetchUserBookings(state.userId);
+  const fresh = _parseBookings(rows);
 
-/* ── Init ── */
-document.addEventListener('DOMContentLoaded', () => {
-  loadBookingsFromStorage();
-  loadReviewsFromStorage();
-  checkCancelledBookings();
-  scheduleReminders();
-  updateCreditDisplay();
-  navigateTo('browse');
-  setInterval(checkBookingStatuses, 30000);
-  setInterval(() => { checkCancelledBookings(); scheduleReminders(); }, 30000);
-});
+  const notified = JSON.parse(localStorage.getItem('jopass_notified_cancellations') || '[]');
+  let changed = false;
+
+  fresh
+    .filter(b => b.status === 'cancelled' && !notified.includes(b.id))
+    .forEach(b => {
+      sendNotification('Booking Cancelled', `Your ${b.service.name} booking was cancelled.`);
+      showToast(`Your ${b.service.name} booking was cancelled by the venue.`, 'error');
+      notified.push(b.id);
+      changed = true;
+    });
+
+  if (changed) localStorage.setItem('jopass_notified_cancellations', JSON.stringify(notified));
+  state.bookings = fresh;
+}
 
 /* ── GMT+3 date helpers ── */
 function fmtDate(date) {
@@ -110,13 +224,12 @@ const _scheduledReminders = new Set();
 
 function scheduleReminders() {
   if (Notification.permission !== 'granted') return;
-  loadBookingsFromStorage();
   state.bookings
     .filter(b => b.status === 'confirmed')
     .forEach(b => {
       const key = `reminder_${b.id}`;
       if (_scheduledReminders.has(key)) return;
-      const sessionTime = getBookingDateTime(b);
+      const sessionTime  = getBookingDateTime(b);
       const reminderTime = new Date(sessionTime.getTime() - 60 * 60 * 1000);
       const delay = reminderTime.getTime() - Date.now();
       if (delay > 0) {
@@ -126,21 +239,6 @@ function scheduleReminders() {
         }, delay);
       }
     });
-}
-
-function checkCancelledBookings() {
-  loadBookingsFromStorage();
-  const notified = JSON.parse(localStorage.getItem('jopass_notified_cancellations') || '[]');
-  let changed = false;
-  state.bookings
-    .filter(b => b.status === 'cancelled' && !notified.includes(b.id))
-    .forEach(b => {
-      sendNotification('Booking Cancelled', `Your ${b.service.name} at ${b.vendor?.name || 'venue'} has been cancelled by the venue.`);
-      showToast(`Your ${b.service.name} booking was cancelled by the venue.`, 'error');
-      notified.push(b.id);
-      changed = true;
-    });
-  if (changed) localStorage.setItem('jopass_notified_cancellations', JSON.stringify(notified));
 }
 
 /* ── Session completion ── */
@@ -155,21 +253,19 @@ function getBookingDateTime(booking) {
   return d;
 }
 
-function checkBookingStatuses() {
+async function checkBookingStatuses() {
   const now = new Date();
-  let changed = false;
-  state.bookings.forEach(b => {
-    if (b.status === 'confirmed' && getBookingDateTime(b) < now) {
-      b.status = 'completed';
-      changed = true;
-      if (!state.reviews[b.id]) openReviewModal(b.id);
-    }
-  });
-  if (changed) {
-    saveBookingsToStorage();
-    if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
-    if (state.currentView === 'vendor')   renderVendorDetail(document.getElementById('mainContent'));
+  const toComplete = state.bookings.filter(b => b.status === 'confirmed' && getBookingDateTime(b) < now);
+  if (!toComplete.length) return;
+
+  for (const b of toComplete) {
+    b.status = 'completed';
+    await dbUpdateBookingStatus(b.id, 'completed').catch(() => {});
+    if (!state.reviews[b.id]) openReviewModal(b.id);
   }
+
+  if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
+  if (state.currentView === 'vendor')   renderVendorDetail(document.getElementById('mainContent'));
 }
 
 /* ── View Mode Toggle ── */
@@ -186,24 +282,21 @@ function navigateTo(view, vendorId) {
   state.currentView = view;
   if (vendorId) state.selectedVendor = VENDORS.find(v => v.id === vendorId);
 
-  // Update sidebar nav
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.classList.toggle('active', a.dataset.view === view);
   });
-
-  // Update bottom nav
   document.querySelectorAll('.bottom-nav-item').forEach(a => {
     a.classList.toggle('active', a.dataset.view === view);
   });
 
   const main = document.getElementById('mainContent');
   switch (view) {
-    case 'browse': renderBrowse(main); break;
-    case 'vendor': renderVendorDetail(main); break;
-    case 'credits': renderCredits(main); break;
-    case 'bookings': renderBookings(main); break;
-    case 'profile':   renderProfile(main); break;
-    case 'settings':  renderSettings(main); break;
+    case 'browse':   renderBrowse(main);        break;
+    case 'vendor':   renderVendorDetail(main);  break;
+    case 'credits':  renderCredits(main);       break;
+    case 'bookings': renderBookings(main);      break;
+    case 'profile':  renderProfile(main);       break;
+    case 'settings': renderSettings(main);      break;
   }
 
   main.scrollTop = 0;
@@ -213,11 +306,11 @@ function navigateTo(view, vendorId) {
 /* ── Credit Display ── */
 function updateCreditDisplay() {
   const sidebar = document.getElementById('creditCount');
-  const header = document.getElementById('creditCountHeader');
-  const bar = document.getElementById('creditBarCount');
+  const header  = document.getElementById('creditCountHeader');
+  const bar     = document.getElementById('creditBarCount');
   if (sidebar) sidebar.textContent = state.credits;
-  if (header) header.textContent = state.credits;
-  if (bar) bar.textContent = state.credits;
+  if (header)  header.textContent  = state.credits;
+  if (bar)     bar.textContent     = state.credits;
 }
 
 /* ── Browse View ── */
@@ -270,17 +363,20 @@ function renderVendorCards(vendors) {
     let badge, priceHtml;
     if (services.length) {
       const cheapest = services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
+      const saving   = (cheapest.price - cheapest.jopassPrice).toFixed(2);
       const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
       badge     = discount > 0 ? `<span class="badge">${discount}% OFF</span>` : '';
       priceHtml = discount > 0
-        ? `<span class="original-price" style="margin-left:0;">${toJOD(cheapest.price)} JOD</span>
-           <span class="price">From ${toJOD(cheapest.jopassPrice)} JOD</span>`
-        : `<span class="price">From ${toJOD(cheapest.price)} JOD</span>`;
+        ? `<span class="price">From ${cheapest.credits} credits</span>
+           <span style="font-size:.75rem; color:var(--success); display:block; margin-top:2px;">Save ${saving} JOD</span>`
+        : `<span class="price">From ${cheapest.credits} credits</span>`;
     } else {
       const totalSlots = openings.reduce((n, o) => n + o.slots.length, 0);
       badge     = `<span class="badge" style="background:var(--accent);">${totalSlots} Slot${totalSlots !== 1 ? 's' : ''}</span>`;
       const next = openings[0];
-      priceHtml = `<span class="price">${fmtDate(next.date)}</span>`;
+      priceHtml = next.credits
+        ? `<span class="price">From ${next.credits} credits</span>`
+        : `<span class="price">${fmtDate(next.date)}</span>`;
     }
 
     return `
@@ -301,20 +397,11 @@ function renderVendorCards(vendors) {
 
 /* ── Vendor Detail ── */
 function getReviewsForVendor(vendorId) {
-  const bStored = localStorage.getItem('jopass_bookings');
-  const rStored = localStorage.getItem('jopass_reviews');
-  if (!bStored || !rStored) return [];
-  const bookings = JSON.parse(bStored).filter(b => b.vendorId === vendorId);
-  const reviews  = JSON.parse(rStored);
-  return bookings
-    .filter(b => reviews[b.id])
-    .map(b => ({ ...reviews[b.id], service: b.service?.name, date: new Date(b.date) }));
+  return state.vendorReviewsMap?.[vendorId] || [];
 }
 
 function getServicesForVendor(vendorId) {
-  const stored = localStorage.getItem(`jopass_services_${vendorId}`);
-  if (stored) return JSON.parse(stored);
-  return VENDORS.find(v => v.id === vendorId)?.services || [];
+  return state.servicesMap?.[vendorId] || [];
 }
 
 function slotIsPast(date, slot) {
@@ -329,23 +416,19 @@ function slotIsPast(date, slot) {
 }
 
 function getOpeningsForVendor(vendorId) {
-  const stored = localStorage.getItem('jopass_openings');
-  if (!stored) return [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  return JSON.parse(stored)
-    .filter(o => o.vendorId === vendorId && new Date(o.date) >= today)
+  return (state.openingsMap?.[vendorId] || [])
+    .filter(o => o.date >= today)
     .map(o => ({
       ...o,
-      date: new Date(o.date),
-      slots: o.slots.filter(s => !slotIsPast(new Date(o.date), s)),
+      slots: o.slots.filter(s => !slotIsPast(o.date, s)),
     }))
     .filter(o => o.slots.length > 0)
     .sort((a, b) => a.date - b.date);
 }
 
 function getVendorCategory(vendor) {
-  const profile = getVendorProfile(vendor.id);
-  return profile?.category || vendor.category;
+  return vendor.category || '';
 }
 
 function vendorIcon(vendor, size) {
@@ -358,8 +441,7 @@ function vendorIcon(vendor, size) {
 }
 
 function getVendorProfile(vendorId) {
-  const stored = localStorage.getItem(`jopass_profile_${vendorId}`);
-  return stored ? JSON.parse(stored) : null;
+  return state.vendorProfilesMap?.[vendorId] || null;
 }
 
 function renderVendorDetail(container) {
@@ -389,7 +471,7 @@ function renderVendorDetail(container) {
 
     <div style="margin-bottom:16px;">
       <h3>${vendorIcon(v, '24px')} ${v.name}</h3>
-      <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description}</p>
+      <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description || ''}</p>
 
       ${profile?.phone || profile?.website ? `
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
@@ -435,6 +517,7 @@ function renderVendorDetail(container) {
         ` : ''}
       </div>
     ` : ''}
+
     ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Available Services</h4>` : ''}
     <div class="grid grid-2">
       ${services.map(s => {
@@ -444,12 +527,11 @@ function renderVendorDetail(container) {
           <div style="display:flex; justify-content:space-between; align-items:start;">
             <div>
               <h4 style="font-size:.9rem;">${s.name}</h4>
-              <p style="font-size:.8rem; color:var(--text-muted);">${s.duration}</p>
+              <p style="font-size:.8rem; color:var(--text-muted);">${s.duration || ''}</p>
             </div>
             <div style="text-align:right;">
-              <div class="original-price" style="margin-left:0; font-size:.8rem;">${toJOD(s.price)} JOD</div>
-              <div class="price" style="font-size:.95rem;">${toJOD(s.jopassPrice)} JOD</div>
-              <div style="font-size:.7rem; color:var(--text-muted);">(${s.credits} credits)</div>
+              <div class="price" style="font-size:1rem;">${s.credits} credits</div>
+              ${s.price > s.jopassPrice ? `<div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${toJOD(s.price - s.jopassPrice)} JOD</div>` : ''}
             </div>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
@@ -463,25 +545,37 @@ function renderVendorDetail(container) {
     ${openings.length > 0 ? `
       <h4 style="margin:20px 0 12px;">Open Slots</h4>
       ${openings.map(o => {
-        const capacity = o.capacity || 1;
-        const dateStr = o.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const capacity  = o.capacity || 1;
+        const dateStr   = fmtDate(o.date);
+        const hasPrice  = o.jopassPrice > 0;
+        const canAfford = !hasPrice || state.credits >= o.credits;
         return `
           <div class="card" style="margin-bottom:12px;">
-            <div style="margin-bottom:10px;">
-              <div style="font-weight:600; font-size:.9rem;">${o.service.name}</div>
-              <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${dateStr}${o.service.duration ? ' · ' + o.service.duration : ''}</div>
+            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
+              <div>
+                <div style="font-weight:600; font-size:.9rem;">${o.service.name}</div>
+                <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${dateStr}${o.service.duration ? ' · ' + o.service.duration : ''}</div>
+              </div>
+              ${hasPrice ? `
+                <div style="text-align:right;">
+                  <div style="font-weight:700; color:var(--primary); font-size:.98rem;">${o.credits} credits</div>
+                  <div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${(o.originalPrice - o.jopassPrice).toFixed(2)} JOD</div>
+                </div>
+              ` : ''}
             </div>
+            ${hasPrice && !canAfford ? `<p style="font-size:.78rem; color:var(--danger); margin-bottom:8px;">Not enough credits — <a href="#" onclick="navigateTo('credits'); return false;">buy more</a></p>` : ''}
             <div style="display:flex; flex-wrap:wrap; gap:8px;">
               ${o.slots.map(slot => {
                 const bookedCount = o.booked.filter(b => b === slot).length;
-                const isFull = bookedCount >= capacity;
+                const isFull   = bookedCount >= capacity;
+                const disabled = isFull || !canAfford;
                 return `
                   <button
-                    onclick="${isFull ? '' : `reserveOpeningSlot(${o.id}, '${slot}')`}"
-                    style="padding:7px 14px; border-radius:var(--radius-sm); font-size:.8rem; font-weight:500; cursor:${isFull ? 'default' : 'pointer'};
-                      border:2px solid ${isFull ? 'var(--border)' : 'var(--primary)'};
+                    onclick="${disabled ? '' : `reserveOpeningSlot('${o.id}', '${slot}')`}"
+                    style="padding:7px 14px; border-radius:var(--radius-sm); font-size:.8rem; font-weight:500; cursor:${disabled ? 'default' : 'pointer'};
+                      border:2px solid ${isFull ? 'var(--border)' : disabled ? 'var(--border)' : 'var(--primary)'};
                       background:${isFull ? 'var(--bg)' : 'transparent'};
-                      color:${isFull ? 'var(--text-muted)' : 'var(--primary)'};">
+                      color:${isFull ? 'var(--text-muted)' : disabled ? 'var(--text-muted)' : 'var(--primary)'};">
                     ${slot}${capacity > 1 ? ` · ${capacity - bookedCount} left` : ''}${isFull ? ' · Full' : ''}
                   </button>`;
               }).join('')}
@@ -498,7 +592,7 @@ function renderVendorReviews(vendorId) {
   const reviews = getReviewsForVendor(vendorId);
   if (reviews.length === 0) return '';
 
-  const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  const avg     = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
   const rounded = Math.round(avg * 10) / 10;
 
   return `
@@ -529,46 +623,81 @@ function renderVendorReviews(vendorId) {
   `;
 }
 
-function reserveOpeningSlot(openingId, slot) {
-  const stored = localStorage.getItem('jopass_openings');
-  if (!stored) return;
-  const openings = JSON.parse(stored);
-  const opening = openings.find(o => o.id === openingId);
+async function reserveOpeningSlot(openingId, slot) {
+  let opening = null;
+  for (const vid in state.openingsMap) {
+    const found = state.openingsMap[vid].find(o => o.id === openingId);
+    if (found) { opening = found; break; }
+  }
   if (!opening) return;
 
-  const capacity = opening.capacity || 1;
+  const capacity    = opening.capacity || 1;
   const bookedCount = opening.booked.filter(b => b === slot).length;
   if (bookedCount >= capacity) return;
 
-  opening.booked.push(slot);
-  localStorage.setItem('jopass_openings', JSON.stringify(openings));
+  const credits = opening.credits || 0;
+  if (credits > 0 && state.credits < credits) {
+    showToast('Not enough credits to book this slot.', 'error');
+    return;
+  }
 
-  state.bookings.push({
-    id: Date.now(),
-    vendorId: state.selectedVendor.id,
-    vendor: state.selectedVendor,
-    service: { name: opening.service.name, duration: opening.service.duration, credits: 0, jopassPrice: 0 },
-    date: new Date(opening.date),
-    time: slot,
-    status: 'confirmed',
-  });
+  try {
+    await dbAppendBookedSlot(openingId, slot);
 
-  saveBookingsToStorage();
-  showToast(`Reserved ${slot} for ${opening.service.name}!`, 'success');
-  renderVendorDetail(document.getElementById('mainContent'));
+    const bookingId = await dbCreateBooking({
+      userId:   state.userId,
+      vendorId: state.selectedVendor.id,
+      service: {
+        name:        opening.service.name,
+        credits:     opening.credits,
+        jopassPrice: opening.jopassPrice,
+        price:       opening.originalPrice || opening.jopassPrice,
+      },
+      date: opening.date,
+      time: slot,
+    });
+
+    if (credits > 0) {
+      state.credits -= credits;
+      await dbUpdateCredits(state.userId, state.credits);
+      updateCreditDisplay();
+    }
+
+    opening.booked.push(slot);
+
+    state.bookings.unshift({
+      id:       bookingId,
+      vendorId: state.selectedVendor.id,
+      vendor:   state.selectedVendor,
+      service: {
+        name:        opening.service.name,
+        credits:     opening.credits,
+        jopassPrice: opening.jopassPrice,
+        price:       opening.originalPrice || opening.jopassPrice,
+      },
+      date:   new Date(opening.date),
+      time:   slot,
+      status: 'confirmed',
+    });
+
+    showToast(`Reserved ${slot} for ${opening.service.name}!`, 'success');
+    renderVendorDetail(document.getElementById('mainContent'));
+  } catch (err) {
+    console.error(err);
+    showToast('Could not reserve slot. Please try again.', 'error');
+  }
 }
 
 /* ── Booking Modal ── */
 function openBookingModal(vendorId, serviceId) {
-  const vendor = VENDORS.find(v => v.id === vendorId);
-  const services = getServicesForVendor(vendorId);
-  const service = services.find(s => s.id === serviceId);
-  state.selectedVendor = vendor;
+  const vendor  = VENDORS.find(v => v.id === vendorId);
+  const service = getServicesForVendor(vendorId).find(s => s.id === serviceId);
+  state.selectedVendor  = vendor;
   state.selectedService = service;
-  state.selectedDate = null;
-  state.selectedTime = null;
-  state.calendarMonth = new Date().getMonth();
-  state.calendarYear = new Date().getFullYear();
+  state.selectedDate    = null;
+  state.selectedTime    = null;
+  state.calendarMonth   = new Date().getMonth();
+  state.calendarYear    = new Date().getFullYear();
 
   const modal = document.getElementById('bookingModal');
   modal.classList.add('open');
@@ -583,17 +712,14 @@ function renderBookingModalContent() {
   const s = state.selectedService;
   const v = state.selectedVendor;
 
-  const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
   document.getElementById('modalTitle').textContent = `Book: ${s.name}`;
   document.getElementById('modalBody').innerHTML = `
     <p style="margin-bottom:4px;"><strong>${vendorIcon(v, '20px')} ${v.name}</strong></p>
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-      <span style="font-size:.9rem; text-decoration:line-through; color:var(--text-muted);">${toJOD(s.price)} JOD</span>
-      <span style="font-size:1.05rem; font-weight:700; color:var(--primary);">${toJOD(s.jopassPrice)} JOD</span>
-      <span style="font-size:.75rem; color:var(--text-muted);">(${s.credits} credits)</span>
-      <span style="font-size:.75rem; font-weight:600; color:var(--success);">Save ${discount}%</span>
+      <span style="font-size:1.15rem; font-weight:700; color:var(--primary);">${s.credits} credits</span>
+      ${s.price > s.jopassPrice ? `<span style="font-size:.82rem; color:var(--success); font-weight:600;">Save ${toJOD(s.price - s.jopassPrice)} JOD</span>` : ''}
     </div>
-    <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:14px;">${s.duration}</p>
+    <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:14px;">${s.duration || ''}</p>
 
     <h4 style="margin-bottom:8px; font-size:.9rem;">Select a Date</h4>
     <div class="calendar" id="bookingCalendar"></div>
@@ -614,13 +740,13 @@ function renderBookingModalContent() {
 }
 
 function renderCalendar() {
-  const cal = document.getElementById('bookingCalendar');
-  const year = state.calendarYear;
+  const cal   = document.getElementById('bookingCalendar');
+  const year  = state.calendarYear;
   const month = state.calendarMonth;
   const today = new Date();
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstDay    = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthNames  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   let html = `
     <div class="calendar-header">
@@ -632,22 +758,19 @@ function renderCalendar() {
       ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="day-name">${d}</div>`).join('')}
   `;
 
-  for (let i = 0; i < firstDay; i++) {
-    html += `<div class="day disabled"></div>`;
-  }
+  for (let i = 0; i < firstDay; i++) html += `<div class="day disabled"></div>`;
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(year, month, d);
-    const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const isToday = date.toDateString() === today.toDateString();
+    const date     = new Date(year, month, d);
+    const isPast   = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isToday  = date.toDateString() === today.toDateString();
     const isSelected = state.selectedDate && date.toDateString() === state.selectedDate.toDateString();
-    const isWeekday = date.getDay() !== 0;
-    const hasSlots = !isPast && isWeekday;
+    const hasSlots = !isPast && date.getDay() !== 0;
 
     let classes = 'day';
-    if (isPast) classes += ' disabled';
-    if (isToday) classes += ' today';
-    if (isSelected) classes += ' selected';
+    if (isPast)      classes += ' disabled';
+    if (isToday)     classes += ' today';
+    if (isSelected)  classes += ' selected';
     if (hasSlots && !isPast) classes += ' has-slots';
 
     html += `<div class="${classes}" ${!isPast ? `onclick="selectDate(${year},${month},${d})"` : ''}>${d}</div>`;
@@ -660,7 +783,7 @@ function renderCalendar() {
 function changeMonth(delta) {
   state.calendarMonth += delta;
   if (state.calendarMonth > 11) { state.calendarMonth = 0; state.calendarYear++; }
-  if (state.calendarMonth < 0) { state.calendarMonth = 11; state.calendarYear--; }
+  if (state.calendarMonth < 0)  { state.calendarMonth = 11; state.calendarYear--; }
   renderCalendar();
 }
 
@@ -674,14 +797,16 @@ function selectDate(y, m, d) {
 
 function showTimeSlots() {
   const container = document.getElementById('timeSlotsContainer');
-  const slotsDiv = document.getElementById('timeSlots');
+  const slotsDiv  = document.getElementById('timeSlots');
   container.style.display = 'block';
 
   const allSlots = ['9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
     '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
-    '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM'];
+    '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM',
+    '7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM',
+    '10:00 PM','10:30 PM','11:00 PM','11:30 PM','12:00 AM'];
 
-  const seed = state.selectedDate.getDate();
+  const seed    = state.selectedDate.getDate();
   const isToday = state.selectedDate.toDateString() === new Date().toDateString();
 
   const available = allSlots.filter((slot, i) => {
@@ -710,67 +835,81 @@ function selectTime(el, time) {
 
 function showBookingSummary() {
   const container = document.getElementById('bookingSummary');
-  const content = document.getElementById('summaryContent');
+  const content   = document.getElementById('summaryContent');
   container.style.display = 'block';
 
   const dateStr = fmtDateLong(state.selectedDate);
   const s = state.selectedService;
-  const saved = s.price - s.jopassPrice;
   content.innerHTML = `
     <p><strong>Service:</strong> ${s.name}</p>
     <p><strong>Provider:</strong> ${state.selectedVendor.name}</p>
     <p><strong>Date:</strong> ${dateStr}</p>
     <p><strong>Time:</strong> ${state.selectedTime}</p>
-    <p><strong>Normal Price:</strong> <span style="text-decoration:line-through; color:var(--text-muted);">${toJOD(s.price)} JOD</span></p>
-    <p><strong>JoPass Price:</strong> <span style="color:var(--primary); font-weight:700;">${toJOD(s.jopassPrice)} JOD</span>
-      <span style="font-size:.8rem; color:var(--text-muted); margin-left:4px;">(${s.credits} credits)</span>
-    </p>
-    <p style="font-size:.85rem; color:var(--success); margin-top:4px;">
-      You save ${toJOD(saved)} JOD!
-    </p>
+    <p><strong>Price:</strong> <span style="color:var(--primary); font-weight:700;">${s.credits} credits</span></p>
+    ${s.price > s.jopassPrice ? `<p style="color:var(--success); font-weight:600;">You save ${toJOD(s.price - s.jopassPrice)} JOD!</p>` : ''}
   `;
 }
 
 function updateConfirmButton() {
-  const btn = document.getElementById('confirmBookingBtn');
+  const btn    = document.getElementById('confirmBookingBtn');
   const canBook = state.selectedDate && state.selectedTime;
   btn.disabled = !canBook;
 
   if (canBook && state.credits < state.selectedService.credits) {
     btn.textContent = 'Not Enough Credits';
-    btn.disabled = true;
+    btn.disabled    = true;
   } else if (canBook) {
-    btn.textContent = `Confirm — ${toJOD(state.selectedService.jopassPrice)} JOD (${state.selectedService.credits} credits)`;
+    btn.textContent = `Confirm — ${state.selectedService.credits} credits`;
   } else {
     btn.textContent = 'Select Date & Time';
   }
 }
 
-function confirmBooking() {
+async function confirmBooking() {
   const s = state.selectedService;
   if (state.credits < s.credits) {
     showToast('Not enough credits! Buy more to continue.', 'error');
     return;
   }
 
-  state.credits -= s.credits;
-  state.bookings.push({
-    id: Date.now(),
-    vendorId: state.selectedVendor.id,
-    vendor: state.selectedVendor,
-    service: s,
-    date: state.selectedDate,
-    time: state.selectedTime,
-    status: 'confirmed',
-  });
+  const btn = document.getElementById('confirmBookingBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Booking…';
 
-  saveBookingsToStorage();
-  updateCreditDisplay();
-  closeBookingModal();
-  showToast(`Booked ${s.name} at ${state.selectedVendor.name}!`, 'success');
+  try {
+    const bookingId = await dbCreateBooking({
+      userId:   state.userId,
+      vendorId: state.selectedVendor.id,
+      service:  s,
+      date:     state.selectedDate,
+      time:     state.selectedTime,
+    });
 
-  if (state.currentView === 'browse') renderBrowse(document.getElementById('mainContent'));
-  if (state.currentView === 'vendor') renderVendorDetail(document.getElementById('mainContent'));
+    state.credits -= s.credits;
+    await dbUpdateCredits(state.userId, state.credits);
+
+    state.bookings.unshift({
+      id:       bookingId,
+      vendorId: state.selectedVendor.id,
+      vendor:   state.selectedVendor,
+      service:  s,
+      date:     new Date(state.selectedDate),
+      time:     state.selectedTime,
+      status:   'confirmed',
+    });
+
+    updateCreditDisplay();
+    closeBookingModal();
+    showToast(`Booked ${s.name} at ${state.selectedVendor.name}!`, 'success');
+
+    if (state.currentView === 'browse') renderBrowse(document.getElementById('mainContent'));
+    if (state.currentView === 'vendor') renderVendorDetail(document.getElementById('mainContent'));
+  } catch (err) {
+    console.error(err);
+    showToast('Booking failed. Please try again.', 'error');
+    btn.disabled    = false;
+    btn.textContent = `Confirm — ${s.credits} credits`;
+  }
 }
 
 /* ── Credits View ── */
@@ -806,7 +945,7 @@ function renderCredits(container) {
         <p style="font-size:.8rem; color:var(--text-muted);">Discover discounted services nearby.</p>
       </div>
       <div style="margin-bottom:12px;">
-        <strong>3. Book & Save</strong>
+        <strong>3. Book &amp; Save</strong>
         <p style="font-size:.8rem; color:var(--text-muted);">Use credits to book at up to 50% off.</p>
       </div>
       <div>
@@ -837,8 +976,7 @@ function openPaymentModal(pack) {
     <div id="cardPreview" style="
       background:linear-gradient(135deg,#2d3436,#636e72);
       border-radius:12px; padding:18px; margin-bottom:20px; color:#fff; font-family:monospace;
-      display:flex; flex-direction:column; gap:10px; min-height:96px; position:relative;
-    ">
+      display:flex; flex-direction:column; gap:10px; min-height:96px; position:relative;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span style="font-size:.7rem; opacity:.7; letter-spacing:.05em;">CARD NUMBER</span>
         <span id="cardBrand" style="font-size:1rem; font-weight:700; letter-spacing:.05em; opacity:.9;"></span>
@@ -897,61 +1035,53 @@ function closePaymentModal() {
 
 function formatCardNumber(input) {
   const digits = input.value.replace(/\D/g, '').slice(0, 16);
-  input.value = digits.match(/.{1,4}/g)?.join(' ') || digits;
+  input.value  = digits.match(/.{1,4}/g)?.join(' ') || digits;
 }
 
 function formatExpiry(input) {
   const digits = input.value.replace(/\D/g, '').slice(0, 4);
-  input.value = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+  input.value  = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
 }
 
 function updateCardPreview() {
-  const name    = document.getElementById('cardName')?.value.trim() || '';
-  const number  = document.getElementById('cardNumber')?.value || '';
-  const expiry  = document.getElementById('cardExpiry')?.value || '';
-  const cvv     = document.getElementById('cardCVV')?.value || '';
-  const digits  = number.replace(/\D/g, '');
+  const name   = document.getElementById('cardName')?.value.trim() || '';
+  const number = document.getElementById('cardNumber')?.value || '';
+  const expiry = document.getElementById('cardExpiry')?.value || '';
+  const cvv    = document.getElementById('cardCVV')?.value || '';
+  const digits = number.replace(/\D/g, '');
 
-  // Card number preview
-  const padded = digits.padEnd(16, '•');
+  const padded  = digits.padEnd(16, '•');
   const grouped = padded.match(/.{1,4}/g).join(' ');
-  document.getElementById('cardNumPreview').textContent = grouped;
-
-  // Cardholder name
-  document.getElementById('cardNamePreview').textContent = name.toUpperCase() || 'YOUR NAME';
-
-  // Expiry
+  document.getElementById('cardNumPreview').textContent   = grouped;
+  document.getElementById('cardNamePreview').textContent  = name.toUpperCase() || 'YOUR NAME';
   document.getElementById('cardExpiryPreview').textContent = expiry || 'MM/YY';
 
-  // Brand detection
   const brand = digits[0] === '4' ? 'VISA' : digits[0] === '5' ? 'MASTERCARD' : digits.startsWith('34') || digits.startsWith('37') ? 'AMEX' : '';
   document.getElementById('cardBrand').textContent = brand;
 
-  // Card gradient by brand
-  const preview = document.getElementById('cardPreview');
   const gradients = {
-    VISA:       'linear-gradient(135deg,#1a1a6e,#2d5be3)',
+    VISA: 'linear-gradient(135deg,#1a1a6e,#2d5be3)',
     MASTERCARD: 'linear-gradient(135deg,#8b0000,#c0392b)',
-    AMEX:       'linear-gradient(135deg,#006241,#00a878)',
+    AMEX: 'linear-gradient(135deg,#006241,#00a878)',
   };
-  preview.style.background = gradients[brand] || 'linear-gradient(135deg,#2d3436,#636e72)';
+  document.getElementById('cardPreview').style.background = gradients[brand] || 'linear-gradient(135deg,#2d3436,#636e72)';
 
-  // Enable pay button when all fields are valid
-  const validNumber  = digits.length === 16;
-  const validExpiry  = /^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry);
-  const validCVV     = cvv.length >= 3;
-  const validName    = name.length > 0;
+  const validNumber = digits.length === 16;
+  const validExpiry = /^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry);
+  const validCVV    = cvv.length >= 3;
+  const validName   = name.length > 0;
   document.getElementById('payBtn').disabled = !(validNumber && validExpiry && validCVV && validName);
 }
 
 function processPayment() {
   const btn = document.getElementById('payBtn');
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = 'Processing…';
 
-  setTimeout(() => {
+  setTimeout(async () => {
     const pack = state.selectedPack;
     state.credits += pack.credits;
+    await dbUpdateCredits(state.userId, state.credits).catch(console.error);
     updateCreditDisplay();
     closePaymentModal();
     showToast(`${pack.credits} credits added to your balance!`, 'success');
@@ -974,7 +1104,7 @@ function renderBookings(container) {
         <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('browse')">Browse Deals</button>
       </div>
     ` : state.bookings.map(b => {
-      const dateStr = fmtDate(b.date);
+      const dateStr     = fmtDate(b.date);
       const review      = state.reviews[b.id];
       const isCompleted = b.status === 'completed';
       const isCancelled = b.status === 'cancelled';
@@ -989,17 +1119,17 @@ function renderBookings(container) {
         isCompleted
           ? (review
               ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>`
-              : `<button class="btn btn-sm btn-primary" onclick="openReviewModal(${b.id})">Review</button>`)
+              : `<button class="btn btn-sm btn-primary" onclick="openReviewModal('${b.id}')">Review</button>`)
           : `<button class="btn btn-sm btn-outline" style="${refundable ? '' : 'color:var(--danger);border-color:var(--danger);'}"
                title="${refundable ? 'Full credit refund' : 'No refund — within 12-hour window'}"
-               onclick="cancelBooking(${b.id})">
+               onclick="cancelBooking('${b.id}')">
                ${refundable ? 'Cancel' : 'Cancel (no refund)'}
              </button>`;
 
       return `
         <div class="booking-item" style="${isCancelled ? 'opacity:.6;' : isCompleted ? 'opacity:.85;' : ''}">
           <div class="booking-icon" style="background:${b.vendor.color}15; color:${b.vendor.color};">
-            ${vendorIcon(b.vendor, '22px') || b.vendor.icon}
+            ${vendorIcon(b.vendor, '22px') || b.vendor.icon || '🏢'}
           </div>
           <div class="booking-details">
             <h4>${b.service.name}</h4>
@@ -1023,12 +1153,12 @@ function openReviewModal(bookingId) {
   const booking = state.bookings.find(b => b.id === bookingId);
   if (!booking) return;
   state.selectedReviewBookingId = bookingId;
-  state.selectedReviewRating = 0;
+  state.selectedReviewRating    = 0;
 
   document.getElementById('reviewModalBody').innerHTML = `
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
       <div style="width:42px; height:42px; border-radius:var(--radius-sm); background:${booking.vendor.color}15; color:${booking.vendor.color}; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
-        ${booking.vendor.icon}
+        ${booking.vendor.icon || '🏢'}
       </div>
       <div>
         <div style="font-weight:600; font-size:.9rem;">${booking.service.name}</div>
@@ -1059,48 +1189,88 @@ function setReviewRating(rating) {
   document.getElementById('submitReviewBtn').disabled = false;
 }
 
-function submitReview() {
+async function submitReview() {
   const id      = state.selectedReviewBookingId;
   const rating  = state.selectedReviewRating;
   const comment = document.getElementById('reviewComment').value.trim();
   if (!id || !rating) return;
 
-  state.reviews[id] = { rating, comment, bookingId: id };
-  saveBookingsToStorage();
-  saveReviewsToStorage();
-  closeReviewModal();
-  showToast('Thanks for your review!', 'success');
-  if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
+  const booking = state.bookings.find(b => b.id === id);
+  if (!booking) return;
+
+  const btn = document.getElementById('submitReviewBtn');
+  btn.disabled = true;
+
+  try {
+    await dbSubmitReview({
+      userId:    state.userId,
+      vendorId:  booking.vendorId,
+      bookingId: id,
+      rating,
+      comment,
+    });
+
+    state.reviews[id] = { rating, comment, bookingId: id };
+
+    // Update vendor reviews map
+    const vid = booking.vendorId;
+    if (!state.vendorReviewsMap[vid]) state.vendorReviewsMap[vid] = [];
+    state.vendorReviewsMap[vid].unshift({
+      rating,
+      comment,
+      service: booking.service.name,
+      date:    new Date(booking.date),
+    });
+
+    closeReviewModal();
+    showToast('Thanks for your review!', 'success');
+    if (state.currentView === 'bookings') renderBookings(document.getElementById('mainContent'));
+  } catch (err) {
+    console.error(err);
+    showToast('Could not submit review. Please try again.', 'error');
+    btn.disabled = false;
+  }
 }
 
 function closeReviewModal() {
   document.getElementById('reviewModal').classList.remove('open');
 }
 
-function cancelBooking(id) {
+async function cancelBooking(id) {
   const idx = state.bookings.findIndex(b => b.id === id);
   if (idx === -1) return;
-  const booking = state.bookings[idx];
+  const booking    = state.bookings[idx];
   const hoursUntil = (getBookingDateTime(booking) - new Date()) / 3600000;
   const refundable = hoursUntil >= 12;
 
-  if (refundable && booking.service.credits > 0) {
-    state.credits += booking.service.credits;
-    showToast(`Booking cancelled. ${booking.service.credits} credits refunded.`, 'info');
-  } else {
-    showToast('Booking cancelled. No refund — cancellation was within the 12-hour window.', 'error');
-  }
+  try {
+    await dbUpdateBookingStatus(id, 'cancelled');
 
-  state.bookings.splice(idx, 1);
-  saveBookingsToStorage();
-  updateCreditDisplay();
-  renderBookings(document.getElementById('mainContent'));
+    if (refundable && booking.service.credits > 0) {
+      state.credits += booking.service.credits;
+      await dbUpdateCredits(state.userId, state.credits);
+      showToast(`Booking cancelled. ${booking.service.credits} credits refunded.`, 'info');
+    } else {
+      showToast('Booking cancelled. No refund — cancellation was within the 12-hour window.', 'error');
+    }
+
+    state.bookings[idx].status = 'cancelled';
+    updateCreditDisplay();
+    renderBookings(document.getElementById('mainContent'));
+  } catch (err) {
+    console.error(err);
+    showToast('Could not cancel booking. Please try again.', 'error');
+  }
 }
 
 /* ── Profile View ── */
 function renderProfile(container) {
+  const name     = state.userName || 'User';
+  const email    = state.userEmail || '';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+
   const notifSupported = 'Notification' in window;
-  const notifPerm = notifSupported ? Notification.permission : 'unsupported';
+  const notifPerm  = notifSupported ? Notification.permission : 'unsupported';
   const notifLabel = notifPerm === 'granted' ? 'On' : notifPerm === 'denied' ? 'Blocked' : 'Off';
   const notifBg    = notifPerm === 'granted' ? 'rgba(0,184,148,.1)' : notifPerm === 'denied' ? 'rgba(225,112,85,.1)' : 'rgba(253,203,110,.2)';
   const notifColor = notifPerm === 'granted' ? 'var(--success)' : notifPerm === 'denied' ? 'var(--danger)' : 'var(--warning)';
@@ -1110,10 +1280,10 @@ function renderProfile(container) {
       <h2>Profile</h2>
     </div>
     <div class="profile-card">
-      <div class="profile-avatar">TU</div>
+      <div class="profile-avatar">${initials}</div>
       <div>
-        <div style="font-weight:600;">Test User</div>
-        <div style="font-size:.8rem; color:var(--text-muted);">demo@jopass.com</div>
+        <div style="font-weight:600;">${name}</div>
+        <div style="font-size:.8rem; color:var(--text-muted);">${email}</div>
       </div>
     </div>
 
@@ -1149,15 +1319,15 @@ function renderProfile(container) {
     </div>
     <div class="profile-menu-item" onclick="navigateTo('settings')">
       <span class="pm-icon"><i data-lucide="help-circle"></i></span>
-      <span class="pm-label">Help & Support</span>
+      <span class="pm-label">Help &amp; Support</span>
       <span class="pm-arrow">›</span>
     </div>
 
-    <a href="index.html" class="profile-menu-item" style="margin-top:20px; color:var(--danger);">
+    <div class="profile-menu-item" onclick="signOutUser()" style="margin-top:20px; color:var(--danger); cursor:pointer;">
       <span class="pm-icon"><i data-lucide="log-out" style="color:var(--danger);"></i></span>
       <span class="pm-label" style="color:var(--danger);">Log Out</span>
       <span class="pm-arrow">›</span>
-    </a>
+    </div>
   `;
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -1177,7 +1347,7 @@ const SETTINGS_SECTIONS = [
   {
     id: 'support',
     icon: '<i data-lucide="headphones"></i>',
-    title: 'Help & Support',
+    title: 'Help &amp; Support',
     content: `
       <p style="margin-bottom:12px;">We're here to help. Reach out through any of the channels below:</p>
       <div style="display:flex; flex-direction:column; gap:10px;">
@@ -1189,10 +1359,6 @@ const SETTINGS_SECTIONS = [
           <span style="font-size:1.2rem;">💬</span>
           <div><div style="font-weight:600; font-size:.88rem;">WhatsApp</div><div style="font-size:.78rem; color:var(--text-muted);">+962 79 000 0000</div></div>
         </a>
-        <a href="https://instagram.com/jopassjo" target="_blank" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
-          <span style="font-size:1.2rem;">📸</span>
-          <div><div style="font-weight:600; font-size:.88rem;">Instagram</div><div style="font-size:.78rem; color:var(--text-muted);">@jopassjo</div></div>
-        </a>
       </div>
       <p style="font-size:.78rem; color:var(--text-muted); margin-top:12px;">Support hours: Sun–Thu, 9:00 AM – 6:00 PM (GMT+3)</p>
     `,
@@ -1200,16 +1366,14 @@ const SETTINGS_SECTIONS = [
   {
     id: 'terms',
     icon: '<i data-lucide="file-text"></i>',
-    title: 'Terms & Conditions',
+    title: 'Terms &amp; Conditions',
     content: `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
-      <p style="margin-bottom:10px;">By using JoPass you agree to the following terms:</p>
       <p style="margin-bottom:8px;"><strong>1. Credits</strong> — Credits are non-refundable once purchased. Unused credits do not expire.</p>
-      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel a confirmed booking up to 12 hours before the session start time for a full credit refund. Cancellations within 12 hours of the session are non-refundable.</p>
-      <p style="margin-bottom:8px;"><strong>3. Venue Changes</strong> — JoPass is not responsible for cancellations made by venues. In such cases, full credits are automatically refunded.</p>
-      <p style="margin-bottom:8px;"><strong>4. Account</strong> — You are responsible for keeping your login credentials secure. JoPass is not liable for unauthorised account access.</p>
-      <p style="margin-bottom:8px;"><strong>5. Conduct</strong> — Users must comply with the rules and policies of each venue. JoPass reserves the right to suspend accounts for misconduct.</p>
-      <p style="margin-bottom:8px;"><strong>6. Changes</strong> — JoPass may update these terms at any time. Continued use of the app constitutes acceptance of the updated terms.</p>
+      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel up to 12 hours before the session for a full credit refund. Cancellations within 12 hours are non-refundable.</p>
+      <p style="margin-bottom:8px;"><strong>3. Venue Changes</strong> — JoPass is not responsible for venue cancellations. Full credits are automatically refunded in such cases.</p>
+      <p style="margin-bottom:8px;"><strong>4. Account</strong> — You are responsible for keeping your login credentials secure.</p>
+      <p style="margin-bottom:8px;"><strong>5. Conduct</strong> — Users must comply with each venue's rules. JoPass reserves the right to suspend accounts for misconduct.</p>
     `,
   },
   {
@@ -1218,13 +1382,10 @@ const SETTINGS_SECTIONS = [
     title: 'Privacy Policy',
     content: `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
-      <p style="margin-bottom:10px;">Your privacy matters to us. Here's how JoPass handles your data:</p>
       <p style="margin-bottom:8px;"><strong>What we collect</strong> — Name, email address, phone number, and booking history.</p>
-      <p style="margin-bottom:8px;"><strong>How we use it</strong> — To process bookings, send reminders, and improve the service. We do not sell your data to third parties.</p>
+      <p style="margin-bottom:8px;"><strong>How we use it</strong> — To process bookings, send reminders, and improve the service. We do not sell your data.</p>
       <p style="margin-bottom:8px;"><strong>Data storage</strong> — Your data is stored securely and retained only as long as your account is active.</p>
-      <p style="margin-bottom:8px;"><strong>Notifications</strong> — Push notifications are optional and can be disabled at any time from your Profile settings.</p>
-      <p style="margin-bottom:8px;"><strong>Cookies</strong> — JoPass uses local storage to save your session and preferences on your device only.</p>
-      <p style="margin-bottom:8px;"><strong>Your rights</strong> — You may request deletion of your account and data at any time by contacting support@jopass.jo.</p>
+      <p style="margin-bottom:8px;"><strong>Your rights</strong> — You may request deletion of your account and data by contacting support.</p>
     `,
   },
   {
@@ -1233,11 +1394,9 @@ const SETTINGS_SECTIONS = [
     title: 'FAQ',
     content: `
       <div style="display:flex; flex-direction:column; gap:12px;">
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do credits work?</p><p style="font-size:.83rem; color:var(--text-muted);">1 credit = 1 JOD. Buy a pack and spend credits on any service. The JoPass price is always lower than the walk-in rate.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">Can I use credits at any venue?</p><p style="font-size:.83rem; color:var(--text-muted);">Yes — credits work across all partnered venues on the platform.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do credits work?</p><p style="font-size:.83rem; color:var(--text-muted);">1 JOD = 2 credits. Buy a pack and spend credits on any service. The JoPass price is always lower than the walk-in rate.</p></div>
         <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">Do credits expire?</p><p style="font-size:.83rem; color:var(--text-muted);">No. Your credits stay in your account until you use them.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I cancel a booking?</p><p style="font-size:.83rem; color:var(--text-muted);">Go to My Bookings and tap Cancel on a confirmed booking. Credits are refunded immediately.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">What if a venue cancels my session?</p><p style="font-size:.83rem; color:var(--text-muted);">Your credits are automatically refunded and you'll receive a notification.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I cancel a booking?</p><p style="font-size:.83rem; color:var(--text-muted);">Go to My Bookings and tap Cancel on a confirmed booking. Credits are refunded if cancelled 12+ hours before the session.</p></div>
       </div>
     `,
   },
@@ -1271,8 +1430,13 @@ function toggleSettingsSection(id) {
   const section = document.getElementById(`section_${id}`);
   const arrow   = document.getElementById(`arrow_${id}`);
   const open    = section.style.display !== 'none';
-  section.style.display = open ? 'none' : 'block';
-  arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(90deg)';
+  section.style.display   = open ? 'none'        : 'block';
+  arrow.style.transform   = open ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
+async function signOutUser() {
+  await _supabase.auth.signOut();
+  window.location.href = 'index.html';
 }
 
 /* ── Toast ── */

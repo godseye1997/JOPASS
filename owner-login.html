@@ -39,7 +39,10 @@
           </form>
 
           <p class="login-footer" style="margin-top:16px;">
-            Not an approved owner? <a href="index.html">Back to customer login</a>
+            New owner? <a href="owner-signup.html">Create your account</a>
+          </p>
+          <p class="login-footer">
+            Not an owner? <a href="index.html">Customer login</a>
           </p>
         </div>
       </div>
@@ -47,16 +50,6 @@
   </div>
 
   <script>
-    const ADMIN_EMAIL = 'hijaziyazeed@gmail.com';
-    const ADMIN_PASS  = 'admin123';
-
-    // Pre-seed FitZone Gym owner if the store is empty
-    if (!localStorage.getItem('jopass_approved_owners')) {
-      localStorage.setItem('jopass_approved_owners', JSON.stringify([
-        { email: 'fitzonegym@hotmail.com', password: '123', vendorId: 1, name: 'FitZone Gym' }
-      ]));
-    }
-
     function setLoginViewMode(mode) {
       document.body.className = `login-body mode-${mode}`;
       document.querySelectorAll('.toggle-btn').forEach(b => {
@@ -64,29 +57,55 @@
       });
     }
 
-    document.getElementById('ownerLoginForm').addEventListener('submit', e => {
+    document.getElementById('ownerLoginForm').addEventListener('submit', async e => {
       e.preventDefault();
       const email   = document.getElementById('email').value.trim().toLowerCase();
       const pass    = document.getElementById('password').value;
       const errorEl = document.getElementById('loginError');
+      const btn     = e.target.querySelector('button[type=submit]');
 
-      if (email === ADMIN_EMAIL && pass === ADMIN_PASS) {
+      btn.textContent = 'Signing in…';
+      btn.disabled    = true;
+
+      const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+
+      if (error) {
+        errorEl.textContent = 'Incorrect email or password.';
+        errorEl.style.display = 'block';
+        btn.textContent = 'Sign In';
+        btn.disabled    = false;
+        return;
+      }
+
+      const { data: profile, error: profileError } = await _supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        errorEl.textContent = 'Profile error: ' + profileError.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Sign In';
+        btn.disabled    = false;
+        return;
+      }
+
+      if (profile?.role === 'admin') {
         window.location.href = 'admin.html';
-        return;
-      }
-
-      const approved = JSON.parse(localStorage.getItem('jopass_approved_owners') || '[]');
-      const owner = approved.find(o => o.email.toLowerCase() === email && o.password === pass);
-      if (owner) {
-        localStorage.setItem('jopass_current_owner', JSON.stringify(owner));
+      } else if (profile?.role === 'owner') {
         window.location.href = 'owner.html';
-        return;
+      } else {
+        await _supabase.auth.signOut();
+        errorEl.textContent = `Access denied. Role is: "${profile?.role || 'not set'}"`;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Sign In';
+        btn.disabled    = false;
       }
-
-      errorEl.textContent = 'Incorrect email or password. Contact the platform admin if you need access.';
-      errorEl.style.display = 'block';
     });
   </script>
-  <script src="js/lucide.min.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
 </body>
 </html>

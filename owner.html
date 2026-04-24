@@ -61,7 +61,7 @@
               <div class="email" id="ownerEmailDesk"></div>
             </div>
           </div>
-          <a href="owner-login.html" style="display:block; margin-top:12px; font-size:.8rem; color:var(--text-muted);">← Log out</a>
+          <a href="#" onclick="ownerSignOut(); return false;" style="display:block; margin-top:12px; font-size:.8rem; color:var(--text-muted);">← Log out</a>
         </div>
       </aside>
 
@@ -92,8 +92,11 @@
 
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
   <script src="js/lucide.min.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/db.js"></script>
   <script src="js/owner.js"></script>
   <script>setViewMode('mobile'); lucide.createIcons();</script>
 </body>
