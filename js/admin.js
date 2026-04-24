@@ -66,6 +66,7 @@ function adminNav(view) {
     case 'reviews':  renderAllReviews(main); break;
   }
   main.scrollTop = 0;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Overview ── */

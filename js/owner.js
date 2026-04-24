@@ -184,7 +184,7 @@ function renderServices(container) {
 
     ${ownerServices.length === 0 ? `
       <div class="empty-state" style="padding:24px 0;">
-        <div class="icon">🛎️</div>
+        <div class="icon"><i data-lucide="layers" style="width:40px;height:40px;color:var(--primary);"></i></div>
         <h3>No Services Yet</h3>
         <p>Add your first service below.</p>
       </div>
@@ -325,6 +325,7 @@ function ownerNav(view) {
     case 'received':  loadBookingsAndReviews(); renderReceived(main); break;
   }
   main.scrollTop = 0;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function updateBadge() {
@@ -693,6 +694,8 @@ const AMENITY_OPTIONS = [
 function loadProfile() {
   const stored = localStorage.getItem(`jopass_profile_${OWNER_VENDOR.id}`);
   return stored ? JSON.parse(stored) : {
+    logoUrl: '',
+    category: OWNER_VENDOR.category || '',
     about: OWNER_VENDOR.description || '',
     phone: '',
     website: '',
@@ -713,6 +716,42 @@ function renderBusinessProfile(container) {
   container.innerHTML = `
     <div class="page-header"><h2>Business Profile</h2></div>
     <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">This information is shown to customers on your venue page.</p>
+
+    <!-- Logo -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:12px;">Business Logo</div>
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:14px;">
+        <div id="logoPreviewContainer" style="width:68px; height:68px; border-radius:var(--radius-sm); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--bg); flex-shrink:0;">
+          ${p.logoUrl
+            ? `<img src="${p.logoUrl}" style="width:100%; height:100%; object-fit:contain;">`
+            : `<span style="font-size:2.2rem;">${OWNER_VENDOR.icon}</span>`}
+        </div>
+        <div style="flex:1;">
+          <label class="btn btn-outline" style="cursor:pointer; font-size:.85rem; display:inline-block; margin-bottom:6px;">
+            Upload Image
+            <input type="file" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+          </label>
+          <p style="font-size:.75rem; color:var(--text-muted);">PNG or JPG · shown on your venue page</p>
+        </div>
+      </div>
+      <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:6px;">Or paste image URL</label>
+      <div style="display:flex; gap:8px;">
+        <input id="profLogoUrl" type="url" placeholder="https://..."
+          value="${p.logoUrl && p.logoUrl.startsWith('http') ? p.logoUrl : ''}"
+          style="flex:1; padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);">
+        <button class="btn btn-outline" onclick="applyLogoUrl()" style="padding:9px 14px; flex-shrink:0;">Apply</button>
+      </div>
+    </div>
+
+    <!-- Category -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Category</div>
+      <select id="profCategory"
+        style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        <option value="">Select a category…</option>
+        ${VENUE_CATEGORIES.map(c => `<option value="${c}" ${p.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+      </select>
+    </div>
 
     <!-- About -->
     <div class="card" style="margin-bottom:14px;">
@@ -737,13 +776,13 @@ function renderBusinessProfile(container) {
       <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Social Media</div>
       <div style="display:flex; flex-direction:column; gap:10px;">
         ${[
-          { id: 'profIg',  icon: '📸', key: 'instagram', ph: '@fitzonegym'           },
-          { id: 'profFb',  icon: '👥', key: 'facebook',  ph: 'facebook.com/fitzone'  },
-          { id: 'profWa',  icon: '💬', key: 'whatsapp',  ph: '+962 79 123 4567'      },
-          { id: 'profTw',  icon: '🐦', key: 'twitter',   ph: '@fitzonegym'           },
+          { id: 'profIg', key: 'instagram', ph: '@fitzonegym',          color:'#E1306C', icon:`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>` },
+          { id: 'profFb', key: 'facebook',  ph: 'facebook.com/fitzone',  color:'#1877F2', icon:`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>` },
+          { id: 'profWa', key: 'whatsapp',  ph: '+962 79 123 4567',      color:'#25D366', icon:`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>` },
+          { id: 'profTw', key: 'twitter',   ph: '@fitzonegym',           color:'#000000', icon:`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>` },
         ].map(s => `
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.1rem; width:24px; text-align:center;">${s.icon}</span>
+            <span style="width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:${s.color}; flex-shrink:0;">${s.icon}</span>
             <input id="${s.id}" type="text" placeholder="${s.ph}" value="${p.socials[s.key] || ''}"
               style="flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);">
           </div>
@@ -807,6 +846,35 @@ function renderBusinessProfile(container) {
   `;
 }
 
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const p = loadProfile();
+    p.logoUrl = e.target.result;
+    saveProfile(p);
+    _updateLogoPreview(e.target.result);
+    showOwnerToast('Logo updated!', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyLogoUrl() {
+  const url = document.getElementById('profLogoUrl')?.value.trim();
+  if (!url) return;
+  const p = loadProfile();
+  p.logoUrl = url;
+  saveProfile(p);
+  _updateLogoPreview(url);
+  showOwnerToast('Logo updated!', 'success');
+}
+
+function _updateLogoPreview(url) {
+  const el = document.getElementById('logoPreviewContainer');
+  if (el) el.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;">`;
+}
+
 function toggleAmenityStyle(checkbox) {
   const label = checkbox.closest('label');
   const checked = checkbox.checked;
@@ -848,6 +916,9 @@ function saveProfileForm() {
   const p = loadProfile();
   const status = document.getElementById('locationStatus');
 
+  const urlInput = document.getElementById('profLogoUrl')?.value.trim();
+  if (urlInput) p.logoUrl = urlInput;
+  p.category = document.getElementById('profCategory')?.value || p.category;
   p.about   = document.getElementById('profAbout').value.trim();
   p.phone   = document.getElementById('profPhone').value.trim();
   p.website = document.getElementById('profWebsite').value.trim();

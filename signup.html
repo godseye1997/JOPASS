@@ -21,8 +21,7 @@
       <div class="login-container">
         <div class="login-card">
           <div class="logo">
-            <span class="logo-icon">⚡</span>
-            <h1>JoPass</h1>
+            <img src="logo.png" alt="JoPass" style="height:72px; object-fit:contain;">
           </div>
           <p class="tagline">Create your account and start saving.</p>
 
@@ -70,12 +69,12 @@
   <!-- Welcome overlay -->
   <div id="welcomeOverlay" onclick="dismissWelcome()" style="
     display:flex; position:fixed; inset:0; z-index:9999;
-    background:linear-gradient(135deg,#6c5ce7,#a29bfe 50%,#00cec9);
+    background:linear-gradient(135deg,#083D4F,#0C5467 50%,#1ECFC3);
     align-items:center; justify-content:center; flex-direction:column;
     text-align:center; padding:40px; cursor:pointer;
     transition:opacity .4s;
   ">
-    <div style="font-size:3.5rem; margin-bottom:20px;">⚡</div>
+    <div style="margin-bottom:20px;"><img src="icon.png" alt="JoPass" style="height:72px; object-fit:contain;"></div>
     <h1 style="color:#fff; font-size:2rem; margin-bottom:10px;">Welcome to JoPass</h1>
     <p style="color:rgba(255,255,255,.85); font-size:1rem; margin-bottom:40px; max-width:260px; line-height:1.6;">Book amazing experiences for less. Create your account to get started.</p>
     <div style="background:rgba(255,255,255,.2); color:#fff; font-size:.85rem; font-weight:600; padding:12px 28px; border-radius:24px; border:1.5px solid rgba(255,255,255,.4);">Tap to sign up</div>
@@ -124,5 +123,6 @@
       window.location.href = 'dashboard.html';
     });
   </script>
+  <script src="js/lucide.min.js"></script>
 </body>
 </html>

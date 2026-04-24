@@ -20,8 +20,7 @@
       <!-- Mobile Header -->
       <header class="mobile-header">
         <div class="mobile-header-left">
-          <span class="logo-icon">⚡</span>
-          <span class="mobile-logo">JoPass</span>
+          <img src="logo.png" alt="JoPass" style="height:28px; object-fit:contain;">
         </div>
         <div class="mobile-header-right">
           <span style="font-size:.7rem; font-weight:700; color:var(--danger); background:rgba(225,112,85,.12); padding:3px 9px; border-radius:12px;">ADMIN</span>
@@ -32,22 +31,21 @@
       <!-- Desktop Sidebar -->
       <aside class="sidebar">
         <div class="logo">
-          <span class="logo-icon">⚡</span>
-          <h1>JoPass</h1>
+          <img src="logo.png" alt="JoPass" style="height:48px; object-fit:contain;">
         </div>
         <div style="padding:8px 24px 16px; font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--danger); text-transform:uppercase;">Admin</div>
         <nav class="sidebar-nav">
           <a href="#" class="active" data-view="overview" onclick="adminNav('overview'); return false;">
-            <span class="icon">📊</span> Overview
+            <span class="icon"><i data-lucide="layout-dashboard"></i></span> Overview
           </a>
           <a href="#" data-view="owners" onclick="adminNav('owners'); return false;">
-            <span class="icon">🏢</span> Approved Owners
+            <span class="icon"><i data-lucide="users"></i></span> Approved Owners
           </a>
           <a href="#" data-view="bookings" onclick="adminNav('bookings'); return false;">
-            <span class="icon">📅</span> All Bookings
+            <span class="icon"><i data-lucide="calendar"></i></span> All Bookings
           </a>
           <a href="#" data-view="reviews" onclick="adminNav('reviews'); return false;">
-            <span class="icon">⭐</span> Reviews
+            <span class="icon"><i data-lucide="star"></i></span> Reviews
           </a>
         </nav>
         <div class="sidebar-footer">
@@ -67,19 +65,19 @@
       <!-- Bottom Tab Bar -->
       <nav class="bottom-nav">
         <a href="#" class="bottom-nav-item active" data-view="overview" onclick="adminNav('overview'); return false;">
-          <span class="bottom-nav-icon">📊</span>
+          <span class="bottom-nav-icon"><i data-lucide="layout-dashboard"></i></span>
           <span class="bottom-nav-label">Overview</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="owners" onclick="adminNav('owners'); return false;">
-          <span class="bottom-nav-icon">🏢</span>
+          <span class="bottom-nav-icon"><i data-lucide="users"></i></span>
           <span class="bottom-nav-label">Owners</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="bookings" onclick="adminNav('bookings'); return false;">
-          <span class="bottom-nav-icon">📅</span>
+          <span class="bottom-nav-icon"><i data-lucide="calendar"></i></span>
           <span class="bottom-nav-label">Bookings</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="reviews" onclick="adminNav('reviews'); return false;">
-          <span class="bottom-nav-icon">⭐</span>
+          <span class="bottom-nav-icon"><i data-lucide="star"></i></span>
           <span class="bottom-nav-label">Reviews</span>
         </a>
       </nav>
@@ -88,8 +86,9 @@
 
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="js/lucide.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
-  <script>setViewMode('mobile');</script>
+  <script>setViewMode('mobile'); lucide.createIcons();</script>
 </body>
 </html>

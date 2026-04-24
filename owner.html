@@ -21,8 +21,7 @@
       <!-- Mobile Header -->
       <header class="mobile-header">
         <div class="mobile-header-left">
-          <span class="logo-icon">⚡</span>
-          <span class="mobile-logo">JoPass</span>
+          <img src="logo.png" alt="JoPass" style="height:28px; object-fit:contain;">
         </div>
         <div class="mobile-header-right">
           <span style="font-size:.7rem; color:var(--text-muted); font-weight:600; margin-right:10px;">OWNER</span>
@@ -33,25 +32,24 @@
       <!-- Desktop Sidebar -->
       <aside class="sidebar">
         <div class="logo">
-          <span class="logo-icon">⚡</span>
-          <h1>JoPass</h1>
+          <img src="logo.png" alt="JoPass" style="height:48px; object-fit:contain;">
         </div>
         <div style="padding:8px 24px 16px; font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase;">Owner Portal</div>
         <nav class="sidebar-nav">
           <a href="#" data-view="profile" onclick="ownerNav('profile'); return false;">
-            <span class="icon">🏢</span> Business Profile
+            <span class="icon"><i data-lucide="building-2"></i></span> Business Profile
           </a>
           <a href="#" class="active" data-view="listings" onclick="ownerNav('listings'); return false;">
-            <span class="icon">📋</span> My Openings
+            <span class="icon"><i data-lucide="clock"></i></span> My Openings
           </a>
           <a href="#" data-view="add" onclick="ownerNav('add'); return false;">
-            <span class="icon">➕</span> Add Opening
+            <span class="icon"><i data-lucide="plus-circle"></i></span> Add Opening
           </a>
           <a href="#" data-view="services" onclick="ownerNav('services'); return false;">
-            <span class="icon">🛎️</span> My Services
+            <span class="icon"><i data-lucide="layers"></i></span> My Services
           </a>
           <a href="#" data-view="received" onclick="ownerNav('received'); return false;">
-            <span class="icon">📥</span> Bookings Received
+            <span class="icon"><i data-lucide="inbox"></i></span> Bookings Received
             <span id="sidebarBadge" style="display:none; margin-left:auto; background:var(--danger); color:#fff; font-size:.7rem; padding:2px 7px; border-radius:12px;"></span>
           </a>
         </nav>
@@ -73,19 +71,19 @@
       <!-- Bottom Tab Bar -->
       <nav class="bottom-nav">
         <a href="#" class="bottom-nav-item" data-view="profile" onclick="ownerNav('profile'); return false;">
-          <span class="bottom-nav-icon">🏢</span>
+          <span class="bottom-nav-icon"><i data-lucide="building-2"></i></span>
           <span class="bottom-nav-label">Profile</span>
         </a>
         <a href="#" class="bottom-nav-item active" data-view="listings" onclick="ownerNav('listings'); return false;">
-          <span class="bottom-nav-icon">📋</span>
+          <span class="bottom-nav-icon"><i data-lucide="clock"></i></span>
           <span class="bottom-nav-label">Openings</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="services" onclick="ownerNav('services'); return false;">
-          <span class="bottom-nav-icon">🛎️</span>
+          <span class="bottom-nav-icon"><i data-lucide="layers"></i></span>
           <span class="bottom-nav-label">Services</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="received" onclick="ownerNav('received'); return false;">
-          <span class="bottom-nav-icon">📥</span>
+          <span class="bottom-nav-icon"><i data-lucide="inbox"></i></span>
           <span class="bottom-nav-label">Bookings</span>
         </a>
       </nav>
@@ -94,8 +92,9 @@
 
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="js/lucide.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/owner.js"></script>
-  <script>setViewMode('mobile');</script>
+  <script>setViewMode('mobile'); lucide.createIcons();</script>
 </body>
 </html>

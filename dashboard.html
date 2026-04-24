@@ -22,12 +22,11 @@
       <!-- Mobile Header -->
       <header class="mobile-header">
         <div class="mobile-header-left">
-          <span class="logo-icon">⚡</span>
-          <span class="mobile-logo">JoPass</span>
+          <img src="logo.png" alt="JoPass" style="height:28px; object-fit:contain;">
         </div>
         <div class="mobile-header-right">
           <div class="credit-pill" onclick="navigateTo('credits')">
-            <span>💳</span>
+            <i data-lucide="credit-card" style="width:14px;height:14px;"></i>
             <span id="creditCountHeader">15</span>
           </div>
           <div class="user-avatar-sm">TU</div>
@@ -37,19 +36,18 @@
       <!-- Desktop Sidebar (hidden on mobile) -->
       <aside class="sidebar">
         <div class="logo">
-          <span class="logo-icon">⚡</span>
-          <h1>JoPass</h1>
+          <img src="logo.png" alt="JoPass" style="height:48px; object-fit:contain;">
         </div>
         <nav class="sidebar-nav">
           <a href="#" class="active" data-view="browse" onclick="navigateTo('browse'); return false;">
-            <span class="icon">🔍</span> Browse Deals
+            <span class="icon"><i data-lucide="search"></i></span> Browse Deals
           </a>
           <a href="#" data-view="credits" onclick="navigateTo('credits'); return false;">
-            <span class="icon">💳</span> Buy Credits
+            <span class="icon"><i data-lucide="credit-card"></i></span> Buy Credits
             <span style="margin-left:auto; background:var(--primary); color:#fff; font-size:.75rem; padding:2px 8px; border-radius:12px;" id="creditCount">15</span>
           </a>
           <a href="#" data-view="bookings" onclick="navigateTo('bookings'); return false;">
-            <span class="icon">📅</span> My Bookings
+            <span class="icon"><i data-lucide="calendar"></i></span> My Bookings
           </a>
         </nav>
         <div class="sidebar-footer">
@@ -72,19 +70,19 @@
       <!-- Bottom Tab Bar (mobile) -->
       <nav class="bottom-nav">
         <a href="#" class="bottom-nav-item active" data-view="browse" onclick="navigateTo('browse'); return false;">
-          <span class="bottom-nav-icon">🔍</span>
+          <span class="bottom-nav-icon"><i data-lucide="search"></i></span>
           <span class="bottom-nav-label">Browse</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="credits" onclick="navigateTo('credits'); return false;">
-          <span class="bottom-nav-icon">💳</span>
+          <span class="bottom-nav-icon"><i data-lucide="credit-card"></i></span>
           <span class="bottom-nav-label">Credits</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="bookings" onclick="navigateTo('bookings'); return false;">
-          <span class="bottom-nav-icon">📅</span>
+          <span class="bottom-nav-icon"><i data-lucide="calendar"></i></span>
           <span class="bottom-nav-label">Bookings</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="profile" onclick="navigateTo('profile'); return false;">
-          <span class="bottom-nav-icon">👤</span>
+          <span class="bottom-nav-icon"><i data-lucide="user"></i></span>
           <span class="bottom-nav-label">Profile</span>
         </a>
       </nav>
@@ -139,11 +137,12 @@
   <!-- Toasts -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="js/lucide.min.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
   <script>
-    // Default to mobile view
     setViewMode('mobile');
-  </script>
+    lucide.createIcons();
+</script>
 </body>
 </html>

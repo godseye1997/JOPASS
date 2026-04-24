@@ -1,17 +1,20 @@
 /* ── Pricing ── */
-// 1 credit = 1 JOD
-const CREDIT_TO_JOD = 1;
+// 1 JOD = 2 credits  →  1 credit = 0.50 JOD
+const CREDIT_TO_JOD = 0.5;
 
 function toJOD(credits) {
   return (credits * CREDIT_TO_JOD).toFixed(2);
 }
+
+/* ── Browse Categories ── */
+const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Wellness', 'Activities'];
 
 /* ── Sample Data ── */
 const VENDORS = [
   {
     id: 1,
     name: "FitZone Gym",
-    category: "Gym",
+    category: "Sports Activities",
     icon: "🏋️",
     color: "#e17055",
     image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=300&fit=crop",
@@ -25,7 +28,7 @@ const VENDORS = [
   {
     id: 2,
     name: "Luxe Hair Studio",
-    category: "Salon",
+    category: "Beauty and Wellness",
     icon: "💇",
     color: "#fd79a8",
     image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=300&fit=crop",
@@ -39,7 +42,7 @@ const VENDORS = [
   {
     id: 3,
     name: "Tranquil Touch Spa",
-    category: "Massage",
+    category: "Health and Wellness",
     icon: "💆",
     color: "#00b894",
     image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop",
@@ -53,7 +56,7 @@ const VENDORS = [
   {
     id: 4,
     name: "Glow Beauty Bar",
-    category: "Salon",
+    category: "Beauty and Wellness",
     icon: "✨",
     color: "#e84393",
     image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&h=300&fit=crop",
@@ -67,7 +70,7 @@ const VENDORS = [
   {
     id: 5,
     name: "Peak Performance",
-    category: "Gym",
+    category: "Sports Activities",
     icon: "🧗",
     color: "#0984e3",
     image: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600&h=300&fit=crop",
@@ -81,7 +84,7 @@ const VENDORS = [
   {
     id: 6,
     name: "Serenity Wellness",
-    category: "Massage",
+    category: "Health and Wellness",
     icon: "🧘",
     color: "#6c5ce7",
     image: "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=600&h=300&fit=crop",
@@ -95,7 +98,7 @@ const VENDORS = [
   {
     id: 7,
     name: "Iron Temple",
-    category: "Gym",
+    category: "Sports Activities",
     icon: "💪",
     color: "#2d3436",
     image: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=300&fit=crop",
@@ -109,7 +112,7 @@ const VENDORS = [
   {
     id: 8,
     name: "The Nail Room",
-    category: "Salon",
+    category: "Beauty and Wellness",
     icon: "💅",
     color: "#fab1a0",
     image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=300&fit=crop",
@@ -123,8 +126,8 @@ const VENDORS = [
 ];
 
 const CREDIT_PACKS = [
-  { id: 1, credits: 10, price: 7.00, label: "Starter", description: "Great for trying out JoPass" },
-  { id: 2, credits: 25, price: 15.00, label: "Popular", description: "Best value for regular users" },
-  { id: 3, credits: 50, price: 27.50, label: "Power User", description: "For the avid deal hunter" },
-  { id: 4, credits: 100, price: 45.00, label: "Ultimate", description: "Maximum savings, maximum fun" },
+  { id: 1, credits: 10,  price: 5.00,  label: "Starter",    description: "Great for trying out JoPass" },
+  { id: 2, credits: 20,  price: 10.00, label: "Popular",    description: "Best value for regular users" },
+  { id: 3, credits: 55,  price: 25.00, label: "Power User", description: "For the avid deal hunter" },
+  { id: 4, credits: 110, price: 50.00, label: "Ultimate",   description: "Maximum savings, maximum fun" },
 ];

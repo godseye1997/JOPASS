@@ -78,7 +78,7 @@ function fmtDateLong(date) {
 /* ── Notifications ── */
 function sendNotification(title, body) {
   if (Notification.permission !== 'granted') return;
-  new Notification(title, { body, icon: '⚡' });
+  new Notification(title, { body, icon: 'icon.png' });
 }
 
 function requestNotifications() {
@@ -122,7 +122,7 @@ function scheduleReminders() {
       if (delay > 0) {
         _scheduledReminders.add(key);
         setTimeout(() => {
-          sendNotification('Session Reminder ⚡', `Your ${b.service.name} at ${b.vendor?.name || 'venue'} starts in 1 hour!`);
+          sendNotification('Session Reminder — JoPass', `Your ${b.service.name} at ${b.vendor?.name || 'venue'} starts in 1 hour!`);
         }, delay);
       }
     });
@@ -206,8 +206,8 @@ function navigateTo(view, vendorId) {
     case 'settings':  renderSettings(main); break;
   }
 
-  // Scroll main to top
   main.scrollTop = 0;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Credit Display ── */
@@ -222,7 +222,7 @@ function updateCreditDisplay() {
 
 /* ── Browse View ── */
 function renderBrowse(container) {
-  const categories = ['All', ...new Set(VENDORS.map(v => v.category))];
+  const categories = ['All', ...VENUE_CATEGORIES];
 
   container.innerHTML = `
     <div class="page-header">
@@ -250,7 +250,7 @@ function renderBrowse(container) {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const cat = btn.dataset.cat;
-      const filtered = cat === 'All' ? VENDORS : VENDORS.filter(v => v.category === cat);
+      const filtered = cat === 'All' ? VENDORS : VENDORS.filter(v => getVendorCategory(v) === cat);
       document.getElementById('vendorGrid').innerHTML = renderVendorCards(filtered);
     });
   });
@@ -289,8 +289,8 @@ function renderVendorCards(vendors) {
           ${badge}
         </div>
         <div class="card-body">
-          <h3>${v.icon} ${v.name}</h3>
-          <p class="category">${v.category}</p>
+          <h3>${vendorIcon(v, '20px')} ${v.name}</h3>
+          <p class="category">${getVendorCategory(v)}</p>
           <p>${priceHtml}</p>
           ${avgRating ? `<p style="font-size:.78rem; color:#f4b942; margin-top:4px;">★ ${avgRating} <span style="color:var(--text-muted);">(${reviews.length})</span></p>` : ''}
         </div>
@@ -343,6 +343,20 @@ function getOpeningsForVendor(vendorId) {
     .sort((a, b) => a.date - b.date);
 }
 
+function getVendorCategory(vendor) {
+  const profile = getVendorProfile(vendor.id);
+  return profile?.category || vendor.category;
+}
+
+function vendorIcon(vendor, size) {
+  const profile = getVendorProfile(vendor?.id);
+  if (profile?.logoUrl) {
+    const s = size || '24px';
+    return `<img src="${profile.logoUrl}" style="width:${s};height:${s};object-fit:contain;border-radius:4px;vertical-align:middle;">`;
+  }
+  return vendor?.icon || '';
+}
+
 function getVendorProfile(vendorId) {
   const stored = localStorage.getItem(`jopass_profile_${vendorId}`);
   return stored ? JSON.parse(stored) : null;
@@ -374,7 +388,7 @@ function renderVendorDetail(container) {
     ` : ''}
 
     <div style="margin-bottom:16px;">
-      <h3>${v.icon} ${v.name}</h3>
+      <h3>${vendorIcon(v, '24px')} ${v.name}</h3>
       <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description}</p>
 
       ${profile?.phone || profile?.website ? `
@@ -387,10 +401,10 @@ function renderVendorDetail(container) {
       ${profile?.socials ? (() => {
         const s = profile.socials;
         const links = [
-          s.instagram ? `<a href="https://instagram.com/${s.instagram.replace('@','')}" target="_blank" style="font-size:1.3rem;" title="Instagram">📸</a>` : '',
-          s.facebook  ? `<a href="${s.facebook.startsWith('http') ? s.facebook : 'https://'+s.facebook}" target="_blank" style="font-size:1.3rem;" title="Facebook">👥</a>` : '',
-          s.whatsapp  ? `<a href="https://wa.me/${s.whatsapp.replace(/\D/g,'')}" target="_blank" style="font-size:1.3rem;" title="WhatsApp">💬</a>` : '',
-          s.twitter   ? `<a href="https://twitter.com/${s.twitter.replace('@','')}" target="_blank" style="font-size:1.3rem;" title="Twitter">🐦</a>` : '',
+          s.instagram ? `<a href="https://instagram.com/${s.instagram.replace('@','')}" target="_blank" title="Instagram" style="color:#E1306C; display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>` : '',
+          s.facebook  ? `<a href="${s.facebook.startsWith('http') ? s.facebook : 'https://'+s.facebook}" target="_blank" title="Facebook" style="color:#1877F2; display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>` : '',
+          s.whatsapp  ? `<a href="https://wa.me/${s.whatsapp.replace(/\D/g,'')}" target="_blank" title="WhatsApp" style="color:#25D366; display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>` : '',
+          s.twitter   ? `<a href="https://twitter.com/${s.twitter.replace('@','')}" target="_blank" title="X" style="color:#000; display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>` : '',
         ].filter(Boolean).join('');
         return links ? `<div style="display:flex; gap:12px; margin-top:10px;">${links}</div>` : '';
       })() : ''}
@@ -572,7 +586,7 @@ function renderBookingModalContent() {
   const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
   document.getElementById('modalTitle').textContent = `Book: ${s.name}`;
   document.getElementById('modalBody').innerHTML = `
-    <p style="margin-bottom:4px;"><strong>${v.icon} ${v.name}</strong></p>
+    <p style="margin-bottom:4px;"><strong>${vendorIcon(v, '20px')} ${v.name}</strong></p>
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
       <span style="font-size:.9rem; text-decoration:line-through; color:var(--text-muted);">${toJOD(s.price)} JOD</span>
       <span style="font-size:1.05rem; font-weight:700; color:var(--primary);">${toJOD(s.jopassPrice)} JOD</span>
@@ -969,17 +983,23 @@ function renderBookings(container) {
         ? `<div style="color:#f4b942; font-size:1rem; margin-top:4px;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div>`
         : '';
 
+      const hoursUntil = (getBookingDateTime(b) - new Date()) / 3600000;
+      const refundable = hoursUntil >= 12;
       const action = isCancelled ? '' :
         isCompleted
           ? (review
               ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>`
               : `<button class="btn btn-sm btn-primary" onclick="openReviewModal(${b.id})">Review</button>`)
-          : `<button class="btn btn-sm btn-outline" onclick="cancelBooking(${b.id})">Cancel</button>`;
+          : `<button class="btn btn-sm btn-outline" style="${refundable ? '' : 'color:var(--danger);border-color:var(--danger);'}"
+               title="${refundable ? 'Full credit refund' : 'No refund — within 12-hour window'}"
+               onclick="cancelBooking(${b.id})">
+               ${refundable ? 'Cancel' : 'Cancel (no refund)'}
+             </button>`;
 
       return `
         <div class="booking-item" style="${isCancelled ? 'opacity:.6;' : isCompleted ? 'opacity:.85;' : ''}">
           <div class="booking-icon" style="background:${b.vendor.color}15; color:${b.vendor.color};">
-            ${b.vendor.icon}
+            ${vendorIcon(b.vendor, '22px') || b.vendor.icon}
           </div>
           <div class="booking-details">
             <h4>${b.service.name}</h4>
@@ -1061,11 +1081,19 @@ function cancelBooking(id) {
   const idx = state.bookings.findIndex(b => b.id === id);
   if (idx === -1) return;
   const booking = state.bookings[idx];
-  state.credits += booking.service.credits;
+  const hoursUntil = (getBookingDateTime(booking) - new Date()) / 3600000;
+  const refundable = hoursUntil >= 12;
+
+  if (refundable && booking.service.credits > 0) {
+    state.credits += booking.service.credits;
+    showToast(`Booking cancelled. ${booking.service.credits} credits refunded.`, 'info');
+  } else {
+    showToast('Booking cancelled. No refund — cancellation was within the 12-hour window.', 'error');
+  }
+
   state.bookings.splice(idx, 1);
   saveBookingsToStorage();
   updateCreditDisplay();
-  showToast(`Booking cancelled. ${booking.service.credits} credits refunded.`, 'info');
   renderBookings(document.getElementById('mainContent'));
 }
 
@@ -1098,46 +1126,47 @@ function renderProfile(container) {
     </div>
 
     <div class="profile-menu-item" onclick="navigateTo('bookings')">
-      <span class="pm-icon">📅</span>
+      <span class="pm-icon"><i data-lucide="calendar"></i></span>
       <span class="pm-label">My Bookings</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('credits')">
-      <span class="pm-icon">💳</span>
+      <span class="pm-icon"><i data-lucide="credit-card"></i></span>
       <span class="pm-label">Buy Credits</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="requestNotifications()" style="cursor:pointer;">
-      <span class="pm-icon">🔔</span>
+      <span class="pm-icon"><i data-lucide="bell"></i></span>
       <span class="pm-label">Notifications</span>
       <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; margin-left:auto; background:${notifBg}; color:${notifColor};">
         ${notifLabel}
       </span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('settings')">
-      <span class="pm-icon">⚙️</span>
+      <span class="pm-icon"><i data-lucide="settings"></i></span>
       <span class="pm-label">Settings</span>
       <span class="pm-arrow">›</span>
     </div>
-    <div class="profile-menu-item">
-      <span class="pm-icon">❓</span>
+    <div class="profile-menu-item" onclick="navigateTo('settings')">
+      <span class="pm-icon"><i data-lucide="help-circle"></i></span>
       <span class="pm-label">Help & Support</span>
       <span class="pm-arrow">›</span>
     </div>
 
     <a href="index.html" class="profile-menu-item" style="margin-top:20px; color:var(--danger);">
-      <span class="pm-icon">🚪</span>
+      <span class="pm-icon"><i data-lucide="log-out" style="color:var(--danger);"></i></span>
       <span class="pm-label" style="color:var(--danger);">Log Out</span>
       <span class="pm-arrow">›</span>
     </a>
   `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Settings View ── */
 const SETTINGS_SECTIONS = [
   {
     id: 'about',
-    icon: '⚡',
+    icon: '<img src="icon.png" alt="" style="height:22px; vertical-align:middle; margin-right:4px;">',
     title: 'About JoPass',
     content: `
       <p style="margin-bottom:10px;">JoPass is a pass-based booking platform that lets you discover and book fitness, wellness, and beauty services at discounted rates across Jordan.</p>
@@ -1147,14 +1176,14 @@ const SETTINGS_SECTIONS = [
   },
   {
     id: 'support',
-    icon: '🎧',
+    icon: '<i data-lucide="headphones"></i>',
     title: 'Help & Support',
     content: `
       <p style="margin-bottom:12px;">We're here to help. Reach out through any of the channels below:</p>
       <div style="display:flex; flex-direction:column; gap:10px;">
-        <a href="mailto:support@jopass.jo" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
+        <a href="mailto:jopasscc@gmail.com" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
           <span style="font-size:1.2rem;">📧</span>
-          <div><div style="font-weight:600; font-size:.88rem;">Email Support</div><div style="font-size:.78rem; color:var(--text-muted);">support@jopass.jo</div></div>
+          <div><div style="font-weight:600; font-size:.88rem;">Email Support</div><div style="font-size:.78rem; color:var(--text-muted);">jopasscc@gmail.com</div></div>
         </a>
         <a href="https://wa.me/96279000000" target="_blank" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
           <span style="font-size:1.2rem;">💬</span>
@@ -1170,13 +1199,13 @@ const SETTINGS_SECTIONS = [
   },
   {
     id: 'terms',
-    icon: '📄',
+    icon: '<i data-lucide="file-text"></i>',
     title: 'Terms & Conditions',
     content: `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
       <p style="margin-bottom:10px;">By using JoPass you agree to the following terms:</p>
       <p style="margin-bottom:8px;"><strong>1. Credits</strong> — Credits are non-refundable once purchased. Unused credits do not expire.</p>
-      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel a confirmed booking up to 2 hours before the session start time for a full credit refund. Cancellations within 2 hours are non-refundable.</p>
+      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel a confirmed booking up to 12 hours before the session start time for a full credit refund. Cancellations within 12 hours of the session are non-refundable.</p>
       <p style="margin-bottom:8px;"><strong>3. Venue Changes</strong> — JoPass is not responsible for cancellations made by venues. In such cases, full credits are automatically refunded.</p>
       <p style="margin-bottom:8px;"><strong>4. Account</strong> — You are responsible for keeping your login credentials secure. JoPass is not liable for unauthorised account access.</p>
       <p style="margin-bottom:8px;"><strong>5. Conduct</strong> — Users must comply with the rules and policies of each venue. JoPass reserves the right to suspend accounts for misconduct.</p>
@@ -1185,7 +1214,7 @@ const SETTINGS_SECTIONS = [
   },
   {
     id: 'privacy',
-    icon: '🔒',
+    icon: '<i data-lucide="lock"></i>',
     title: 'Privacy Policy',
     content: `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
@@ -1200,7 +1229,7 @@ const SETTINGS_SECTIONS = [
   },
   {
     id: 'faq',
-    icon: '❓',
+    icon: '<i data-lucide="help-circle"></i>',
     title: 'FAQ',
     content: `
       <div style="display:flex; flex-direction:column; gap:12px;">
@@ -1235,6 +1264,7 @@ function renderSettings(container) {
       </div>
     `).join('')}
   `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function toggleSettingsSection(id) {
