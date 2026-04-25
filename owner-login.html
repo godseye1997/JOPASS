@@ -105,7 +105,7 @@
       const btn   = document.getElementById('forgotSendBtn');
       if (!email) { msgEl.textContent = 'Please enter your email.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
       btn.disabled = true; btn.textContent = 'Sending…';
-      const { error } = await _supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      const { error } = await _supabase.auth.resetPasswordForEmail(email);
       if (error) {
         msgEl.textContent = error.message; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block';
         btn.disabled = false; btn.textContent = 'Send Code';
@@ -126,7 +126,7 @@
       if (pass.length < 6) { msgEl.textContent = 'Password must be at least 6 characters.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
       if (pass !== confirm) { msgEl.textContent = 'Passwords do not match.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
       btn.disabled = true; btn.textContent = 'Verifying…';
-      const { error: verifyErr } = await _supabase.auth.verifyOtp({ email: _resetEmail, token: code, type: 'magiclink' });
+      const { error: verifyErr } = await _supabase.auth.verifyOtp({ email: _resetEmail, token: code, type: 'recovery' });
       if (verifyErr) {
         msgEl.textContent = 'Invalid or expired code.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block';
         btn.disabled = false; btn.textContent = 'Set New Password'; return;
