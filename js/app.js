@@ -331,6 +331,12 @@ function renderBrowse(container) {
       </div>
       <button class="btn" onclick="navigateTo('credits')">+ Buy Credits</button>
     </div>
+    <div style="position:relative; margin-bottom:12px;">
+      <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); pointer-events:none;"></i>
+      <input id="browseSearch" type="text" placeholder="Search venues…"
+        style="width:100%; padding:10px 12px 10px 36px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text); box-sizing:border-box;"
+        oninput="filterBrowse()">
+    </div>
     <div class="filter-bar" id="filterBar">
       ${categories.map((c, i) => `
         <button class="filter-btn ${i === 0 ? 'active' : ''}" data-cat="${c}">${c}</button>
@@ -345,11 +351,31 @@ function renderBrowse(container) {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const cat = btn.dataset.cat;
-      const filtered = cat === 'All' ? VENDORS : VENDORS.filter(v => getVendorCategory(v) === cat);
-      document.getElementById('vendorGrid').innerHTML = renderVendorCards(filtered);
+      filterBrowse();
     });
   });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function filterBrowse() {
+  const query    = (document.getElementById('browseSearch')?.value || '').toLowerCase().trim();
+  const activeBtn = document.querySelector('.filter-btn.active');
+  const cat      = activeBtn?.dataset.cat || 'All';
+
+  let results = cat === 'All' ? VENDORS : VENDORS.filter(v => getVendorCategory(v) === cat);
+  if (query) {
+    results = results.filter(v =>
+      v.name.toLowerCase().includes(query) ||
+      getVendorCategory(v).toLowerCase().includes(query)
+    );
+  }
+
+  const grid = document.getElementById('vendorGrid');
+  if (!grid) return;
+  grid.innerHTML = results.length
+    ? renderVendorCards(results)
+    : `<div style="grid-column:1/-1; padding:40px 0; text-align:center; color:var(--text-muted);">No venues found for "<strong>${query}</strong>"</div>`;
 }
 
 function renderVendorCards(vendors) {
