@@ -737,7 +737,10 @@ function renderReceived(container) {
 
 /* ── Profile Preview (customer view) ── */
 async function renderProfilePreview(container) {
+  await loadOpeningsFromDB();
   const p = await loadProfile();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const activeOpenings = ownerState.openings.filter(o => new Date(o.date) >= today);
   const photos = (p.photos || []).filter(u => u);
 
   const socsHtml = (() => {
@@ -812,10 +815,10 @@ async function renderProfilePreview(container) {
           </div>`).join('')}
       </div>` : ''}
 
-    ${ownerState.openings.length ? `
+    ${activeOpenings.length ? `
       <h4 style="margin-bottom:12px;">Open Slots</h4>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
-        ${ownerState.openings.map(o => {
+        ${activeOpenings.map(o => {
           const dateStr = o.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
           const capacity = o.capacity || 1;
           return `
