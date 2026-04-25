@@ -361,17 +361,9 @@ function slotIsPast(date, slot) {
 function renderListings(container) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
-  // Auto-remove fully past openings (delete from DB)
-  const stale = ownerState.openings.filter(o => {
-    if (new Date(o.date) < today) return true;
-    return !o.slots.some(s => !slotIsPast(o.date, s));
-  });
-  if (stale.length) {
-    Promise.all(stale.map(o => dbDeleteOpening(o.id))).catch(() => {});
-    ownerState.openings = ownerState.openings.filter(o => !stale.find(s => s.id === o.id));
-  }
-
+  // Only show openings from today onwards — don't auto-delete anything
   const openings = [...ownerState.openings]
+    .filter(o => new Date(o.date) >= today)
     .sort((a, b) => a.date - b.date)
     .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.date, s)) }));
 
@@ -740,7 +732,7 @@ async function renderProfilePreview(container) {
   await loadOpeningsFromDB();
   const p = await loadProfile();
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const activeOpenings = ownerState.openings.filter(o => new Date(o.date) >= today);
+  const activeOpenings = ownerState.openings.filter(o => new Date(o.date) >= today && o.slots.length > 0);
   const photos = (p.photos || []).filter(u => u);
 
   const socsHtml = (() => {
