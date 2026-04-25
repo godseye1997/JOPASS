@@ -320,7 +320,8 @@ function ownerNav(view) {
   });
   const main = document.getElementById('ownerMain');
   switch (view) {
-    case 'profile':  renderBusinessProfile(main); break;
+    case 'profile':  renderProfilePreview(main); break;
+    case 'editProfile': renderBusinessProfile(main); break;
     case 'services': renderServices(main);        break;
     case 'listings': renderListings(main);        break;
     case 'add':      renderAddOpening(main);      break;
@@ -734,6 +735,93 @@ function renderReceived(container) {
   `;
 }
 
+/* ── Profile Preview (customer view) ── */
+async function renderProfilePreview(container) {
+  const p = await loadProfile();
+  const photos = (p.photos || []).filter(u => u);
+
+  const socsHtml = (() => {
+    const s = p.socials || {};
+    const links = [
+      s.instagram ? `<a href="https://instagram.com/${s.instagram.replace('@','')}" target="_blank" style="color:#E1306C;display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>` : '',
+      s.facebook  ? `<a href="${s.facebook.startsWith('http')?s.facebook:'https://'+s.facebook}" target="_blank" style="color:#1877F2;display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>` : '',
+      s.whatsapp  ? `<a href="https://wa.me/${s.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:#25D366;display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>` : '',
+      s.twitter   ? `<a href="https://twitter.com/${s.twitter.replace('@','')}" target="_blank" style="color:#000;display:inline-flex;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>` : '',
+    ].filter(Boolean).join('');
+    return links ? `<div style="display:flex;gap:12px;margin-top:10px;">${links}</div>` : '';
+  })();
+
+  container.innerHTML = `
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>My Profile</h2>
+      <button class="btn btn-primary btn-sm" onclick="ownerNav('editProfile')">Edit Profile</button>
+    </div>
+
+    <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:16px;text-align:center;">
+      👁 Customer view — this is how your venue appears to customers
+    </div>
+
+    ${OWNER_VENDOR.image ? `
+      <div style="width:100%;height:160px;background-image:url('${OWNER_VENDOR.image}');background-size:cover;background-position:center;border-radius:var(--radius-sm);margin-bottom:16px;"></div>
+    ` : ''}
+
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        ${p.logoUrl ? `<img src="${p.logoUrl}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">` : `<span style="font-size:2rem;">${OWNER_VENDOR.icon||'🏢'}</span>`}
+        <div>
+          <h3 style="margin:0;">${OWNER_VENDOR.name}</h3>
+          <div style="font-size:.8rem;color:var(--text-muted);">${OWNER_VENDOR.category||''}</div>
+        </div>
+      </div>
+      ${p.about ? `<p style="font-size:.85rem;color:var(--text-muted);">${p.about}</p>` : ''}
+
+      ${p.phone||p.website ? `
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;">
+          ${p.phone ? `<a href="tel:${p.phone}" style="font-size:.82rem;color:var(--primary);">📞 ${p.phone}</a>` : ''}
+          ${p.website ? `<a href="${p.website}" target="_blank" style="font-size:.82rem;color:var(--primary);">🌐 Website</a>` : ''}
+        </div>` : ''}
+      ${socsHtml}
+    </div>
+
+    ${photos.length ? `
+      <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;">
+        ${photos.map(url=>`<img src="${url}" onerror="this.style.display='none'" style="height:120px;min-width:180px;object-fit:cover;border-radius:var(--radius-sm);flex-shrink:0;">`).join('')}
+      </div>` : ''}
+
+    ${p.amenities?.length ? `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.82rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;">AMENITIES</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${p.amenities.map(a=>`<span style="padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:500;background:var(--bg);border:1px solid var(--border);">${a}</span>`).join('')}
+        </div>
+      </div>` : ''}
+
+    ${ownerServices.length ? `
+      <h4 style="margin-bottom:12px;">Services</h4>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+        ${ownerServices.map(s=>`
+          <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-weight:600;font-size:.9rem;">${s.name}</div>
+              <div style="font-size:.78rem;color:var(--text-muted);">${s.duration||''}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700;color:var(--primary);">${s.credits} credits</div>
+              ${s.price>s.jopassPrice?`<div style="font-size:.72rem;color:var(--success);">Save ${(s.price-s.jopassPrice).toFixed(2)} JOD</div>`:''}
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
+
+    ${!OWNER_VENDOR.image && !p.about && !p.phone && ownerServices.length === 0 ? `
+      <div class="empty-state" style="padding:32px 0;">
+        <div class="icon">🏢</div>
+        <h3>Profile Incomplete</h3>
+        <p>Add your details so customers know what to expect.</p>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('editProfile')">Complete Profile</button>
+      </div>` : ''}
+  `;
+}
+
 /* ── Business Profile ── */
 const AMENITY_OPTIONS = [
   'Free Parking','Street Parking','WiFi','Air Conditioning','Changing Rooms',
@@ -783,7 +871,10 @@ async function renderBusinessProfile(container) {
 
 function _renderBusinessProfileWith(container, p) {
   container.innerHTML = `
-    <div class="page-header"><h2>Business Profile</h2></div>
+    <div class="page-header">
+      <h2><a href="#" onclick="ownerNav('profile'); return false;" style="color:var(--text-muted);font-size:.9rem;">← Back</a></h2>
+    </div>
+    <h2 style="margin-bottom:4px;">Edit Profile</h2>
     <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">This information is shown to customers on your venue page.</p>
 
     <!-- Business Name -->
@@ -1121,7 +1212,7 @@ async function saveProfileForm() {
     _ownerProfile = p;
 
     showOwnerToast('Profile saved!', 'success');
-    _renderBusinessProfileWith(document.getElementById('ownerMain'), p);
+    ownerNav('profile');
   } catch (err) {
     console.error(err);
     showOwnerToast('Failed to save profile. Please try again.', 'error');
