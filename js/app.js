@@ -1,8 +1,9 @@
 /* ── State ── */
 const state = {
-  userId:   null,
-  userName: '',
+  userId:    null,
+  userName:  '',
   userEmail: '',
+  userPhone: '',
   credits:  0,
   bookings: [],
   reviews:  {},           // bookingId  → { rating, comment }
@@ -41,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.credits   = d.profile.credits   || 0;
       state.userName  = d.profile.full_name  || '';
       state.userEmail = d.profile.email      || session.user.email || '';
+      state.userPhone = d.profile.phone      || '';
     }
 
     VENDORS = d.vendors;
@@ -295,8 +297,9 @@ function navigateTo(view, vendorId) {
     case 'vendor':   renderVendorDetail(main);  break;
     case 'credits':  renderCredits(main);       break;
     case 'bookings': renderBookings(main);      break;
-    case 'profile':  renderProfile(main);       break;
-    case 'settings': renderSettings(main);      break;
+    case 'profile':      renderProfile(main);      break;
+    case 'editProfile':  renderEditProfile(main); break;
+    case 'settings':     renderSettings(main);     break;
   }
 
   main.scrollTop = 0;
@@ -1295,6 +1298,11 @@ function renderProfile(container) {
       <span style="font-size:1.2rem;">→</span>
     </div>
 
+    <div class="profile-menu-item" onclick="navigateTo('editProfile')">
+      <span class="pm-icon"><i data-lucide="user-pen"></i></span>
+      <span class="pm-label">Edit Profile</span>
+      <span class="pm-arrow">›</span>
+    </div>
     <div class="profile-menu-item" onclick="navigateTo('bookings')">
       <span class="pm-icon"><i data-lucide="calendar"></i></span>
       <span class="pm-label">My Bookings</span>
@@ -1330,6 +1338,111 @@ function renderProfile(container) {
     </div>
   `;
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/* ── Edit Profile View ── */
+function renderEditProfile(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h2>
+        <a href="#" onclick="navigateTo('profile'); return false;" style="color:var(--text-muted); font-size:.9rem;">← Back</a>
+      </h2>
+    </div>
+    <h2 style="margin-bottom:20px;">Edit Profile</h2>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">Personal Info</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Full Name</label>
+          <input id="editName" type="text" value="${state.userName || ''}" placeholder="Your name"
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Phone <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <input id="editPhone" type="tel" value="${state.userPhone || ''}" placeholder="+962 79 123 4567"
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Email</label>
+          <input type="email" value="${state.userEmail || ''}" disabled
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--bg); color:var(--text-muted); cursor:not-allowed;">
+          <p style="font-size:.75rem; color:var(--text-muted); margin-top:4px;">Email cannot be changed.</p>
+        </div>
+      </div>
+      <p id="infoMsg" style="font-size:.82rem; margin-top:12px; display:none;"></p>
+      <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="saveProfileInfo()">Save Changes</button>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">Change Password</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">New Password</label>
+          <input id="newPass" type="password" placeholder="At least 6 characters"
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Confirm Password</label>
+          <input id="confirmPass" type="password" placeholder="••••••••"
+            style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+      </div>
+      <p id="passMsg" style="font-size:.82rem; margin-top:12px; display:none;"></p>
+      <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="saveNewPassword()">Update Password</button>
+    </div>
+  `;
+}
+
+async function saveProfileInfo() {
+  const name  = document.getElementById('editName').value.trim();
+  const phone = document.getElementById('editPhone').value.trim();
+  const msgEl = document.getElementById('infoMsg');
+  const btn   = document.querySelector('#infoMsg + button') || document.querySelector('[onclick="saveProfileInfo()"]');
+
+  if (!name) { msgEl.textContent = 'Name cannot be empty.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    await _supabase.from('profiles').update({ full_name: name, phone }).eq('id', state.userId);
+    state.userName  = name;
+    state.userPhone = phone;
+    updateUserDisplay();
+    msgEl.textContent = 'Profile updated!';
+    msgEl.style.color = 'var(--success)';
+    msgEl.style.display = 'block';
+  } catch (err) {
+    msgEl.textContent = 'Failed to save. Please try again.';
+    msgEl.style.color = 'var(--danger)';
+    msgEl.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Save Changes';
+}
+
+async function saveNewPassword() {
+  const pass    = document.getElementById('newPass').value;
+  const confirm = document.getElementById('confirmPass').value;
+  const msgEl   = document.getElementById('passMsg');
+  const btn     = document.querySelector('[onclick="saveNewPassword()"]');
+
+  if (pass.length < 6) { msgEl.textContent = 'Password must be at least 6 characters.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (pass !== confirm) { msgEl.textContent = 'Passwords do not match.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Updating…';
+
+  const { error } = await _supabase.auth.updateUser({ password: pass });
+  if (error) {
+    msgEl.textContent = error.message;
+    msgEl.style.color = 'var(--danger)';
+  } else {
+    msgEl.textContent = 'Password updated!';
+    msgEl.style.color = 'var(--success)';
+    document.getElementById('newPass').value    = '';
+    document.getElementById('confirmPass').value = '';
+  }
+  msgEl.style.display = 'block';
+  btn.disabled = false; btn.textContent = 'Update Password';
 }
 
 /* ── Settings View ── */
