@@ -283,6 +283,7 @@ function setViewMode(mode) {
 function navigateTo(view, vendorId) {
   state.currentView = view;
   if (vendorId) state.selectedVendor = VENDORS.find(v => v.id === vendorId);
+  if (window._navPush) window._navPush(view);
 
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.classList.toggle('active', a.dataset.view === view);

@@ -311,6 +311,7 @@ function setViewMode(mode) {
 /* ── Navigation ── */
 function ownerNav(view) {
   ownerState.currentView = view;
+  if (window._navPush) window._navPush(view);
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.classList.toggle('active', a.dataset.view === view);
   });
