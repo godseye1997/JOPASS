@@ -818,6 +818,24 @@ function _renderBusinessProfileWith(container, p) {
       </div>
     </div>
 
+    <!-- Banner Image -->
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Cover Photo <span style="font-weight:400; color:var(--text-muted); font-size:.8rem;">shown on your browse card</span></div>
+      ${OWNER_VENDOR.image ? `
+        <img src="${OWNER_VENDOR.image}" onerror="this.style.display='none'"
+          style="width:100%; height:140px; object-fit:cover; border-radius:var(--radius-sm); margin-bottom:12px;">
+      ` : ''}
+      <input id="profBannerUrl" type="url" placeholder="https://images.unsplash.com/..."
+        value="${OWNER_VENDOR.image || ''}"
+        style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);"
+        oninput="updateBannerPreview(this.value)">
+      <p style="font-size:.75rem; color:var(--text-muted); margin-top:6px;">Paste an image URL. Recommended size: 600×300px.</p>
+      <div id="bannerPreview" style="margin-top:8px; ${OWNER_VENDOR.image ? '' : 'display:none;'}">
+        <img id="bannerPreviewImg" src="${OWNER_VENDOR.image || ''}" onerror="this.parentElement.style.display='none'"
+          style="width:100%; height:140px; object-fit:cover; border-radius:var(--radius-sm);">
+      </div>
+    </div>
+
     <!-- Category -->
     <div class="card" style="margin-bottom:14px;">
       <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Category</div>
@@ -946,6 +964,14 @@ function _updateLogoPreview(url) {
   if (el) el.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;">`;
 }
 
+function updateBannerPreview(url) {
+  const preview = document.getElementById('bannerPreview');
+  const img     = document.getElementById('bannerPreviewImg');
+  if (!url) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+  img.src = url;
+}
+
 function toggleAmenityStyle(checkbox) {
   const label   = checkbox.closest('label');
   const checked = checkbox.checked;
@@ -1016,11 +1042,13 @@ async function saveProfileForm() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
   try {
-    // Update vendor row (name + category + description)
+    // Update vendor row (name, category, description, banner image)
+    const bannerUrl    = document.getElementById('profBannerUrl')?.value.trim() || '';
     const vendorUpdates = {};
-    if (bizName && bizName !== OWNER_VENDOR.name)     vendorUpdates.name     = bizName;
-    if (category !== OWNER_VENDOR.category)           vendorUpdates.category = category;
+    if (bizName && bizName !== OWNER_VENDOR.name)     vendorUpdates.name        = bizName;
+    if (category !== OWNER_VENDOR.category)           vendorUpdates.category    = category;
     if (p.about  !== OWNER_VENDOR.description)        vendorUpdates.description = p.about;
+    if (bannerUrl !== (OWNER_VENDOR.image || ''))     vendorUpdates.image       = bannerUrl || null;
     if (Object.keys(vendorUpdates).length) {
       await dbUpdateVendor(OWNER_VENDOR.id, vendorUpdates);
       Object.assign(OWNER_VENDOR, vendorUpdates);
