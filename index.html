@@ -28,18 +28,30 @@
           <form id="loginForm">
             <div class="input-group">
               <label for="email">Email</label>
-              <input type="email" id="email" placeholder="you@example.com" value="demo@jopass.com">
+              <input type="email" id="email" placeholder="you@example.com">
             </div>
             <div class="input-group">
-              <label for="password">Password</label>
-              <input type="password" id="password" placeholder="••••••••" value="password">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label for="password" style="margin:0;">Password</label>
+                <a href="#" onclick="showForgot(); return false;" style="font-size:.78rem; color:var(--primary);">Forgot password?</a>
+              </div>
+              <input type="password" id="password" placeholder="••••••••">
             </div>
+            <p id="loginError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
             <button type="submit" class="btn btn-primary btn-full">Log In</button>
           </form>
 
-          <div class="login-divider"><span>or</span></div>
-
-          <button id="testLogin" class="btn btn-outline btn-full">Continue as Test User</button>
+          <!-- Forgot password inline panel -->
+          <div id="forgotPanel" style="display:none; margin-top:16px; padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);">
+            <div style="font-weight:600; font-size:.88rem; margin-bottom:10px;">Reset your password</div>
+            <div class="input-group" style="margin-bottom:10px;">
+              <label for="forgotEmail">Email address</label>
+              <input type="email" id="forgotEmail" placeholder="you@example.com">
+            </div>
+            <p id="forgotMsg" style="font-size:.82rem; margin-bottom:10px; display:none;"></p>
+            <button class="btn btn-primary btn-full" onclick="sendReset()">Send Reset Link</button>
+            <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="hideForgot()">Cancel</button>
+          </div>
 
           <p class="login-footer">Don't have an account? <a href="signup.html">Sign up</a></p>
 
@@ -58,14 +70,56 @@
       });
     }
 
-    document.getElementById('loginForm').addEventListener('submit', e => {
+    document.getElementById('loginForm').addEventListener('submit', async e => {
       e.preventDefault();
-      window.location.href = 'dashboard.html';
+      const btn     = e.target.querySelector('button[type=submit]');
+      const email   = document.getElementById('email').value.trim();
+      const pass    = document.getElementById('password').value;
+      const errorEl = document.getElementById('loginError');
+      btn.textContent = 'Signing in…';
+      btn.disabled    = true;
+      const { error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Log In';
+        btn.disabled    = false;
+      } else {
+        window.location.href = 'dashboard.html';
+      }
     });
-    document.getElementById('testLogin').addEventListener('click', () => {
-      window.location.href = 'dashboard.html';
-    });
+
+    function showForgot() {
+      document.getElementById('forgotPanel').style.display = 'block';
+      document.getElementById('forgotEmail').value = document.getElementById('email').value;
+      document.getElementById('forgotMsg').style.display = 'none';
+    }
+    function hideForgot() {
+      document.getElementById('forgotPanel').style.display = 'none';
+    }
+
+    async function sendReset() {
+      const email  = document.getElementById('forgotEmail').value.trim();
+      const msgEl  = document.getElementById('forgotMsg');
+      const btn    = document.querySelector('#forgotPanel .btn-primary');
+      if (!email) { msgEl.textContent = 'Please enter your email.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+      const { error } = await _supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html',
+      });
+      if (error) {
+        msgEl.textContent = error.message;
+        msgEl.style.color = 'var(--danger)';
+      } else {
+        msgEl.textContent = 'Check your email for a reset link.';
+        msgEl.style.color = 'var(--success)';
+        btn.textContent   = 'Sent!';
+      }
+      msgEl.style.display = 'block';
+    }
   </script>
-  <script src="js/lucide.min.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
 </body>
 </html>

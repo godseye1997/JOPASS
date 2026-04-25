@@ -31,12 +31,26 @@
               <input type="email" id="email" placeholder="you@business.com" autocomplete="email">
             </div>
             <div class="input-group">
-              <label for="password">Password</label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label for="password" style="margin:0;">Password</label>
+                <a href="#" onclick="showForgot(); return false;" style="font-size:.78rem; color:var(--primary);">Forgot password?</a>
+              </div>
               <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
             </div>
             <p id="loginError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
             <button type="submit" class="btn btn-primary btn-full">Sign In</button>
           </form>
+
+          <div id="forgotPanel" style="display:none; margin-top:16px; padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);">
+            <div style="font-weight:600; font-size:.88rem; margin-bottom:10px;">Reset your password</div>
+            <div class="input-group" style="margin-bottom:10px;">
+              <label for="forgotEmail">Email address</label>
+              <input type="email" id="forgotEmail" placeholder="you@business.com">
+            </div>
+            <p id="forgotMsg" style="font-size:.82rem; margin-bottom:10px; display:none;"></p>
+            <button class="btn btn-primary btn-full" onclick="sendReset()">Send Reset Link</button>
+            <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="hideForgot()">Cancel</button>
+          </div>
 
           <p class="login-footer" style="margin-top:16px;">
             New owner? <a href="owner-signup.html">Create your account</a>
@@ -50,6 +64,35 @@
   </div>
 
   <script>
+    function showForgot() {
+      document.getElementById('forgotPanel').style.display = 'block';
+      document.getElementById('forgotEmail').value = document.getElementById('email').value;
+      document.getElementById('forgotMsg').style.display = 'none';
+    }
+    function hideForgot() {
+      document.getElementById('forgotPanel').style.display = 'none';
+    }
+    async function sendReset() {
+      const email = document.getElementById('forgotEmail').value.trim();
+      const msgEl = document.getElementById('forgotMsg');
+      const btn   = document.querySelector('#forgotPanel .btn-primary');
+      if (!email) { msgEl.textContent = 'Please enter your email.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+      btn.disabled    = true;
+      btn.textContent = 'Sending…';
+      const { error } = await _supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html',
+      });
+      if (error) {
+        msgEl.textContent = error.message;
+        msgEl.style.color = 'var(--danger)';
+      } else {
+        msgEl.textContent = 'Check your email for a reset link.';
+        msgEl.style.color = 'var(--success)';
+        btn.textContent   = 'Sent!';
+      }
+      msgEl.style.display = 'block';
+    }
+
     function setLoginViewMode(mode) {
       document.body.className = `login-body mode-${mode}`;
       document.querySelectorAll('.toggle-btn').forEach(b => {
