@@ -795,13 +795,11 @@ function renderCalendar() {
     const isPast   = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const isToday  = date.toDateString() === today.toDateString();
     const isSelected = state.selectedDate && date.toDateString() === state.selectedDate.toDateString();
-    const hasSlots = !isPast && date.getDay() !== 0;
-
     let classes = 'day';
-    if (isPast)      classes += ' disabled';
-    if (isToday)     classes += ' today';
-    if (isSelected)  classes += ' selected';
-    if (hasSlots && !isPast) classes += ' has-slots';
+    if (isPast)     classes += ' disabled';
+    if (isToday)    classes += ' today';
+    if (isSelected) classes += ' selected';
+    if (!isPast)    classes += ' has-slots';
 
     html += `<div class="${classes}" ${!isPast ? `onclick="selectDate(${year},${month},${d})"` : ''}>${d}</div>`;
   }
@@ -830,17 +828,17 @@ function showTimeSlots() {
   const slotsDiv  = document.getElementById('timeSlots');
   container.style.display = 'block';
 
-  const allSlots = ['9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
+  const allSlots = [
+    '8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
     '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
     '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM',
     '7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM',
-    '10:00 PM','10:30 PM','11:00 PM','11:30 PM','12:00 AM'];
+    '10:00 PM','10:30 PM','11:00 PM','11:30 PM','12:00 AM',
+  ];
 
-  const seed    = state.selectedDate.getDate();
   const isToday = state.selectedDate.toDateString() === new Date().toDateString();
 
-  const available = allSlots.filter((slot, i) => {
-    if ((i * seed + 3) % 3 === 0) return false;
+  const available = allSlots.filter(slot => {
     if (isToday && slotIsPast(state.selectedDate, slot)) return false;
     return true;
   });
