@@ -151,7 +151,7 @@
       if (pass.length < 6){ msgEl.textContent = 'Password must be at least 6 characters.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
       if (pass !== confirm){ msgEl.textContent = 'Passwords do not match.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
       btn.disabled = true; btn.textContent = 'Verifying…';
-      const { error: verifyErr } = await _supabase.auth.verifyOtp({ email: _resetEmail, token: code, type: 'email' });
+      const { error: verifyErr } = await _supabase.auth.verifyOtp({ email: _resetEmail, token: code, type: 'magiclink' });
       if (verifyErr) {
         msgEl.textContent = 'Invalid or expired code.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block';
         btn.disabled = false; btn.textContent = 'Set New Password'; return;
