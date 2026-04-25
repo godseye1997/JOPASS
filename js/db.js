@@ -257,6 +257,17 @@ async function dbSaveVendorProfile(vendorId, p) {
   if (error) throw error;
 }
 
+/* ─── Storage ─── */
+
+async function dbUploadImage(file, path) {
+  const { error } = await _supabase.storage
+    .from('jopass-images')
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data } = _supabase.storage.from('jopass-images').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 /* ─── Shared helper ─── */
 
 function dbParseOpening(o) {

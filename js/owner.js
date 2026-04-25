@@ -825,11 +825,17 @@ function _renderBusinessProfileWith(container, p) {
         <img src="${OWNER_VENDOR.image}" onerror="this.style.display='none'"
           style="width:100%; height:140px; object-fit:cover; border-radius:var(--radius-sm); margin-bottom:12px;">
       ` : ''}
-      <input id="profBannerUrl" type="url" placeholder="https://images.unsplash.com/..."
-        value="${OWNER_VENDOR.image || ''}"
-        style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);"
-        oninput="updateBannerPreview(this.value)">
-      <p style="font-size:.75rem; color:var(--text-muted); margin-top:6px;">Paste an image URL. Recommended size: 600×300px.</p>
+      <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <label class="btn btn-outline" style="cursor:pointer; font-size:.85rem; flex-shrink:0;">
+          Upload Image
+          <input type="file" accept="image/*" style="display:none;" onchange="handleBannerUpload(this)">
+        </label>
+        <input id="profBannerUrl" type="url" placeholder="https://… or upload above"
+          value="${OWNER_VENDOR.image || ''}"
+          style="flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.88rem; background:var(--surface); color:var(--text);"
+          oninput="updateBannerPreview(this.value)">
+      </div>
+      <p style="font-size:.75rem; color:var(--text-muted);">Recommended size: 600×300px.</p>
       <div id="bannerPreview" style="margin-top:8px; ${OWNER_VENDOR.image ? '' : 'display:none;'}">
         <img id="bannerPreviewImg" src="${OWNER_VENDOR.image || ''}" onerror="this.parentElement.style.display='none'"
           style="width:100%; height:140px; object-fit:cover; border-radius:var(--radius-sm);">
@@ -902,10 +908,16 @@ function _renderBusinessProfileWith(container, p) {
       <div style="display:flex; flex-direction:column; gap:10px;">
         ${p.photos.map((url, i) => `
           <div>
-            <input id="profPhoto${i}" type="url" placeholder="https://..." value="${url}"
-              oninput="updatePhotoPreview(${i})"
-              style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.85rem; background:var(--surface); color:var(--text);">
-            <div id="photoPreview${i}" style="margin-top:6px; ${url ? '' : 'display:none;'}">
+            <div style="display:flex; gap:8px; margin-bottom:6px;">
+              <label class="btn btn-outline" style="cursor:pointer; font-size:.8rem; padding:7px 10px; flex-shrink:0;">
+                Upload
+                <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload(this, ${i})">
+              </label>
+              <input id="profPhoto${i}" type="url" placeholder="https://… or upload" value="${url}"
+                oninput="updatePhotoPreview(${i})"
+                style="flex:1; padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.85rem; background:var(--surface); color:var(--text);">
+            </div>
+            <div id="photoPreview${i}" style="margin-top:0; ${url ? '' : 'display:none;'}">
               <img src="${url}" onerror="this.parentElement.style.display='none'" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm);">
             </div>
           </div>
@@ -939,16 +951,25 @@ function _renderBusinessProfileWith(container, p) {
   `;
 }
 
-function handleLogoUpload(input) {
+async function handleLogoUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async e => {
-    if (_ownerProfile) _ownerProfile.logoUrl = e.target.result;
-    _updateLogoPreview(e.target.result);
-    showOwnerToast('Logo updated! Save profile to apply.', 'info');
-  };
-  reader.readAsDataURL(file);
+  const label = input.closest('label');
+  if (label) { label.style.opacity = '.5'; label.style.pointerEvents = 'none'; }
+  try {
+    const ext  = file.name.split('.').pop();
+    const path = `vendor_${OWNER_VENDOR.id}/logo.${ext}`;
+    const url  = await dbUploadImage(file, path);
+    if (_ownerProfile) _ownerProfile.logoUrl = url;
+    const urlInput = document.getElementById('profLogoUrl');
+    if (urlInput) urlInput.value = url;
+    _updateLogoPreview(url);
+    showOwnerToast('Logo uploaded!', 'success');
+  } catch (err) {
+    showOwnerToast('Upload failed: ' + err.message, 'error');
+  } finally {
+    if (label) { label.style.opacity = ''; label.style.pointerEvents = ''; }
+  }
 }
 
 function applyLogoUrl() {
@@ -972,12 +993,52 @@ function updateBannerPreview(url) {
   img.src = url;
 }
 
+async function handleBannerUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const label = input.closest('label');
+  if (label) { label.textContent = 'Uploading…'; label.style.opacity = '.5'; label.style.pointerEvents = 'none'; }
+  try {
+    const ext  = file.name.split('.').pop();
+    const path = `vendor_${OWNER_VENDOR.id}/cover.${ext}`;
+    const url  = await dbUploadImage(file, path);
+    const urlInput = document.getElementById('profBannerUrl');
+    if (urlInput) urlInput.value = url;
+    updateBannerPreview(url);
+    showOwnerToast('Cover photo uploaded!', 'success');
+  } catch (err) {
+    showOwnerToast('Upload failed: ' + err.message, 'error');
+  } finally {
+    if (label) { label.textContent = 'Upload Image'; label.style.opacity = ''; label.style.pointerEvents = ''; }
+  }
+}
+
 function toggleAmenityStyle(checkbox) {
   const label   = checkbox.closest('label');
   const checked = checkbox.checked;
   label.style.borderColor = checked ? 'var(--primary)' : 'var(--border)';
   label.style.background  = checked ? 'rgba(108,92,231,.08)' : 'transparent';
   label.style.color       = checked ? 'var(--primary)' : 'var(--text)';
+}
+
+async function handleGalleryUpload(input, index) {
+  const file = input.files[0];
+  if (!file) return;
+  const label = input.closest('label');
+  if (label) { label.textContent = '…'; label.style.opacity = '.5'; label.style.pointerEvents = 'none'; }
+  try {
+    const ext  = file.name.split('.').pop();
+    const path = `vendor_${OWNER_VENDOR.id}/gallery_${index}.${ext}`;
+    const url  = await dbUploadImage(file, path);
+    const urlInput = document.getElementById(`profPhoto${index}`);
+    if (urlInput) { urlInput.value = url; }
+    updatePhotoPreview(index);
+    showOwnerToast('Photo uploaded!', 'success');
+  } catch (err) {
+    showOwnerToast('Upload failed: ' + err.message, 'error');
+  } finally {
+    if (label) { label.textContent = 'Upload'; label.style.opacity = ''; label.style.pointerEvents = ''; }
+  }
 }
 
 function updatePhotoPreview(i) {
