@@ -581,7 +581,7 @@ function ownerSelectDate(y, m, d) {
 }
 
 function _openingPricePreviewHtml(op, jp) {
-  const credits = Math.round(jp / 0.5); // 1 JOD = 2 credits
+  const credits = Math.round(jp); // 1 JOD = 2 credits
   const saving  = (op - jp).toFixed(2);
   const pct     = Math.round((1 - jp / op) * 100);
   return `<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
@@ -637,7 +637,7 @@ async function ownerSubmitOpening() {
       duration:     f.duration.trim() || null,
       originalPrice: op,
       jopassPrice:  jp,
-      credits:      Math.round(jp / 0.5),
+      credits:      Math.round(jp),
       capacity:     f.capacity,
       date:         new Date(f.date),
       slots:        [...f.selectedSlots].sort((a, b) => ALL_SLOTS.indexOf(a) - ALL_SLOTS.indexOf(b)),

@@ -1,6 +1,6 @@
 /* ── Pricing ── */
-// 1 JOD = 2 credits  →  1 credit = 0.50 JOD
-const CREDIT_TO_JOD = 0.5;
+// 1 credit = 1 JOD
+const CREDIT_TO_JOD = 1;
 
 function toJOD(credits) {
   return (credits * CREDIT_TO_JOD).toFixed(2);
@@ -13,8 +13,8 @@ const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty an
 let VENDORS = [];
 
 const CREDIT_PACKS = [
-  { id: 1, credits: 10,  price: 5.00,  label: "Starter",    description: "Great for trying out JoPass" },
-  { id: 2, credits: 20,  price: 10.00, label: "Popular",    description: "Best value for regular users" },
-  { id: 3, credits: 55,  price: 25.00, label: "Power User", description: "For the avid deal hunter" },
-  { id: 4, credits: 110, price: 50.00, label: "Ultimate",   description: "Maximum savings, maximum fun" },
+  { id: 1, credits: 5,  price: 5.00,  label: "5 Credits",  description: "5 JOD · 5 credits" },
+  { id: 2, credits: 10, price: 10.00, label: "10 Credits", description: "10 JOD · 10 credits" },
+  { id: 3, credits: 25, price: 25.00, label: "25 Credits", description: "25 JOD · 25 credits" },
+  { id: 4, credits: 50, price: 50.00, label: "50 Credits", description: "50 JOD · 50 credits" },
 ];

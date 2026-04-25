@@ -174,7 +174,7 @@ async function dbGetOwnerReviews(vendorId) {
 /* ─── Owner: write services ─── */
 
 async function dbAddService({ vendorId, name, duration, price, jopassPrice }) {
-  const credits = Math.round(jopassPrice / 0.5); // 1 JOD = 2 credits
+  const credits = Math.round(jopassPrice); // 1 credit = 1 JOD
   const { data, error } = await _supabase.from('services').insert({
     vendor_id: vendorId, name,
     duration:    duration || null,
