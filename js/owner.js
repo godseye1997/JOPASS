@@ -812,6 +812,32 @@ async function renderProfilePreview(container) {
           </div>`).join('')}
       </div>` : ''}
 
+    ${ownerState.openings.length ? `
+      <h4 style="margin-bottom:12px;">Open Slots</h4>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+        ${ownerState.openings.map(o => {
+          const dateStr = o.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+          const capacity = o.capacity || 1;
+          return `
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+                <div>
+                  <div style="font-weight:600;font-size:.9rem;">${o.service.name}</div>
+                  <div style="font-size:.78rem;color:var(--text-muted);">${dateStr}${o.service.duration?' · '+o.service.duration:''}</div>
+                </div>
+                ${o.credits ? `<div style="text-align:right;"><div style="font-weight:700;color:var(--primary);">${o.credits} credits</div><div style="font-size:.72rem;color:var(--success);">Save ${(o.originalPrice-o.jopassPrice).toFixed(2)} JOD</div></div>` : ''}
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${o.slots.map(slot => {
+                  const bookedCount = o.booked.filter(b => b === slot).length;
+                  const full = bookedCount >= capacity;
+                  return `<span style="padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:500;background:${full?'var(--bg)':'rgba(0,184,148,.12)'};color:${full?'var(--text-muted)':'var(--success)'};border:1px solid ${full?'var(--border)':'rgba(0,184,148,.3)'};">${slot}${capacity>1?' · '+(capacity-bookedCount)+' left':''}</span>`;
+                }).join('')}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>` : ''}
+
     ${!OWNER_VENDOR.image && !p.about && !p.phone && ownerServices.length === 0 ? `
       <div class="empty-state" style="padding:32px 0;">
         <div class="icon">🏢</div>
