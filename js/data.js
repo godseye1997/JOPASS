@@ -13,8 +13,8 @@ const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty an
 let VENDORS = [];
 
 const CREDIT_PACKS = [
-  { id: 1, credits: 5,  price: 5.00,  label: "5 Credits",  description: "5 JOD · 5 credits" },
-  { id: 2, credits: 10, price: 10.00, label: "10 Credits", description: "10 JOD · 10 credits" },
-  { id: 3, credits: 25, price: 25.00, label: "25 Credits", description: "25 JOD · 25 credits" },
-  { id: 4, credits: 50, price: 50.00, label: "50 Credits", description: "50 JOD · 50 credits" },
+  { id: 1, credits: 5,  price: 5.00,  label: "Starter",    description: "Good for a session or two" },
+  { id: 2, credits: 10, price: 10.00, label: "Basic",      description: "A handful of sessions" },
+  { id: 3, credits: 25, price: 25.00, label: "Popular",    description: "Best for regular users" },
+  { id: 4, credits: 50, price: 50.00, label: "Power",      description: "For the avid deal hunter" },
 ];

@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JoPass">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
   <title>JoPass — Sign Up</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/login.css">
@@ -94,14 +101,16 @@
       setTimeout(() => overlay.style.display = 'none', 400);
     }
 
-    document.getElementById('signupForm').addEventListener('submit', e => {
+    document.getElementById('signupForm').addEventListener('submit', async e => {
       e.preventDefault();
       const name     = document.getElementById('fullName').value.trim();
       const email    = document.getElementById('email').value.trim();
       const phone    = document.getElementById('phone').value.trim();
+      const code     = document.getElementById('phoneCode').value;
       const password = document.getElementById('password').value;
       const confirm  = document.getElementById('confirmPassword').value;
       const errorEl  = document.getElementById('formError');
+      const btn      = e.target.querySelector('button[type=submit]');
 
       if (!name || !email || !phone || !password) {
         errorEl.textContent = 'Please fill in all fields.';
@@ -120,9 +129,36 @@
       }
 
       errorEl.style.display = 'none';
+      btn.textContent = 'Creating account…';
+      btn.disabled = true;
+
+      const { data, error } = await _supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } }
+      });
+
+      if (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+        return;
+      }
+
+      // Save phone to profile
+      if (data.user) {
+        await _supabase.from('profiles').update({
+          full_name: name,
+          phone: code + phone,
+          credits: 0
+        }).eq('id', data.user.id);
+      }
+
       window.location.href = 'dashboard.html';
     });
   </script>
-  <script src="js/lucide.min.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
 </body>
 </html>
