@@ -895,16 +895,24 @@ function updateConfirmButton() {
   }
 }
 
-async function confirmBooking() {
+function confirmBooking() {
   const s = state.selectedService;
   if (state.credits < s.credits) {
     showToast('Not enough credits! Buy more to continue.', 'error');
     return;
   }
+  showConfirmDialog({
+    title: `Confirm Booking`,
+    message: `Book <strong>${s.name}</strong> at <strong>${state.selectedVendor.name}</strong> on ${fmtDate(state.selectedDate)} at ${state.selectedTime}?<br><br>This will use <strong>${s.credits} credits</strong> from your balance.`,
+    confirmLabel: `Book — ${s.credits} credits`,
+    onConfirm: _doConfirmBooking,
+  });
+}
 
+async function _doConfirmBooking() {
+  const s = state.selectedService;
   const btn = document.getElementById('confirmBookingBtn');
-  btn.disabled    = true;
-  btn.textContent = 'Booking…';
+  if (btn) { btn.disabled = true; btn.textContent = 'Booking…'; }
 
   try {
     const bookingId = await dbCreateBooking({
@@ -1266,7 +1274,25 @@ function closeReviewModal() {
   document.getElementById('reviewModal').classList.remove('open');
 }
 
-async function cancelBooking(id) {
+function cancelBooking(id) {
+  const idx = state.bookings.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  const booking    = state.bookings[idx];
+  const hoursUntil = (getBookingDateTime(booking) - new Date()) / 3600000;
+  const refundable = hoursUntil >= 12;
+
+  showConfirmDialog({
+    title: 'Cancel Booking?',
+    message: refundable
+      ? `Cancel <strong>${booking.service.name}</strong> at <strong>${booking.vendor.name}</strong>?<br><br>You will receive a full refund of <strong>${booking.service.credits} credits</strong>.`
+      : `Cancel <strong>${booking.service.name}</strong> at <strong>${booking.vendor.name}</strong>?<br><br>This booking is within 12 hours — <strong>no credits will be refunded</strong>.`,
+    confirmLabel: refundable ? `Cancel & Refund ${booking.service.credits} credits` : 'Cancel (no refund)',
+    confirmStyle: 'background:var(--danger);color:#fff;',
+    onConfirm: () => _doCancelBooking(id),
+  });
+}
+
+async function _doCancelBooking(id) {
   const idx = state.bookings.findIndex(b => b.id === id);
   if (idx === -1) return;
   const booking    = state.bookings[idx];
@@ -1572,6 +1598,32 @@ function toggleSettingsSection(id) {
   const open    = section.style.display !== 'none';
   section.style.display   = open ? 'none'        : 'block';
   arrow.style.transform   = open ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
+/* ── Confirm Dialog ── */
+function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmStyle = '', onConfirm }) {
+  const existing = document.getElementById('confirmDialog');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'confirmDialog';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:24px 20px 32px;width:100%;max-width:480px;box-shadow:0 -4px 24px rgba(0,0,0,.12);">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:8px;">${title}</div>
+      <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">${message}</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button id="confirmDialogYes" style="padding:14px;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:700;cursor:pointer;${confirmStyle || 'background:var(--primary);color:#fff;'}">${confirmLabel}</button>
+        <button onclick="document.getElementById('confirmDialog').remove()" style="padding:14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text);">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('confirmDialogYes').addEventListener('click', () => {
+    overlay.remove();
+    onConfirm();
+  });
 }
 
 async function signOutUser() {
