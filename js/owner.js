@@ -392,13 +392,14 @@ function renderListings(container) {
         <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Opening</button>
       </div>
     ` : openings.map(o => {
-      const dateStr      = o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-      const capacity     = o.capacity || 1;
-      const totalBooked  = o.booked.length;
+      const dateStr       = o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      const capacity      = o.capacity || 1;
+      const totalBooked   = o.booked.length;
+      const allSlotsPast  = o.slots.every(s => slotIsPast(o.date, s));
       const totalCapacity = o.slots.length * capacity;
-      const isFull       = totalBooked >= totalCapacity;
+      const isFull        = !allSlotsPast && totalBooked >= totalCapacity;
       return `
-        <div class="card" style="margin-bottom:12px;">
+        <div class="card" style="margin-bottom:12px; ${allSlotsPast ? 'opacity:.55;' : ''}">
           <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
             <div>
               <div style="font-weight:600; font-size:.9rem;">${o.service.name}</div>
@@ -411,9 +412,9 @@ function renderListings(container) {
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px;
-                background:${isFull ? 'rgba(225,112,85,.1)' : 'rgba(0,184,148,.1)'};
-                color:${isFull ? 'var(--danger)' : 'var(--success)'};">
-                ${isFull ? 'Full' : `${totalCapacity - totalBooked} open`}
+                background:${allSlotsPast ? 'rgba(180,180,180,.15)' : isFull ? 'rgba(225,112,85,.1)' : 'rgba(0,184,148,.1)'};
+                color:${allSlotsPast ? 'var(--text-muted)' : isFull ? 'var(--danger)' : 'var(--success)'};">
+                ${allSlotsPast ? 'Slots passed' : isFull ? 'Full' : `${totalCapacity - totalBooked} open`}
               </span>
               <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); padding:4px 10px;" onclick="removeOpening('${o.id}')">✕</button>
             </div>
