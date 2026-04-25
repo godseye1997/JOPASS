@@ -669,7 +669,7 @@ function renderVendorReviews(vendorId) {
   `;
 }
 
-async function reserveOpeningSlot(openingId, slot) {
+function reserveOpeningSlot(openingId, slot) {
   let opening = null;
   for (const vid in state.openingsMap) {
     const found = state.openingsMap[vid].find(o => o.id === openingId);
@@ -686,6 +686,26 @@ async function reserveOpeningSlot(openingId, slot) {
     showToast('Not enough credits to book this slot.', 'error');
     return;
   }
+
+  const vendor = state.selectedVendor;
+  const dateStr = fmtDate(opening.date);
+  showConfirmDialog({
+    title: 'Confirm Booking',
+    message: `Book <strong>${opening.service.name}</strong> at <strong>${vendor.name}</strong><br>${dateStr} at <strong>${slot}</strong>${credits > 0 ? `<br><br>This will use <strong>${credits} credits</strong> from your balance.` : ''}`,
+    confirmLabel: credits > 0 ? `Book — ${credits} credits` : 'Confirm Booking',
+    onConfirm: () => _doReserveOpeningSlot(openingId, slot),
+  });
+}
+
+async function _doReserveOpeningSlot(openingId, slot) {
+  let opening = null;
+  for (const vid in state.openingsMap) {
+    const found = state.openingsMap[vid].find(o => o.id === openingId);
+    if (found) { opening = found; break; }
+  }
+  if (!opening) return;
+
+  const credits = opening.credits || 0;
 
   try {
     await dbAppendBookedSlot(openingId, slot);
