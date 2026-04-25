@@ -295,9 +295,15 @@ function navigateTo(view, vendorId) {
   const main = document.getElementById('mainContent');
   switch (view) {
     case 'browse':   renderBrowse(main);        break;
-    case 'vendor':   renderVendorDetail(main);  break;
+    case 'vendor':
+      main.innerHTML = '<div style="padding:60px 20px; text-align:center; color:var(--text-muted);">Loading…</div>';
+      renderVendorDetail(main).then(() => {
+        main.scrollTop = 0;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      });
+      return;
     case 'credits':  renderCredits(main);       break;
-    case 'bookings': renderBookings(main);      break;
+    case 'bookings': renderBookings(main);       break;
     case 'profile':      renderProfile(main);      break;
     case 'editProfile':  renderEditProfile(main); break;
     case 'settings':     renderSettings(main);     break;
@@ -474,9 +480,19 @@ function getVendorProfile(vendorId) {
   return state.vendorProfilesMap?.[vendorId] || null;
 }
 
-function renderVendorDetail(container) {
+async function renderVendorDetail(container) {
   const v = state.selectedVendor;
   if (!v) return navigateTo('browse');
+
+  // Re-fetch openings fresh so customer always sees latest slots
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await _supabase.from('openings').select('*')
+      .eq('vendor_id', v.id).gte('date', today).order('date');
+    if (data) {
+      state.openingsMap[v.id] = data.map(dbParseOpening);
+    }
+  } catch (_) {}
 
   const openings = getOpeningsForVendor(v.id);
   const services = getServicesForVendor(v.id);
