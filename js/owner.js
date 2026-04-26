@@ -193,6 +193,7 @@ function renderServices(container) {
             </div>
           `}
         </div>
+        ${_payoutHtml(s.price > s.jopassPrice ? parseFloat(s.jopassPrice) : parseFloat(s.price))}
       </div>
     `).join('')}
 
@@ -236,6 +237,7 @@ function renderServices(container) {
           <input id="svcJopassPrice" type="number" min="0" step="0.5" placeholder="e.g. 10.00"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
             oninput="updateAddServiceBtn()">
+          <div id="svcPayoutPreview"></div>
         </div>
         <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Service</button>
       </div>
@@ -257,9 +259,14 @@ function updateAddServiceBtn() {
   const noDiscount = document.getElementById('svcNoDiscount')?.checked;
   const jPrice     = parseFloat(document.getElementById('svcJopassPrice')?.value);
   const btn        = document.getElementById('addServiceBtn');
+  const preview    = document.getElementById('svcPayoutPreview');
   if (!btn) return;
   const jopassOk = noDiscount || (jPrice > 0 && jPrice <= price);
   btn.disabled = !(name && price > 0 && jopassOk);
+  if (preview) {
+    const jp = noDiscount ? price : jPrice;
+    preview.innerHTML = (jp > 0) ? _payoutHtml(jp) : '';
+  }
 }
 
 async function addService() {
@@ -434,6 +441,7 @@ function renderListings(container) {
           <div style="font-size:.78rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px; margin-top:2px;">
             ${o.slots.length} time slots · ${capacity} seat${capacity !== 1 ? 's' : ''} each · ${totalBooked} booked · ${totalCapacity - totalBooked} remaining
           </div>
+          ${o.jopassPrice ? _payoutHtml(parseFloat(o.jopassPrice)) : ''}
         </div>
       `;
     }).join('')}
@@ -575,8 +583,30 @@ function ownerSelectDate(y, m, d) {
   renderAddOpening(document.getElementById('ownerMain'));
 }
 
+const COMMISSION_RATE = 0.12;
+
+function _payoutHtml(jp) {
+  const commission = jp * COMMISSION_RATE;
+  const payout     = jp - commission;
+  return `<div style="margin-top:10px; padding:10px 12px; background:rgba(0,184,148,.07); border-radius:var(--radius-sm); border-left:3px solid var(--success);">
+    <div style="font-size:.75rem; color:var(--text-muted); margin-bottom:6px; font-weight:600; letter-spacing:.03em;">YOUR PAYOUT</div>
+    <div style="display:flex; justify-content:space-between; font-size:.82rem; margin-bottom:4px;">
+      <span style="color:var(--text-muted);">JoPass price</span>
+      <span>${jp.toFixed(2)} JOD</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:.82rem; margin-bottom:6px;">
+      <span style="color:var(--text-muted);">JoPass commission (12%)</span>
+      <span style="color:var(--danger);">− ${commission.toFixed(2)} JOD</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:.9rem; font-weight:700; border-top:1px solid var(--border); padding-top:6px;">
+      <span>Your payout</span>
+      <span style="color:var(--success);">${payout.toFixed(2)} JOD</span>
+    </div>
+  </div>`;
+}
+
 function _openingPricePreviewHtml(op, jp) {
-  const credits = Math.round(jp); // 1 JOD = 2 credits
+  const credits = Math.round(jp);
   const saving  = (op - jp).toFixed(2);
   const pct     = Math.round((1 - jp / op) * 100);
   return `<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
@@ -584,7 +614,7 @@ function _openingPricePreviewHtml(op, jp) {
     <span style="font-size:.8rem; color:var(--text-muted); text-decoration:line-through;">${parseFloat(op).toFixed(2)} JOD</span>
     <span style="font-size:.88rem; font-weight:700; color:var(--primary);">${parseFloat(jp).toFixed(2)} JOD</span>
     <span style="font-size:.78rem; color:var(--success); font-weight:600;">Save ${saving} JOD (${pct}% off)</span>
-  </div>`;
+  </div>${_payoutHtml(jp)}`;
 }
 
 function updateOpeningPricePreview() {
