@@ -7,7 +7,7 @@ function toJOD(credits) {
 }
 
 /* ── Browse Categories ── */
-const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Wellness', 'Activities'];
+const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Wellness', 'Activities', 'Education'];
 
 /* ── Vendor data (populated from Supabase on init) ── */
 let VENDORS = [];
