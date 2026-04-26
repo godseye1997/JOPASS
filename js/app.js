@@ -1170,7 +1170,7 @@ function renderBookings(container) {
     </div>
     ${state.bookings.length === 0 ? `
       <div class="empty-state">
-        <div class="icon">📅</div>
+        <div class="icon"><i data-lucide="calendar" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
         <h3>No Bookings Yet</h3>
         <p>Browse deals and book your first experience!</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('browse')">Browse Deals</button>
