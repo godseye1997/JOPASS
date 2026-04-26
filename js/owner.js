@@ -154,10 +154,10 @@ async function checkOwnerBookingStatuses() {
 function renderServices(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h2>My Services</h2>
+      <h2>Flexible Booking</h2>
     </div>
     <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">
-      These are your fixed offerings that customers can book anytime.
+      Fixed offerings customers can book anytime at their preferred date and time.
     </p>
 
     ${ownerServices.map(s => `
@@ -200,13 +200,13 @@ function renderServices(container) {
     ${ownerServices.length === 0 ? `
       <div class="empty-state" style="padding:24px 0;">
         <div class="icon"><i data-lucide="layers" style="width:40px;height:40px;color:var(--primary);"></i></div>
-        <h3>No Services Yet</h3>
+        <h3>No Flexible Bookings Yet</h3>
         <p>Add your first service below.</p>
       </div>
     ` : ''}
 
     <div class="card" style="margin-top:8px; border:2px dashed var(--border); box-shadow:none;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">+ Add New Service</div>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">+ Add Flexible Booking</div>
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
@@ -239,7 +239,7 @@ function renderServices(container) {
             oninput="updateAddServiceBtn()">
           <div id="svcPayoutPreview"></div>
         </div>
-        <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Service</button>
+        <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Flexible Booking</button>
       </div>
     </div>
   `;
@@ -378,7 +378,7 @@ function renderListings(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>My Openings</h2>
+      <h2>Limited Spots</h2>
       <button class="btn btn-primary btn-sm" onclick="ownerNav('add')">+ Add</button>
     </div>
 
@@ -394,9 +394,9 @@ function renderListings(container) {
     ${openings.length === 0 ? `
       <div class="empty-state">
         <div class="icon">📋</div>
-        <h3>No Openings Yet</h3>
+        <h3>No Limited Spots Yet</h3>
         <p>Add available time slots to start receiving bookings from customers.</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Opening</button>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Limited Spot</button>
       </div>
     ` : openings.map(o => {
       const dateStr       = o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -499,7 +499,7 @@ function renderAddOpening(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Add Opening</h2>
+      <h2>Add Limited Spot</h2>
     </div>
 
     <div class="card" style="margin-bottom:14px;">
@@ -676,7 +676,7 @@ async function ownerSubmitOpening() {
       calendarMonth: new Date().getMonth(), calendarYear: new Date().getFullYear(),
     };
 
-    showOwnerToast('Opening published!', 'success');
+    showOwnerToast('Limited spot published!', 'success');
     ownerNav('listings');
   } catch (err) {
     console.error(err);
@@ -839,7 +839,7 @@ async function renderProfilePreview(container) {
       </div>` : ''}
 
     ${activeOpenings.length ? `
-      <h4 style="margin-bottom:12px;">Open Slots</h4>
+      <h4 style="margin-bottom:12px;">Limited Spots</h4>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
         ${activeOpenings.map(o => {
           const dateStr = o.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});

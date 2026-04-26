@@ -564,7 +564,7 @@ async function renderVendorDetail(container) {
       </div>
     ` : ''}
 
-    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Available Services</h4>` : ''}
+    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Flexible Booking</h4>` : ''}
     <div class="grid grid-2">
       ${services.map(s => {
         const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
@@ -589,7 +589,7 @@ async function renderVendorDetail(container) {
     </div>
 
     ${openings.length > 0 ? `
-      <h4 style="margin:20px 0 12px;">Open Slots</h4>
+      <h4 style="margin:20px 0 12px;">Limited Spots</h4>
       ${openings.map(o => {
         const capacity  = o.capacity || 1;
         const dateStr   = fmtDate(o.date);
