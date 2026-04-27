@@ -1391,6 +1391,16 @@ function renderProfile(container) {
       <span class="pm-label">Help &amp; Support</span>
       <span class="pm-arrow">›</span>
     </div>
+    <a href="privacy.html" target="_blank" class="profile-menu-item" style="text-decoration:none; color:inherit;">
+      <span class="pm-icon"><i data-lucide="shield"></i></span>
+      <span class="pm-label">Privacy Policy</span>
+      <span class="pm-arrow">›</span>
+    </a>
+    <a href="terms.html" target="_blank" class="profile-menu-item" style="text-decoration:none; color:inherit;">
+      <span class="pm-icon"><i data-lucide="file-text"></i></span>
+      <span class="pm-label">Terms &amp; Conditions</span>
+      <span class="pm-arrow">›</span>
+    </a>
 
     <div class="profile-menu-item" onclick="signOutUser()" style="margin-top:20px; color:var(--danger); cursor:pointer;">
       <span class="pm-icon"><i data-lucide="log-out" style="color:var(--danger);"></i></span>
