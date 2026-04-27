@@ -192,12 +192,34 @@ function fmtDateLong(date) {
 }
 
 /* ── Notifications ── */
-function openNotificationSettings() {
-  const AppPlugin = window.Capacitor?.Plugins?.App;
-  if (AppPlugin?.openUrl) {
-    AppPlugin.openUrl({ url: 'app-settings:' });
+async function openNotificationSettings() {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (LN) {
+    try {
+      const { display } = await LN.checkPermissions();
+      if (display === 'granted') {
+        showToast('Notifications are already enabled.', 'success');
+        return;
+      }
+      if (display === 'denied') {
+        // Already denied — send user to system settings
+        const AppPlugin = window.Capacitor?.Plugins?.App;
+        if (AppPlugin?.openUrl) AppPlugin.openUrl({ url: 'app-settings:' });
+        else showToast('Go to Settings → Apps → JoPass → Notifications and enable them.', 'info');
+        return;
+      }
+      // Not yet asked — request permission natively
+      const { display: result } = await LN.requestPermissions();
+      if (result === 'granted') {
+        showToast('Notifications enabled!', 'success');
+      } else {
+        showToast('Notifications were not enabled.', 'error');
+      }
+    } catch (_) {
+      showToast('Go to Settings → Apps → JoPass → Notifications to enable alerts.', 'info');
+    }
   } else {
-    showToast('Go to your device Settings → Apps → JoPass → Notifications to manage alerts.', 'info');
+    showToast('Go to Settings → Apps → JoPass → Notifications to enable alerts.', 'info');
   }
 }
 
