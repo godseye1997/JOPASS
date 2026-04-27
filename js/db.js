@@ -154,10 +154,15 @@ async function dbGetOwnerBookings(vendorId) {
       jopassPrice: parseFloat(b.service_price),
       price:       parseFloat(b.original_price),
     },
-    date:   new Date(b.date + 'T00:00:00'),
-    time:   b.time,
-    status: b.status,
+    date:            new Date(b.date + 'T00:00:00'),
+    time:            b.time,
+    status:          b.status,
+    viewedByOwner:   b.viewed_by_owner || false,
   }));
+}
+
+async function dbMarkBookingViewed(bookingId) {
+  await _supabase.from('bookings').update({ viewed_by_owner: true }).eq('id', bookingId);
 }
 
 async function dbGetOwnerReviews(vendorId) {

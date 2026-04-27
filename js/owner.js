@@ -88,6 +88,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     ownerNav('bookingsHub');
     updateBadge();
 
+    // Realtime: notify owner of new bookings instantly
+    _supabase.channel('owner-bookings')
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'bookings',
+        filter: `vendor_id=eq.${OWNER_VENDOR.id}`,
+      }, payload => {
+        const b = payload.new;
+        ownerState.receivedBookings.unshift({
+          id:            b.id,
+          userId:        b.user_id,
+          vendorId:      b.vendor_id,
+          userName:      'Customer',
+          service: {
+            name:        b.service_name,
+            credits:     b.service_credits,
+            jopassPrice: parseFloat(b.service_price || 0),
+            price:       parseFloat(b.original_price || 0),
+          },
+          date:          new Date(b.date + 'T00:00:00'),
+          time:          b.time,
+          status:        b.status,
+          viewedByOwner: false,
+        });
+        updateBadge();
+        showOwnerToast(`New booking: ${b.service_name} on ${b.date} at ${b.time}`, 'success');
+        if (ownerState.currentView === 'received') {
+          renderReceived(document.getElementById('ownerMain'));
+        }
+      })
+      .subscribe();
+
     setInterval(async () => {
       await checkOwnerBookingStatuses();
       updateBadge();
@@ -362,11 +393,20 @@ function ownerNav(view) {
 }
 
 function updateBadge() {
-  const count = ownerState.receivedBookings.filter(b => b.status === 'confirmed').length;
+  const count = ownerState.receivedBookings.filter(b => !b.viewedByOwner).length;
   const badge = document.getElementById('sidebarBadge');
   if (!badge) return;
   badge.style.display = count > 0 ? 'inline-block' : 'none';
   badge.textContent   = count;
+}
+
+async function markBookingViewed(bookingId) {
+  const b = ownerState.receivedBookings.find(b => b.id === bookingId);
+  if (!b || b.viewedByOwner) return;
+  b.viewedByOwner = true;
+  updateBadge();
+  renderReceived(document.getElementById('ownerMain'));
+  await dbMarkBookingViewed(bookingId);
 }
 
 /* ── Bookings Hub ── */
@@ -769,16 +809,18 @@ function renderReceived(container) {
 
     ${bookings.length === 0 ? `
       <div class="empty-state">
-        <div class="icon">📥</div>
+        <div class="icon"><i data-lucide="inbox" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
         <h3>No Bookings Yet</h3>
         <p>Once customers book your services or openings, they'll appear here.</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add an Opening</button>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add a Deal</button>
       </div>
-    ` : [...bookings].reverse().map(b => {
+    ` : [...bookings].sort((a,b) => b.date - a.date).map(b => {
       const dateStr  = ownerFmtDate(b.date);
       const isComp   = b.status === 'completed';
+      const isCancelled = b.status === 'cancelled';
       const review   = ownerState.reviews[b.id];
       const initials = (b.service?.name || 'SV').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      const unread   = !b.viewedByOwner;
 
       const reviewBlock = review ? `
         <div style="margin-top:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); border-left:3px solid #f4b942;">
@@ -786,20 +828,27 @@ function renderReceived(container) {
           ${review.comment ? `<p style="font-size:.8rem; color:var(--text-muted); margin:0;">"${review.comment}"</p>` : ''}
         </div>` : (isComp ? `<p style="font-size:.75rem; color:var(--text-muted); margin-top:6px; font-style:italic;">No review yet</p>` : '');
 
+      const statusColor = isComp ? 'rgba(0,184,148,.1)' : isCancelled ? 'rgba(225,112,85,.1)' : 'rgba(108,92,231,.1)';
+      const statusText  = isComp ? 'var(--success)' : isCancelled ? 'var(--danger)' : 'var(--primary)';
+      const statusLabel = isComp ? 'Completed' : isCancelled ? 'Cancelled' : 'Confirmed';
+
       return `
-        <div class="card" style="margin-bottom:10px; ${isComp ? 'opacity:.9;' : ''}">
+        <div class="card" style="margin-bottom:10px; cursor:pointer; ${unread ? 'border-left:3px solid var(--primary);' : 'opacity:' + (isComp||isCancelled ? '.8' : '1') + ';'}"
+             onclick="markBookingViewed('${b.id}')">
           <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:40px; height:40px; border-radius:var(--radius-sm); background:rgba(108,92,231,.1); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; flex-shrink:0;">
-              ${initials}
+            <div style="position:relative; flex-shrink:0;">
+              <div style="width:40px; height:40px; border-radius:var(--radius-sm); background:rgba(108,92,231,.1); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">
+                ${initials}
+              </div>
+              ${unread ? `<span style="position:absolute; top:-4px; right:-4px; width:10px; height:10px; background:var(--primary); border-radius:50%; border:2px solid var(--surface);"></span>` : ''}
             </div>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:600; font-size:.9rem;">${b.service?.name || 'Service'}</div>
+              <div style="font-weight:${unread ? '700' : '600'}; font-size:.9rem;">${b.service?.name || 'Service'}</div>
               <div style="font-size:.78rem; color:var(--text-muted);">${b.userName} · ${dateStr} at ${b.time}</div>
             </div>
             <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0;
-              background:${isComp ? 'rgba(0,184,148,.1)' : 'rgba(108,92,231,.1)'};
-              color:${isComp ? 'var(--success)' : 'var(--primary)'};">
-              ${isComp ? 'Completed' : 'Confirmed'}
+              background:${statusColor}; color:${statusText};">
+              ${statusLabel}
             </span>
           </div>
           ${reviewBlock}
