@@ -836,7 +836,7 @@ function renderReceived(container) {
         <div class="card" style="margin-bottom:10px; ${unread ? 'border-left:3px solid var(--primary);' : (isComp||isCancelled ? 'opacity:.8;' : '')}">
           <div style="display:flex; align-items:center; gap:12px;">
             <button onclick="markBookingViewed('${b.id}')" title="${unread ? 'Mark as viewed' : 'Viewed'}"
-              style="flex-shrink:0; width:24px; height:24px; border-radius:6px; border:2px solid ${unread ? 'var(--primary)' : 'var(--success)'}; background:${unread ? 'transparent' : 'var(--success)'}; cursor:${unread ? 'pointer' : 'default'}; display:flex; align-items:center; justify-content:center; transition:all .15s;">
+              style="flex-shrink:0; width:24px; height:24px; border-radius:6px; border:2px solid var(--primary); background:${unread ? 'transparent' : 'var(--primary)'}; cursor:${unread ? 'pointer' : 'default'}; display:flex; align-items:center; justify-content:center; transition:all .15s;">
               ${unread ? '' : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`}
             </button>
             <div style="flex:1; min-width:0;">
