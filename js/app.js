@@ -1199,11 +1199,11 @@ function renderBookings(container) {
              </button>`;
 
       return `
-        <div class="booking-item" style="${isCancelled ? 'opacity:.6;' : isCompleted ? 'opacity:.85;' : ''}">
+        <div class="booking-item" style="flex-wrap:wrap; ${isCancelled ? 'opacity:.6;' : isCompleted ? 'opacity:.85;' : ''}">
           <div class="booking-icon" style="background:${b.vendor.color}15; color:${b.vendor.color};">
             ${vendorIcon(b.vendor, '22px') || b.vendor.icon || '🏢'}
           </div>
-          <div class="booking-details">
+          <div class="booking-details" style="flex:1; min-width:0;">
             <h4>${b.service.name}</h4>
             <p>${b.vendor.name} · ${dateStr} at ${b.time}</p>
             ${stars}
@@ -1213,7 +1213,7 @@ function renderBookings(container) {
               isCompleted && !review ? 'background:rgba(0,184,148,.1); color:var(--success);' : ''}">
             ${isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Confirmed'}
           </span>
-          ${action}
+          ${action ? `<div style="width:100%; padding-left:54px; margin-top:8px;">${action}</div>` : ''}
         </div>
       `;
     }).join('')}
