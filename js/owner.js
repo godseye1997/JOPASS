@@ -1349,24 +1349,50 @@ function updatePhotoPreview(i) {
   preview.innerHTML = `<img src="${url}" onerror="this.parentElement.style.display='none'" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm);">`;
 }
 
-function getGPSLocation() {
+async function getGPSLocation() {
   const status = document.getElementById('locationStatus');
-  if (!navigator.geolocation) {
-    status.textContent = 'Geolocation is not supported by your browser.';
-    return;
-  }
   status.textContent = 'Getting location…';
-  navigator.geolocation.getCurrentPosition(pos => {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    status.textContent = `📍 Location found: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    status.style.color = 'var(--success)';
-    status.dataset.lat = lat;
-    status.dataset.lng = lng;
-  }, () => {
-    status.textContent = 'Could not get location. Please allow location access and try again.';
-    status.style.color = 'var(--danger)';
-  });
+  status.style.color = 'var(--text-muted)';
+
+  const Geo = window.Capacitor?.Plugins?.Geolocation;
+  if (Geo) {
+    try {
+      const perm = await Geo.requestPermissions();
+      if (perm.location !== 'granted' && perm.coarseLocation !== 'granted') {
+        status.textContent = 'Location permission denied. Please enable it in Settings → Apps → JoPass → Permissions.';
+        status.style.color = 'var(--danger)';
+        return;
+      }
+      const pos = await Geo.getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      status.textContent = `📍 Location found: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      status.style.color = 'var(--success)';
+      status.dataset.lat = lat;
+      status.dataset.lng = lng;
+    } catch (e) {
+      status.textContent = 'Could not get location. Please try again.';
+      status.style.color = 'var(--danger)';
+    }
+  } else {
+    // Fallback for browser
+    if (!navigator.geolocation) {
+      status.textContent = 'Geolocation is not supported.';
+      status.style.color = 'var(--danger)';
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      status.textContent = `📍 Location found: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      status.style.color = 'var(--success)';
+      status.dataset.lat = lat;
+      status.dataset.lng = lng;
+    }, () => {
+      status.textContent = 'Could not get location. Please allow location access and try again.';
+      status.style.color = 'var(--danger)';
+    });
+  }
 }
 
 async function saveProfileForm() {
