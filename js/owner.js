@@ -1017,7 +1017,7 @@ async function renderProfilePreview(container) {
 
     ${!OWNER_VENDOR.image && !p.about && !p.phone && ownerServices.length === 0 ? `
       <div class="empty-state" style="padding:32px 0;">
-        <div class="icon">🏢</div>
+        <div class="icon"><i data-lucide="building-2" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
         <h3>Profile Incomplete</h3>
         <p>Add your details so customers know what to expect.</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('editProfile')">Complete Profile</button>
