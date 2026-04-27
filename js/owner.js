@@ -833,15 +833,12 @@ function renderReceived(container) {
       const statusLabel = isComp ? 'Completed' : isCancelled ? 'Cancelled' : 'Confirmed';
 
       return `
-        <div class="card" style="margin-bottom:10px; cursor:pointer; ${unread ? 'border-left:3px solid var(--primary);' : 'opacity:' + (isComp||isCancelled ? '.8' : '1') + ';'}"
-             onclick="markBookingViewed('${b.id}')">
+        <div class="card" style="margin-bottom:10px; ${unread ? 'border-left:3px solid var(--primary);' : (isComp||isCancelled ? 'opacity:.8;' : '')}">
           <div style="display:flex; align-items:center; gap:12px;">
-            <div style="position:relative; flex-shrink:0;">
-              <div style="width:40px; height:40px; border-radius:var(--radius-sm); background:rgba(108,92,231,.1); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700;">
-                ${initials}
-              </div>
-              ${unread ? `<span style="position:absolute; top:-4px; right:-4px; width:10px; height:10px; background:var(--primary); border-radius:50%; border:2px solid var(--surface);"></span>` : ''}
-            </div>
+            <button onclick="markBookingViewed('${b.id}')" title="${unread ? 'Mark as viewed' : 'Viewed'}"
+              style="flex-shrink:0; width:24px; height:24px; border-radius:6px; border:2px solid ${unread ? 'var(--primary)' : 'var(--success)'}; background:${unread ? 'transparent' : 'var(--success)'}; cursor:${unread ? 'pointer' : 'default'}; display:flex; align-items:center; justify-content:center; transition:all .15s;">
+              ${unread ? '' : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`}
+            </button>
             <div style="flex:1; min-width:0;">
               <div style="font-weight:${unread ? '700' : '600'}; font-size:.9rem;">${b.service?.name || 'Service'}</div>
               <div style="font-size:.78rem; color:var(--text-muted);">${b.userName} · ${dateStr} at ${b.time}</div>
