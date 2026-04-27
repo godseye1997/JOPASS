@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <title>About Us — JoPass</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:  #0C5467;
+      --accent:   #1ECFC3;
+      --text:     #1a2332;
+      --muted:    #6b7280;
+      --surface:  #ffffff;
+      --bg:       #f7f9fb;
+      --border:   #e5e7eb;
+      --radius:   12px;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--surface); }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 48px;
+      display: flex; align-items: center; height: 64px; gap: 32px;
+    }
+    nav .logo img { height: 32px; }
+    nav .links { display: flex; gap: 24px; margin-left: auto; align-items: center; }
+    nav .links a { text-decoration: none; font-size: .9rem; color: var(--muted); font-weight: 500; transition: color .15s; }
+    nav .links a:hover, nav .links a.active { color: var(--primary); }
+    nav .links .btn-nav {
+      padding: 8px 20px; border-radius: 24px; font-size: .9rem; font-weight: 600;
+      text-decoration: none; transition: all .15s;
+    }
+    nav .links .btn-outline { border: 1.5px solid var(--primary); color: var(--primary); background: transparent; }
+    nav .links .btn-outline:hover { background: var(--primary); color: #fff; }
+    nav .links .btn-solid { background: var(--primary); color: #fff; border: 1.5px solid var(--primary); }
+    nav .links .btn-solid:hover { background: #0a4455; }
+
+    /* ── Page Hero ── */
+    .page-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #0a7a8e 100%);
+      color: #fff; padding: 72px 48px 64px; text-align: center;
+    }
+    .page-hero h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 14px; }
+    .page-hero p { font-size: 1.05rem; color: rgba(255,255,255,.82); max-width: 520px; margin: 0 auto; line-height: 1.7; }
+
+    /* ── Sections ── */
+    .section { padding: 72px 48px; max-width: 900px; margin: 0 auto; }
+    .section-label { font-size: .78rem; font-weight: 700; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+    .section-title { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 16px; }
+    .section p { font-size: .97rem; color: var(--muted); line-height: 1.8; margin-bottom: 16px; }
+    .section p:last-child { margin-bottom: 0; }
+
+    hr.divider { border: none; border-top: 1px solid var(--border); margin: 0 48px; }
+
+    /* ── Mission cards ── */
+    .mission-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 36px; }
+    .mission-card { padding: 28px 24px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); }
+    .mission-card .icon { font-size: 1.8rem; margin-bottom: 12px; }
+    .mission-card h4 { font-size: .95rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .mission-card p { font-size: .85rem; color: var(--muted); line-height: 1.6; margin: 0; }
+
+    /* ── Values ── */
+    .values-list { list-style: none; margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
+    .values-list li { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); }
+    .values-list li .bullet { width: 32px; height: 32px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .85rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+    .values-list li div h5 { font-size: .92rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .values-list li div p { font-size: .85rem; color: var(--muted); margin: 0; line-height: 1.6; }
+
+    /* ── CTA ── */
+    .cta-section { background: var(--primary); text-align: center; padding: 72px 48px; color: #fff; }
+    .cta-section h2 { font-size: 2rem; font-weight: 800; margin-bottom: 14px; }
+    .cta-section p { color: rgba(255,255,255,.8); font-size: 1rem; margin-bottom: 32px; }
+    .cta-section a {
+      display: inline-block; padding: 14px 36px; border-radius: 32px; font-weight: 700; font-size: 1rem;
+      text-decoration: none; transition: all .15s; margin: 0 8px;
+    }
+    .cta-section .primary { background: #fff; color: var(--primary); }
+    .cta-section .primary:hover { background: var(--accent); color: #fff; }
+    .cta-section .secondary { border: 2px solid rgba(255,255,255,.5); color: #fff; }
+    .cta-section .secondary:hover { background: rgba(255,255,255,.1); }
+
+    /* ── Footer ── */
+    footer {
+      background: #0a1628; color: rgba(255,255,255,.6);
+      padding: 48px; display: flex; flex-wrap: wrap; gap: 32px;
+      justify-content: space-between; align-items: center;
+    }
+    footer .brand img { height: 28px; filter: brightness(0) invert(1); opacity: .8; }
+    footer .brand p { font-size: .82rem; margin-top: 8px; }
+    footer nav.footer-nav { display: flex; gap: 24px; flex-wrap: wrap; }
+    footer nav.footer-nav a { color: rgba(255,255,255,.6); text-decoration: none; font-size: .85rem; transition: color .15s; }
+    footer nav.footer-nav a:hover { color: #fff; }
+    footer .copy { font-size: .78rem; width: 100%; text-align: center; border-top: 1px solid rgba(255,255,255,.1); padding-top: 24px; }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="logo"><a href="home.html"><img src="logo.png" alt="JoPass"></a></div>
+    <div class="links">
+      <a href="home.html">Home</a>
+      <a href="about.html" class="active">About Us</a>
+      <a href="index.html" class="btn-nav btn-outline">Sign In</a>
+      <a href="register.html" class="btn-nav btn-solid">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="page-hero">
+    <h1>About JoPass</h1>
+    <p>We're on a mission to make Jordan's best experiences accessible, affordable, and easy to book.</p>
+  </div>
+
+  <!-- Our Story -->
+  <div class="section">
+    <div class="section-label">Our Story</div>
+    <div class="section-title">Born in Jordan, built for Jordan</div>
+    <p>JoPass was created to solve a simple problem — great venues in Jordan often struggle to fill their capacity, while customers want to explore more but feel held back by full-price commitments.</p>
+    <p>We built a platform that bridges that gap. Venue owners list their best deals and available slots, and customers book them using a simple credits system. One credit, one Jordanian Dinar — no hidden fees, no subscriptions, no complexity.</p>
+    <p>Whether it's a morning yoga class in Abdoun, a spa afternoon in Sweifieh, or dinner at a hidden gem in downtown Amman — JoPass is your key to more of Jordan.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Mission -->
+  <div class="section">
+    <div class="section-label">What We Stand For</div>
+    <div class="section-title">Our mission</div>
+    <p>To become the go-to platform for discovering and booking lifestyle experiences across Jordan — giving customers more value and giving venues more reach.</p>
+    <div class="mission-grid">
+      <div class="mission-card">
+        <div class="icon">🎯</div>
+        <h4>For Customers</h4>
+        <p>Access the best deals at top venues, book in seconds, and never overpay for an experience again.</p>
+      </div>
+      <div class="mission-card">
+        <div class="icon">🏢</div>
+        <h4>For Venues</h4>
+        <p>Fill empty slots, reach new customers, and grow your business with zero upfront cost.</p>
+      </div>
+      <div class="mission-card">
+        <div class="icon">🇯🇴</div>
+        <h4>For Jordan</h4>
+        <p>Strengthen the local wellness, sports, dining, and lifestyle economy — one booking at a time.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Values -->
+  <div class="section">
+    <div class="section-label">Our Values</div>
+    <div class="section-title">What guides us</div>
+    <ul class="values-list">
+      <li>
+        <div class="bullet">1</div>
+        <div>
+          <h5>Simplicity First</h5>
+          <p>Booking should take seconds, not minutes. We keep everything as straightforward as possible for both customers and venue owners.</p>
+        </div>
+      </li>
+      <li>
+        <div class="bullet">2</div>
+        <div>
+          <h5>Transparency</h5>
+          <p>No hidden fees. No confusing pricing. 1 credit = 1 JOD, always. Owners see exactly what they earn before listing.</p>
+        </div>
+      </li>
+      <li>
+        <div class="bullet">3</div>
+        <div>
+          <h5>Local at Heart</h5>
+          <p>We're built specifically for Jordan's market, with Jordanian businesses and Jordanian customers in mind.</p>
+        </div>
+      </li>
+      <li>
+        <div class="bullet">4</div>
+        <div>
+          <h5>Fairness</h5>
+          <p>Our 12% commission only applies on completed bookings. If a booking doesn't happen, you don't pay — simple as that.</p>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of customers already saving on their favourite experiences.</p>
+    <a href="register.html" class="primary">Create Free Account</a>
+    <a href="owner-login.html" class="secondary">List Your Venue</a>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="brand">
+      <img src="logo.png" alt="JoPass">
+      <p>Jordan's pass-based booking platform.</p>
+    </div>
+    <nav class="footer-nav">
+      <a href="home.html">Home</a>
+      <a href="about.html">About Us</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="owner-login.html">Venue Owners</a>
+    </nav>
+    <div class="copy">© 2025 JoPass. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>
