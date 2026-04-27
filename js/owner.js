@@ -404,13 +404,20 @@ function updateBadge() {
   if (bottom)  { bottom.style.display  = show ? 'inline-block' : 'none'; bottom.textContent  = label; }
 }
 
-async function markBookingViewed(bookingId) {
+function markBookingViewed(bookingId) {
   const b = ownerState.receivedBookings.find(b => b.id === bookingId);
   if (!b || b.viewedByOwner) return;
-  b.viewedByOwner = true;
-  updateBadge();
-  renderReceived(document.getElementById('ownerMain'));
-  await dbMarkBookingViewed(bookingId);
+  showConfirmDialog({
+    title: 'Confirm Booking',
+    message: 'Please confirm the booking on your side.',
+    confirmLabel: 'Confirm',
+    onConfirm: async () => {
+      b.viewedByOwner = true;
+      updateBadge();
+      renderReceived(document.getElementById('ownerMain'));
+      await dbMarkBookingViewed(bookingId);
+    },
+  });
 }
 
 /* ── Bookings Hub ── */
@@ -1433,4 +1440,36 @@ function showOwnerToast(message, type = 'info') {
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
+}
+
+let _ownerConfirmCb = null;
+
+function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmStyle = '', onConfirm }) {
+  const existing = document.getElementById('ownerConfirmOverlay');
+  if (existing) existing.remove();
+  _ownerConfirmCb = onConfirm;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ownerConfirmOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;box-shadow:0 -4px 24px rgba(0,0,0,.15);">
+      <div style="font-weight:700;font-size:1rem;margin-bottom:10px;">${title}</div>
+      <div style="font-size:.88rem;color:var(--text-muted);margin-bottom:22px;line-height:1.6;">${message}</div>
+      <button id="ownerConfirmBtn"
+        style="width:100%;padding:13px;border-radius:var(--radius-sm);border:none;font-size:.95rem;font-weight:700;cursor:pointer;background:var(--primary);color:#fff;margin-bottom:10px;${confirmStyle}">
+        ${confirmLabel}
+      </button>
+      <button onclick="document.getElementById('ownerConfirmOverlay').remove()"
+        style="width:100%;padding:12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-size:.9rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-muted);">
+        Cancel
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('ownerConfirmBtn').addEventListener('click', () => {
+    overlay.remove();
+    if (_ownerConfirmCb) _ownerConfirmCb();
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
