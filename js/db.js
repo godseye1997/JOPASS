@@ -113,6 +113,7 @@ async function dbGetOwnerServices(vendorId) {
   return (data || []).map(s => ({
     id: s.id, name: s.name, duration: s.duration,
     price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits,
+    blockedSlots: s.blocked_slots || [],
   }));
 }
 
@@ -197,6 +198,27 @@ async function dbAddService({ vendorId, name, duration, price, jopassPrice }) {
 async function dbDeleteService(serviceId) {
   const { error } = await _supabase.from('services').delete().eq('id', serviceId);
   if (error) throw error;
+}
+
+async function dbUpdateService(serviceId, { name, duration, price, jopassPrice }) {
+  const credits = Math.round(jopassPrice);
+  const { error } = await _supabase.from('services').update({
+    name, duration: duration || null, price, jopass_price: jopassPrice, credits,
+  }).eq('id', serviceId);
+  if (error) throw error;
+}
+
+async function dbUpdateServiceBlockedSlots(serviceId, blockedSlots) {
+  const { error } = await _supabase.from('services')
+    .update({ blocked_slots: blockedSlots })
+    .eq('id', serviceId);
+  if (error) throw error;
+}
+
+async function dbGetServiceBlockedSlots(serviceId) {
+  const { data } = await _supabase.from('services')
+    .select('blocked_slots').eq('id', serviceId).single();
+  return data?.blocked_slots || [];
 }
 
 /* ─── Owner: write openings ─── */

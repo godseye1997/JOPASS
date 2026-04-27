@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.servicesMap[vid].push({
         id: s.id, vendor_id: vid, name: s.name, duration: s.duration,
         price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits,
+        blockedSlots: s.blocked_slots || [],
       });
     });
 
@@ -854,20 +855,24 @@ function showTimeSlots() {
   ];
 
   const isToday = state.selectedDate.toDateString() === new Date().toDateString();
+  const dateStr = state.selectedDate.toISOString().slice(0, 10);
+  const blocked = state.selectedService?.blockedSlots || [];
 
-  const available = allSlots.filter(slot => {
-    if (isToday && slotIsPast(state.selectedDate, slot)) return false;
-    return true;
-  });
+  const slots = allSlots.map(slot => ({
+    slot,
+    past:    isToday && slotIsPast(state.selectedDate, slot),
+    blocked: blocked.includes(`${dateStr}|${slot}`),
+  })).filter(s => !s.past);
 
-  if (available.length === 0) {
+  if (slots.length === 0) {
     slotsDiv.innerHTML = `<p style="font-size:.82rem; color:var(--text-muted); padding:8px 0;">No more available slots for today. Please select another date.</p>`;
     return;
   }
 
-  slotsDiv.innerHTML = available.map(t => `
-    <div class="time-slot" onclick="selectTime(this, '${t}')">${t}</div>
-  `).join('');
+  slotsDiv.innerHTML = slots.map(({ slot, blocked }) => blocked
+    ? `<div class="time-slot" style="opacity:.4; cursor:not-allowed; text-decoration:line-through;" title="Unavailable">${slot}</div>`
+    : `<div class="time-slot" onclick="selectTime(this, '${slot}')">${slot}</div>`
+  ).join('');
 }
 
 function selectTime(el, time) {

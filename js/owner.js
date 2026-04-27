@@ -200,6 +200,10 @@ function renderServices(container) {
           </div>
           <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); padding:4px 10px; flex-shrink:0;" onclick="removeService(${s.id})">✕</button>
         </div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="btn btn-sm btn-outline" style="flex:1;" onclick="ownerNav('editService', ${s.id})">✏️ Edit</button>
+          <button class="btn btn-sm btn-outline" style="flex:1;" onclick="ownerNav('manageSlots', ${s.id})">🗓 Manage Slots</button>
+        </div>
         <div style="display:flex; gap:16px; flex-wrap:wrap;">
           ${s.price > s.jopassPrice ? `
             <div>
@@ -338,6 +342,162 @@ async function removeService(id) {
   }
 }
 
+/* ── Edit Service ── */
+function renderEditService(container, serviceId) {
+  const s = ownerServices.find(sv => sv.id === serviceId);
+  if (!s) { ownerNav('services'); return; }
+
+  container.innerHTML = `
+    <div class="page-header"><h2>Edit Service</h2></div>
+    <div class="card">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
+          <input id="editSvcName" type="text" value="${s.name}"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <input id="editSvcDuration" type="text" value="${s.duration || ''}" placeholder="e.g. 60 min"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
+          <input id="editSvcPrice" type="number" min="0" step="0.5" value="${s.price}"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">JoPass Price (JOD)</label>
+          <input id="editSvcJopassPrice" type="number" min="0" step="0.5" value="${s.jopassPrice}"
+            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveEditService(${s.id})">Save Changes</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveEditService(serviceId) {
+  const name       = document.getElementById('editSvcName')?.value.trim();
+  const duration   = document.getElementById('editSvcDuration')?.value.trim();
+  const price      = parseFloat(document.getElementById('editSvcPrice')?.value);
+  const jopassPrice = parseFloat(document.getElementById('editSvcJopassPrice')?.value);
+  if (!name || !price || !jopassPrice) { showOwnerToast('Please fill all required fields.', 'error'); return; }
+  try {
+    await dbUpdateService(serviceId, { name, duration, price, jopassPrice });
+    const s = ownerServices.find(sv => sv.id === serviceId);
+    if (s) { s.name = name; s.duration = duration; s.price = price; s.jopassPrice = jopassPrice; s.credits = Math.round(jopassPrice); }
+    showOwnerToast('Service updated!', 'success');
+    ownerNav('services');
+  } catch (err) {
+    showOwnerToast('Failed to update service.', 'error');
+  }
+}
+
+/* ── Manage Service Slots ── */
+const ALL_SERVICE_SLOTS = [
+  '8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM',
+  '12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
+  '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM',
+  '7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM',
+  '10:00 PM','10:30 PM','11:00 PM','11:30 PM','12:00 AM',
+];
+
+let _manageSlotsServiceId = null;
+let _manageSlotsDate = null;
+let _manageSlotsBlocked = [];
+
+async function renderManageSlots(container, serviceId) {
+  const s = ownerServices.find(sv => sv.id === serviceId);
+  if (!s) { ownerNav('services'); return; }
+  _manageSlotsServiceId = serviceId;
+  _manageSlotsDate = null;
+  _manageSlotsBlocked = await dbGetServiceBlockedSlots(serviceId);
+  s.blockedSlots = _manageSlotsBlocked;
+  _renderManageSlotsView(container, s);
+}
+
+function _renderManageSlotsView(container, s) {
+  const today = new Date();
+  const year  = today.getFullYear();
+  const month = today.getMonth();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  let calHtml = `
+    <div class="calendar-header">
+      <span></span>
+      <span>${monthNames[month]} ${year}</span>
+      <span></span>
+    </div>
+    <div class="calendar-grid">
+      ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="day-name">${d}</div>`).join('')}
+  `;
+  for (let i = 0; i < firstDay; i++) calHtml += `<div class="day disabled"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isSelected = _manageSlotsDate === dateStr;
+    const hasBlocked = _manageSlotsBlocked.some(b => b.startsWith(dateStr + '|'));
+    let cls = 'day' + (isPast ? ' disabled' : '') + (isSelected ? ' selected' : '') + (!isPast ? ' has-slots' : '');
+    calHtml += `<div class="${cls}" ${!isPast ? `onclick="selectManageSlotsDate('${dateStr}')"` : ''} style="position:relative;">
+      ${d}
+      ${hasBlocked ? `<span style="position:absolute;bottom:2px;right:2px;width:6px;height:6px;background:var(--danger);border-radius:50%;"></span>` : ''}
+    </div>`;
+  }
+  calHtml += `</div>`;
+
+  const slotsHtml = _manageSlotsDate ? `
+    <div style="margin-top:16px;">
+      <div style="font-size:.85rem; font-weight:600; margin-bottom:10px;">Slots for ${_manageSlotsDate} — tap to close/open:</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${ALL_SERVICE_SLOTS.map(slot => {
+          const key = `${_manageSlotsDate}|${slot}`;
+          const blocked = _manageSlotsBlocked.includes(key);
+          return `<button onclick="toggleManagedSlot('${key}')"
+            style="padding:7px 12px; border-radius:var(--radius-sm); font-size:.78rem; font-weight:600; cursor:pointer;
+              border:2px solid ${blocked ? 'var(--danger)' : 'var(--success)'};
+              background:${blocked ? 'rgba(225,112,85,.1)' : 'rgba(0,184,148,.1)'};
+              color:${blocked ? 'var(--danger)' : 'var(--success)'};">
+            ${slot} ${blocked ? '✕' : '✓'}
+          </button>`;
+        }).join('')}
+      </div>
+      <p style="font-size:.75rem; color:var(--text-muted); margin-top:10px;">✓ = open &nbsp; ✕ = closed</p>
+    </div>
+  ` : `<p style="font-size:.85rem; color:var(--text-muted); margin-top:12px;">Select a date to manage its slots.</p>`;
+
+  container.innerHTML = `
+    <div class="page-header"><h2>Manage Slots — ${s.name}</h2></div>
+    <div class="card">
+      <div class="calendar" id="manageSlotsCalendar">${calHtml}</div>
+      ${slotsHtml}
+    </div>
+  `;
+}
+
+function selectManageSlotsDate(dateStr) {
+  _manageSlotsDate = dateStr;
+  const s = ownerServices.find(sv => sv.id === _manageSlotsServiceId);
+  _renderManageSlotsView(document.getElementById('ownerMain'), s);
+}
+
+async function toggleManagedSlot(key) {
+  if (_manageSlotsBlocked.includes(key)) {
+    _manageSlotsBlocked = _manageSlotsBlocked.filter(k => k !== key);
+  } else {
+    _manageSlotsBlocked.push(key);
+  }
+  const s = ownerServices.find(sv => sv.id === _manageSlotsServiceId);
+  if (s) s.blockedSlots = [..._manageSlotsBlocked];
+  try {
+    await dbUpdateServiceBlockedSlots(_manageSlotsServiceId, _manageSlotsBlocked);
+  } catch (_) {}
+  _renderManageSlotsView(document.getElementById('ownerMain'), s);
+}
+
 /* ── View Mode ── */
 function setViewMode(mode) {
   document.body.className = `mode-${mode}`;
@@ -348,10 +508,12 @@ function setViewMode(mode) {
 
 /* ── Navigation ── */
 const _ownerParent = {
-  listings:    'bookingsHub',
-  services:    'bookingsHub',
-  add:         'bookingsHub',
-  editProfile: 'profile',
+  listings:     'bookingsHub',
+  services:     'bookingsHub',
+  add:          'bookingsHub',
+  editProfile:  'profile',
+  editService:  'services',
+  manageSlots:  'services',
 };
 
 function ownerGoBack() {
@@ -359,7 +521,10 @@ function ownerGoBack() {
   if (parent) ownerNav(parent);
 }
 
-function ownerNav(view) {
+let _ownerNavParam = null;
+
+function ownerNav(view, param) {
+  _ownerNavParam = param ?? null;
   ownerState.currentView = view;
   if (window._navPush) window._navPush(view);
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
@@ -375,10 +540,12 @@ function ownerNav(view) {
   switch (view) {
     case 'profile':  renderProfilePreview(main); break;
     case 'editProfile': renderBusinessProfile(main); break;
-    case 'services': renderServices(main);        break;
-    case 'listings': renderListings(main);        break;
-    case 'add':      renderAddOpening(main);      break;
-    case 'bookingsHub': renderBookingsHub(main); break;
+    case 'services':     renderServices(main);                      break;
+    case 'listings':     renderListings(main);                      break;
+    case 'add':          renderAddOpening(main);                    break;
+    case 'bookingsHub':  renderBookingsHub(main);                   break;
+    case 'editService':  renderEditService(main, _ownerNavParam);   break;
+    case 'manageSlots':  renderManageSlots(main, _ownerNavParam);   break;
     case 'received':
       loadBookingsAndReviewsFromDB()
         .then(() => renderReceived(main))
