@@ -944,7 +944,7 @@ async function renderProfilePreview(container) {
 
     <div style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-        ${p.logoUrl ? `<img src="${p.logoUrl}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">` : `<span style="font-size:2rem;">${OWNER_VENDOR.icon||'🏢'}</span>`}
+        ${p.logoUrl ? `<img src="${p.logoUrl}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">` : `<div style="width:48px;height:48px;border-radius:8px;background:rgba(12,84,103,.1);display:flex;align-items:center;justify-content:center;border:1px solid var(--border);"><i data-lucide="building-2" style="width:26px;height:26px;color:var(--primary);"></i></div>`}
         <div>
           <h3 style="margin:0;">${OWNER_VENDOR.name}</h3>
           <div style="font-size:.8rem;color:var(--text-muted);">${parseCategories(OWNER_VENDOR.category).join(' · ')}</div>
