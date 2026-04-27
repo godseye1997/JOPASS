@@ -564,7 +564,7 @@ async function renderVendorDetail(container) {
       </div>
     ` : ''}
 
-    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Flexible Booking</h4>` : ''}
+    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Standard</h4>` : ''}
     <div class="grid grid-2">
       ${services.map(s => {
         const discount = Math.round((1 - s.jopassPrice / s.price) * 100);

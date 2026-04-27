@@ -154,7 +154,7 @@ async function checkOwnerBookingStatuses() {
 function renderServices(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h2>Flexible Booking</h2>
+      <h2>Standard</h2>
     </div>
     <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">
       Fixed offerings customers can book anytime at their preferred date and time.
@@ -200,13 +200,13 @@ function renderServices(container) {
     ${ownerServices.length === 0 ? `
       <div class="empty-state" style="padding:24px 0;">
         <div class="icon"><i data-lucide="layers" style="width:40px;height:40px;color:var(--primary);"></i></div>
-        <h3>No Flexible Bookings Yet</h3>
+        <h3>No Standard Bookings Yet</h3>
         <p>Add your first service below.</p>
       </div>
     ` : ''}
 
     <div class="card" style="margin-top:8px; border:2px dashed var(--border); box-shadow:none;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">+ Add Flexible Booking</div>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">+ Add Standard</div>
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
@@ -239,7 +239,7 @@ function renderServices(container) {
             oninput="updateAddServiceBtn()">
           <div id="svcPayoutPreview"></div>
         </div>
-        <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Flexible Booking</button>
+        <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard</button>
       </div>
     </div>
   `;
