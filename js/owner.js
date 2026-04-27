@@ -316,6 +316,18 @@ function setViewMode(mode) {
 }
 
 /* ── Navigation ── */
+const _ownerParent = {
+  listings:    'bookingsHub',
+  services:    'bookingsHub',
+  add:         'bookingsHub',
+  editProfile: 'profile',
+};
+
+function ownerGoBack() {
+  const parent = _ownerParent[ownerState.currentView];
+  if (parent) ownerNav(parent);
+}
+
 function ownerNav(view) {
   ownerState.currentView = view;
   if (window._navPush) window._navPush(view);
@@ -326,6 +338,8 @@ function ownerNav(view) {
   document.querySelectorAll('.bottom-nav-item').forEach(a => {
     a.classList.toggle('active', a.dataset.view === bottomView);
   });
+  const backBtn = document.getElementById('ownerBackBtn');
+  if (backBtn) backBtn.style.display = _ownerParent[view] ? 'block' : 'none';
   const main = document.getElementById('ownerMain');
   switch (view) {
     case 'profile':  renderProfilePreview(main); break;
