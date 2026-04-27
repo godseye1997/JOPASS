@@ -393,7 +393,7 @@ function renderListings(container) {
 
     ${openings.length === 0 ? `
       <div class="empty-state">
-        <div class="icon">📋</div>
+        <div class="icon"><i data-lucide="clock" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
         <h3>No Deals Yet</h3>
         <p>Add available time slots to start receiving bookings from customers.</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Deal</button>
