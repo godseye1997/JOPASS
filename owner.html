@@ -87,7 +87,10 @@
           <span class="bottom-nav-label">Bookings</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="received" onclick="ownerNav('received'); return false;">
-          <span class="bottom-nav-icon"><i data-lucide="inbox"></i></span>
+          <span class="bottom-nav-icon" style="position:relative; display:inline-flex;">
+            <i data-lucide="inbox"></i>
+            <span id="bottomNavBadge" style="display:none; position:absolute; top:-5px; right:-7px; min-width:16px; height:16px; background:var(--danger); color:#fff; font-size:.6rem; font-weight:700; border-radius:10px; padding:0 4px; line-height:16px; text-align:center; border:2px solid var(--surface);"></span>
+          </span>
           <span class="bottom-nav-label">Received</span>
         </a>
       </nav>

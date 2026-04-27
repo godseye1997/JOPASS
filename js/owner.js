@@ -394,10 +394,14 @@ function ownerNav(view) {
 
 function updateBadge() {
   const count = ownerState.receivedBookings.filter(b => !b.viewedByOwner).length;
-  const badge = document.getElementById('sidebarBadge');
-  if (!badge) return;
-  badge.style.display = count > 0 ? 'inline-block' : 'none';
-  badge.textContent   = count;
+  const show  = count > 0;
+  const label = count > 99 ? '99+' : count;
+
+  const sidebar = document.getElementById('sidebarBadge');
+  if (sidebar) { sidebar.style.display = show ? 'inline-block' : 'none'; sidebar.textContent = label; }
+
+  const bottom = document.getElementById('bottomNavBadge');
+  if (bottom)  { bottom.style.display  = show ? 'inline-block' : 'none'; bottom.textContent  = label; }
 }
 
 async function markBookingViewed(bookingId) {
