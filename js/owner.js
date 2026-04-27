@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadBookingsAndReviewsFromDB(),
     ]);
 
-    ownerNav('listings');
+    ownerNav('bookingsHub');
     updateBadge();
 
     setInterval(async () => {
@@ -322,8 +322,9 @@ function ownerNav(view) {
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.classList.toggle('active', a.dataset.view === view);
   });
+  const bottomView = ['listings', 'services', 'add', 'bookingsHub'].includes(view) ? 'bookingsHub' : view;
   document.querySelectorAll('.bottom-nav-item').forEach(a => {
-    a.classList.toggle('active', a.dataset.view === view);
+    a.classList.toggle('active', a.dataset.view === bottomView);
   });
   const main = document.getElementById('ownerMain');
   switch (view) {
@@ -332,6 +333,7 @@ function ownerNav(view) {
     case 'services': renderServices(main);        break;
     case 'listings': renderListings(main);        break;
     case 'add':      renderAddOpening(main);      break;
+    case 'bookingsHub': renderBookingsHub(main); break;
     case 'received':
       loadBookingsAndReviewsFromDB()
         .then(() => renderReceived(main))
@@ -351,6 +353,41 @@ function updateBadge() {
   if (!badge) return;
   badge.style.display = count > 0 ? 'inline-block' : 'none';
   badge.textContent   = count;
+}
+
+/* ── Bookings Hub ── */
+function renderBookingsHub(container) {
+  container.innerHTML = `
+    <div class="page-header">
+      <h2>Bookings</h2>
+    </div>
+    <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:20px;">Choose what you'd like to manage.</p>
+
+    <div class="card" style="margin-bottom:14px; cursor:pointer; display:flex; align-items:center; gap:16px; padding:20px;"
+         onclick="ownerNav('listings')">
+      <div style="width:48px; height:48px; border-radius:50%; background:rgba(0,184,148,.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <i data-lucide="clock" style="width:24px;height:24px;color:var(--success);"></i>
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:.95rem;">Deals</div>
+        <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">Time-limited slots customers can book</div>
+      </div>
+      <i data-lucide="chevron-right" style="width:18px;height:18px;color:var(--text-muted);"></i>
+    </div>
+
+    <div class="card" style="cursor:pointer; display:flex; align-items:center; gap:16px; padding:20px;"
+         onclick="ownerNav('services')">
+      <div style="width:48px; height:48px; border-radius:50%; background:rgba(108,92,231,.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <i data-lucide="layers" style="width:24px;height:24px;color:var(--primary);"></i>
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:.95rem;">Standard</div>
+        <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">Fixed offerings customers book anytime</div>
+      </div>
+      <i data-lucide="chevron-right" style="width:18px;height:18px;color:var(--text-muted);"></i>
+    </div>
+  `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── My Openings ── */
