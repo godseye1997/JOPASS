@@ -192,56 +192,15 @@ function fmtDateLong(date) {
 }
 
 /* ── Notifications ── */
-function sendNotification(title, body) {
-  if (Notification.permission !== 'granted') return;
-  new Notification(title, { body, icon: 'icon.png' });
+function openNotificationSettings() {
+  const AppPlugin = window.Capacitor?.Plugins?.App;
+  if (AppPlugin?.openUrl) {
+    AppPlugin.openUrl({ url: 'app-settings:' });
+  } else {
+    showToast('Go to your device Settings → Apps → JoPass → Notifications to manage alerts.', 'info');
+  }
 }
 
-function requestNotifications() {
-  if (!('Notification' in window)) {
-    showToast('Notifications are not supported in this browser.', 'error');
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    showToast('Notifications are already enabled.', 'info');
-    scheduleReminders();
-    return;
-  }
-  if (Notification.permission === 'denied') {
-    showToast('Notifications are blocked. Go to your browser settings → Site Settings → Notifications and allow this page.', 'error');
-    return;
-  }
-  Notification.requestPermission().then(permission => {
-    if (permission === 'granted') {
-      showToast('Notifications enabled!', 'success');
-      scheduleReminders();
-    } else {
-      showToast('Notifications blocked. You can allow them in browser settings.', 'error');
-    }
-    if (state.currentView === 'profile') renderProfile(document.getElementById('mainContent'));
-  });
-}
-
-const _scheduledReminders = new Set();
-
-function scheduleReminders() {
-  if (Notification.permission !== 'granted') return;
-  state.bookings
-    .filter(b => b.status === 'confirmed')
-    .forEach(b => {
-      const key = `reminder_${b.id}`;
-      if (_scheduledReminders.has(key)) return;
-      const sessionTime  = getBookingDateTime(b);
-      const reminderTime = new Date(sessionTime.getTime() - 60 * 60 * 1000);
-      const delay = reminderTime.getTime() - Date.now();
-      if (delay > 0) {
-        _scheduledReminders.add(key);
-        setTimeout(() => {
-          sendNotification('Session Reminder — JoPass', `Your ${b.service.name} at ${b.vendor?.name || 'venue'} starts in 1 hour!`);
-        }, delay);
-      }
-    });
-}
 
 /* ── Session completion ── */
 function getBookingDateTime(booking) {
@@ -1359,11 +1318,6 @@ function renderProfile(container) {
   const email    = state.userEmail || '';
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
-  const notifSupported = 'Notification' in window;
-  const notifPerm  = notifSupported ? Notification.permission : 'unsupported';
-  const notifLabel = notifPerm === 'granted' ? 'On' : notifPerm === 'denied' ? 'Blocked' : 'Off';
-  const notifBg    = notifPerm === 'granted' ? 'rgba(0,184,148,.1)' : notifPerm === 'denied' ? 'rgba(225,112,85,.1)' : 'rgba(253,203,110,.2)';
-  const notifColor = notifPerm === 'granted' ? 'var(--success)' : notifPerm === 'denied' ? 'var(--danger)' : 'var(--warning)';
 
   container.innerHTML = `
     <div class="page-header">
@@ -1400,12 +1354,10 @@ function renderProfile(container) {
       <span class="pm-label">Buy Credits</span>
       <span class="pm-arrow">›</span>
     </div>
-    <div class="profile-menu-item" onclick="requestNotifications()" style="cursor:pointer;">
+    <div class="profile-menu-item" onclick="openNotificationSettings()" style="cursor:pointer;">
       <span class="pm-icon"><i data-lucide="bell"></i></span>
       <span class="pm-label">Notifications</span>
-      <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; margin-left:auto; background:${notifBg}; color:${notifColor};">
-        ${notifLabel}
-      </span>
+      <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('settings')">
       <span class="pm-icon"><i data-lucide="settings"></i></span>
