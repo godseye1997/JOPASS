@@ -589,7 +589,7 @@ async function renderVendorDetail(container) {
     </div>
 
     ${openings.length > 0 ? `
-      <h4 style="margin:20px 0 12px;">Limited Spots</h4>
+      <h4 style="margin:20px 0 12px;">Deals</h4>
       ${openings.map(o => {
         const capacity  = o.capacity || 1;
         const dateStr   = fmtDate(o.date);

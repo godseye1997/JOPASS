@@ -378,7 +378,7 @@ function renderListings(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Limited Spots</h2>
+      <h2>Deals</h2>
       <button class="btn btn-primary btn-sm" onclick="ownerNav('add')">+ Add</button>
     </div>
 
@@ -394,9 +394,9 @@ function renderListings(container) {
     ${openings.length === 0 ? `
       <div class="empty-state">
         <div class="icon">📋</div>
-        <h3>No Limited Spots Yet</h3>
+        <h3>No Deals Yet</h3>
         <p>Add available time slots to start receiving bookings from customers.</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Limited Spot</button>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Deal</button>
       </div>
     ` : openings.map(o => {
       const dateStr       = o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -499,7 +499,7 @@ function renderAddOpening(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Add Limited Spot</h2>
+      <h2>Add Deal</h2>
     </div>
 
     <div class="card" style="margin-bottom:14px;">
@@ -676,7 +676,7 @@ async function ownerSubmitOpening() {
       calendarMonth: new Date().getMonth(), calendarYear: new Date().getFullYear(),
     };
 
-    showOwnerToast('Limited spot published!', 'success');
+    showOwnerToast('Deal published!', 'success');
     ownerNav('listings');
   } catch (err) {
     console.error(err);
@@ -839,7 +839,7 @@ async function renderProfilePreview(container) {
       </div>` : ''}
 
     ${activeOpenings.length ? `
-      <h4 style="margin-bottom:12px;">Limited Spots</h4>
+      <h4 style="margin-bottom:12px;">Deals</h4>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
         ${activeOpenings.map(o => {
           const dateStr = o.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
