@@ -370,7 +370,7 @@ function filterBrowse() {
   const activeBtn = document.querySelector('.filter-btn.active');
   const cat      = activeBtn?.dataset.cat || 'All';
 
-  let results = cat === 'All' ? VENDORS : VENDORS.filter(v => getVendorCategory(v) === cat);
+  let results = cat === 'All' ? VENDORS : VENDORS.filter(v => parseCategories(v.category).includes(cat));
   if (query) {
     results = results.filter(v =>
       v.name.toLowerCase().includes(query) ||
@@ -464,7 +464,7 @@ function getOpeningsForVendor(vendorId) {
 }
 
 function getVendorCategory(vendor) {
-  return vendor.category || '';
+  return parseCategories(vendor.category).join(' · ') || '';
 }
 
 function vendorIcon(vendor, size) {

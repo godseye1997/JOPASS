@@ -7,7 +7,22 @@ function toJOD(credits) {
 }
 
 /* ── Browse Categories ── */
-const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Wellness', 'Activities', 'Education'];
+const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Wellness', 'Activities', 'Education', 'Dining'];
+
+// Parse category field — supports legacy single string and new JSON array
+function parseCategories(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch (_) {
+    return [raw];
+  }
+}
+
+function formatCategories(arr) {
+  return JSON.stringify(arr);
+}
 
 /* ── Vendor data (populated from Supabase on init) ── */
 let VENDORS = [];

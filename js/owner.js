@@ -481,7 +481,7 @@ function renderListings(container) {
       <span style="font-size:2.2rem;">${OWNER_VENDOR.icon || '🏢'}</span>
       <div style="flex:1;">
         <div style="font-weight:700;">${OWNER_VENDOR.name}</div>
-        <div style="font-size:.8rem; color:var(--text-muted);">${OWNER_VENDOR.category || 'No category'} · ${services.length} service${services.length !== 1 ? 's' : ''}</div>
+        <div style="font-size:.8rem; color:var(--text-muted);">${parseCategories(OWNER_VENDOR.category).join(' · ') || 'No category'} · ${services.length} service${services.length !== 1 ? 's' : ''}</div>
       </div>
       <span style="font-size:.75rem; font-weight:600; color:var(--success); background:rgba(0,184,148,.1); padding:4px 10px; border-radius:20px;">Active</span>
     </div>
@@ -940,7 +940,7 @@ async function renderProfilePreview(container) {
         ${p.logoUrl ? `<img src="${p.logoUrl}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;border:1px solid var(--border);">` : `<span style="font-size:2rem;">${OWNER_VENDOR.icon||'🏢'}</span>`}
         <div>
           <h3 style="margin:0;">${OWNER_VENDOR.name}</h3>
-          <div style="font-size:.8rem;color:var(--text-muted);">${OWNER_VENDOR.category||''}</div>
+          <div style="font-size:.8rem;color:var(--text-muted);">${parseCategories(OWNER_VENDOR.category).join(' · ')}</div>
         </div>
       </div>
       ${p.about ? `<p style="font-size:.85rem;color:var(--text-muted);">${p.about}</p>` : ''}
@@ -1132,12 +1132,17 @@ function _renderBusinessProfileWith(container, p) {
 
     <!-- Category -->
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Category</div>
-      <select id="profCategory"
-        style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
-        <option value="">Select a category…</option>
-        ${VENUE_CATEGORIES.map(c => `<option value="${c}" ${p.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-      </select>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Category <span style="font-weight:400; color:var(--text-muted); font-size:.8rem;">(select all that apply)</span></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        ${VENUE_CATEGORIES.map(c => {
+          const checked = parseCategories(p.category).includes(c);
+          return `<label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.9rem;">
+            <input type="checkbox" id="cat_${c.replace(/\s+/g,'_')}" value="${c}" ${checked ? 'checked' : ''}
+              style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
+            ${c}
+          </label>`;
+        }).join('')}
+      </div>
     </div>
 
     <!-- About -->
@@ -1365,7 +1370,10 @@ async function saveProfileForm() {
   if (urlInput) p.logoUrl = urlInput;
 
   const bizName  = document.getElementById('profBizName')?.value.trim();
-  const category = document.getElementById('profCategory')?.value || '';
+  const selectedCats = VENUE_CATEGORIES.filter(c =>
+    document.getElementById('cat_' + c.replace(/\s+/g,'_'))?.checked
+  );
+  const category = formatCategories(selectedCats);
   p.category = category;
   p.about    = document.getElementById('profAbout').value.trim();
   p.phone    = document.getElementById('profPhone').value.trim();
