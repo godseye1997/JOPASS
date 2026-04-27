@@ -781,15 +781,58 @@ async function ownerSubmitOpening() {
 }
 
 /* ── Bookings Received ── */
+let _receivedFilter = 'all';
+
+function setReceivedFilter(f) {
+  _receivedFilter = f;
+  renderReceived(document.getElementById('ownerMain'));
+}
+
+function _applyDateFilter(bookings) {
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (_receivedFilter === 'today') {
+    return bookings.filter(b => b.date >= today && b.date < new Date(today.getTime() + 86400000));
+  }
+  if (_receivedFilter === 'week') {
+    const start = new Date(today); start.setDate(today.getDate() - today.getDay());
+    const end   = new Date(start.getTime() + 7 * 86400000);
+    return bookings.filter(b => b.date >= start && b.date < end);
+  }
+  if (_receivedFilter === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return bookings.filter(b => b.date >= start && b.date < end);
+  }
+  return bookings;
+}
+
 function renderReceived(container) {
   checkOwnerBookingStatuses();
-  const bookings  = ownerState.receivedBookings;
-  const completed = bookings.filter(b => b.status === 'completed').length;
-  const reviewed  = bookings.filter(b => ownerState.reviews[b.id]).length;
+  const allBookings = ownerState.receivedBookings;
+  const bookings    = _applyDateFilter(allBookings);
+  const completed   = bookings.filter(b => b.status === 'completed').length;
+  const reviewed    = bookings.filter(b => ownerState.reviews[b.id]).length;
+
+  const filters = [
+    { key: 'all',   label: 'All' },
+    { key: 'today', label: 'Today' },
+    { key: 'week',  label: 'This Week' },
+    { key: 'month', label: 'This Month' },
+  ];
 
   container.innerHTML = `
     <div class="page-header">
       <h2>Bookings Received</h2>
+    </div>
+
+    <div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;">
+      ${filters.map(f => `
+        <button onclick="setReceivedFilter('${f.key}')"
+          style="flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:.78rem; font-weight:600; cursor:pointer; border:1.5px solid ${_receivedFilter === f.key ? 'var(--primary)' : 'var(--border)'}; background:${_receivedFilter === f.key ? 'var(--primary)' : 'var(--surface)'}; color:${_receivedFilter === f.key ? '#fff' : 'var(--text-muted)'};">
+          ${f.label}
+        </button>
+      `).join('')}
     </div>
 
     <div class="card" style="margin-bottom:16px; display:flex; gap:0; text-align:center;">
@@ -814,9 +857,9 @@ function renderReceived(container) {
     ${bookings.length === 0 ? `
       <div class="empty-state">
         <div class="icon"><i data-lucide="inbox" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
-        <h3>No Bookings Yet</h3>
-        <p>Once customers book your services or openings, they'll appear here.</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add a Deal</button>
+        <h3>${_receivedFilter === 'all' ? 'No Bookings Yet' : 'No Bookings Found'}</h3>
+        <p>${_receivedFilter === 'all' ? 'Once customers book your services or openings, they\'ll appear here.' : 'No bookings match this date filter.'}</p>
+        ${_receivedFilter === 'all' ? `<button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add a Deal</button>` : `<button class="btn btn-outline" style="margin-top:16px;" onclick="setReceivedFilter('all')">Show All</button>`}
       </div>
     ` : [...bookings].sort((a,b) => b.date - a.date).map(b => {
       const dateStr  = ownerFmtDate(b.date);
