@@ -88,6 +88,12 @@
   </div>
 
   <script>
+    // Capture referral code from URL e.g. signup.html?ref=JO-AB12
+    (function() {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) sessionStorage.setItem('jopass_ref', ref);
+    })();
+
     function setLoginViewMode(mode) {
       document.body.className = `login-body mode-${mode}`;
       document.querySelectorAll('.toggle-btn').forEach(b => {
@@ -153,6 +159,13 @@
           phone: code + phone,
           credits: 0
         }).eq('id', data.user.id);
+
+        // Apply referral if came via a referral link
+        const refCode = sessionStorage.getItem('jopass_ref');
+        if (refCode) {
+          await _supabase.rpc('claim_referral_signup', { p_code: refCode }).catch(() => {});
+          sessionStorage.removeItem('jopass_ref');
+        }
       }
 
       window.location.href = 'dashboard.html';

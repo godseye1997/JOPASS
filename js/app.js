@@ -1,9 +1,10 @@
 /* ── State ── */
 const state = {
-  userId:    null,
-  userName:  '',
-  userEmail: '',
-  userPhone: '',
+  userId:       null,
+  userName:     '',
+  userEmail:    '',
+  userPhone:    '',
+  referralCode: '',
   credits:  0,
   bookings: [],
   reviews:  {},           // bookingId  → { rating, comment }
@@ -39,10 +40,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const d = await dbFetchInitData(state.userId);
 
     if (d.profile) {
-      state.credits   = d.profile.credits   || 0;
-      state.userName  = d.profile.full_name  || '';
-      state.userEmail = d.profile.email      || session.user.email || '';
-      state.userPhone = d.profile.phone      || '';
+      state.credits      = d.profile.credits      || 0;
+      state.userName     = d.profile.full_name    || '';
+      state.userEmail    = d.profile.email        || session.user.email || '';
+      state.userPhone    = d.profile.phone        || '';
+      state.referralCode = d.profile.referral_code || '';
     }
 
     VENDORS = d.vendors;
@@ -1140,6 +1142,8 @@ function processPayment() {
     const pack = state.selectedPack;
     state.credits += pack.credits;
     await dbUpdateCredits(state.userId, state.credits).catch(console.error);
+    // Reward referrer on first purchase
+    _supabase.rpc('claim_referral_purchase').catch(() => {});
     updateCreditDisplay();
     closePaymentModal();
     showToast(`${pack.credits} credits added to your balance!`, 'success');
@@ -1365,6 +1369,21 @@ function renderProfile(container) {
       </div>
       <span style="font-size:1.2rem;">→</span>
     </div>
+
+    ${state.referralCode ? `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:.78rem; font-weight:700; color:var(--text-muted); letter-spacing:.05em; margin-bottom:8px;">REFER A FRIEND</div>
+      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">Share your code — you get <strong>2 credits</strong> when they sign up and <strong>2 more</strong> when they buy credits.</p>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="flex:1; background:var(--bg); border:1.5px dashed var(--primary); border-radius:var(--radius-sm); padding:10px 14px; font-size:1.1rem; font-weight:800; letter-spacing:.12em; color:var(--primary); text-align:center;">
+          ${state.referralCode}
+        </div>
+        <button class="btn btn-primary" onclick="shareReferral()" style="flex-shrink:0; padding:10px 16px;">
+          <i data-lucide="share-2" style="width:16px;height:16px;"></i>
+        </button>
+      </div>
+    </div>
+    ` : ''}
 
     <div class="profile-menu-item" onclick="navigateTo('editProfile')">
       <span class="pm-icon"><i data-lucide="user-pen"></i></span>
@@ -1652,6 +1671,18 @@ function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmSt
 async function signOutUser() {
   await _supabase.auth.signOut();
   window.location.href = 'index.html';
+}
+
+function shareReferral() {
+  const url = `https://jopass.online/signup.html?ref=${state.referralCode}`;
+  const text = `Join JoPass and book amazing experiences in Jordan! Use my code ${state.referralCode} to sign up: ${url}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Join JoPass', text, url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => showToast('Referral link copied!', 'success')).catch(() => {
+      showToast(`Your link: ${url}`, 'info');
+    });
+  }
 }
 
 /* ── Toast ── */
