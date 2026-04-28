@@ -1373,7 +1373,7 @@ function renderProfile(container) {
     ${state.referralCode ? `
     <div class="card" style="margin-bottom:12px;">
       <div style="font-size:.78rem; font-weight:700; color:var(--text-muted); letter-spacing:.05em; margin-bottom:8px;">REFER A FRIEND</div>
-      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">Share your code — you get <strong>2 credits</strong> when they sign up and <strong>2 more</strong> when they buy credits.</p>
+      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">Share your code — earn <strong>2 credits</strong> every time a friend makes their first credit purchase.</p>
       <div style="display:flex; align-items:center; gap:10px;">
         <div style="flex:1; background:var(--bg); border:1.5px dashed var(--primary); border-radius:var(--radius-sm); padding:10px 14px; font-size:1.1rem; font-weight:800; letter-spacing:.12em; color:var(--primary); text-align:center;">
           ${state.referralCode}

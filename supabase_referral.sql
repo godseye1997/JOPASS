@@ -62,7 +62,7 @@ BEGIN
   SELECT id INTO v_referrer FROM profiles WHERE referral_code = p_code;
   IF v_referrer IS NULL OR v_referrer = auth.uid() THEN RETURN; END IF;
   IF (SELECT referral_signup_rewarded FROM profiles WHERE id = auth.uid()) THEN RETURN; END IF;
-  UPDATE profiles SET credits = credits + 2 WHERE id = v_referrer;
+  -- No credit reward on signup — only track who referred whom
   UPDATE profiles SET referred_by = v_referrer, referral_signup_rewarded = true WHERE id = auth.uid();
 END;
 $$;
