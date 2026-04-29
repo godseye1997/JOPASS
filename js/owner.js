@@ -274,6 +274,11 @@ function renderServices(container) {
             oninput="updateAddServiceBtn()">
           <div id="svcPayoutPreview"></div>
         </div>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.88rem; font-weight:500; user-select:none; padding:4px 0;">
+          <input type="checkbox" id="svcSingleSlot"
+            style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
+          Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
+        </label>
         <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard</button>
       </div>
     </div>
@@ -317,9 +322,10 @@ async function addService() {
   btn.disabled = true;
 
   try {
+    const singleSlot = document.getElementById('svcSingleSlot')?.checked || false;
     const svc = await dbAddService({
-      vendorId:   OWNER_VENDOR.id,
-      name, duration: duration || null, price, jopassPrice: jPrice,
+      vendorId: OWNER_VENDOR.id,
+      name, duration: duration || null, price, jopassPrice: jPrice, singleSlot,
     });
     ownerServices.push(svc);
     showOwnerToast('Service added!', 'success');
@@ -371,6 +377,11 @@ function renderEditService(container, serviceId) {
           <input id="editSvcJopassPrice" type="number" min="0" step="0.5" value="${s.jopassPrice}"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.88rem; font-weight:500; user-select:none; padding:4px 0;">
+          <input type="checkbox" id="editSvcSingleSlot" ${s.singleSlot ? 'checked' : ''}
+            style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
+          Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
+        </label>
         <button class="btn btn-primary btn-full" onclick="saveEditService(${s.id})">Save Changes</button>
       </div>
     </div>
@@ -382,11 +393,12 @@ async function saveEditService(serviceId) {
   const duration   = document.getElementById('editSvcDuration')?.value.trim();
   const price      = parseFloat(document.getElementById('editSvcPrice')?.value);
   const jopassPrice = parseFloat(document.getElementById('editSvcJopassPrice')?.value);
+  const singleSlot = document.getElementById('editSvcSingleSlot')?.checked || false;
   if (!name || !price || !jopassPrice) { showOwnerToast('Please fill all required fields.', 'error'); return; }
   try {
-    await dbUpdateService(serviceId, { name, duration, price, jopassPrice });
+    await dbUpdateService(serviceId, { name, duration, price, jopassPrice, singleSlot });
     const s = ownerServices.find(sv => sv.id === serviceId);
-    if (s) { s.name = name; s.duration = duration; s.price = price; s.jopassPrice = jopassPrice; s.credits = Math.round(jopassPrice); }
+    if (s) { s.name = name; s.duration = duration; s.price = price; s.jopassPrice = jopassPrice; s.credits = Math.round(jopassPrice); s.singleSlot = singleSlot; }
     showOwnerToast('Service updated!', 'success');
     ownerNav('services');
   } catch (err) {

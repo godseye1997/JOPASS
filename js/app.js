@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         id: s.id, vendor_id: vid, name: s.name, duration: s.duration,
         price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits,
         blockedSlots: s.blocked_slots || [],
+        singleSlot: s.single_slot || false,
       });
     });
 
@@ -957,6 +958,15 @@ async function _doConfirmBooking() {
       time:     state.selectedTime,
       status:   'confirmed',
     });
+
+    // Auto-close slot if service is set to single booking per slot
+    if (s.singleSlot) {
+      const dateStr = state.selectedDate.toISOString().slice(0, 10);
+      const key = `${dateStr}|${state.selectedTime}`;
+      if (!s.blockedSlots) s.blockedSlots = [];
+      s.blockedSlots.push(key);
+      dbUpdateServiceBlockedSlots(s.id, s.blockedSlots).catch(() => {});
+    }
 
     updateCreditDisplay();
     closeBookingModal();
