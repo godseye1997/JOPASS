@@ -7,7 +7,7 @@ function toJOD(credits) {
 }
 
 /* ── Browse Categories ── */
-const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Wellness', 'Activities', 'Education', 'Dining'];
+const VENUE_CATEGORIES = ['Health and Wellness', 'Sports Activities', 'Beauty and Care', 'Activities', 'Education', 'Dining'];
 
 // Parse category field — supports legacy single string and new JSON array
 function parseCategories(raw) {
