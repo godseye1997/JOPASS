@@ -267,5 +267,26 @@
       } catch (_) {}
     })();
   </script>
+  <script>
+    (function() {
+      const ua = navigator.userAgent || '';
+      const isAndroid = /android/i.test(ua);
+      const isIOS     = /iphone|ipad|ipod/i.test(ua);
+      if (!isAndroid && !isIOS) return; // desktop — show website normally
+
+      const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.jopass.app';
+      const APP_STORE  = 'https://apps.apple.com/app/jopass'; // update when iOS is live
+
+      if (isAndroid) {
+        // Try opening the app; fall back to Play Store after 1.5s
+        const fallback = setTimeout(() => { window.location.href = PLAY_STORE; }, 1500);
+        window.location.href = 'intent://open#Intent;scheme=com.jopass.app;package=com.jopass.app;end';
+        window.addEventListener('blur', () => clearTimeout(fallback)); // app opened
+      } else if (isIOS) {
+        // Redirect to App Store (update link when live on iOS)
+        window.location.href = APP_STORE;
+      }
+    })();
+  </script>
 </body>
 </html>
