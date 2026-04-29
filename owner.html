@@ -101,6 +101,13 @@
   <script src="js/data.js"></script>
   <script src="js/db.js"></script>
   <script src="js/owner.js"></script>
-  <script>setViewMode('mobile'); lucide.createIcons();</script>
+  <script>
+    if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
+      setViewMode('desktop');
+    } else {
+      setViewMode('mobile');
+    }
+    lucide.createIcons();
+  </script>
 </body>
 </html>

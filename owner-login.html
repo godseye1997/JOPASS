@@ -152,5 +152,10 @@
   <script src="js/deeplink.js"></script>
   <script src="js/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script>
+    if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
+      document.body.classList.replace('mode-mobile', 'mode-desktop');
+    }
+  </script>
 </body>
 </html>
