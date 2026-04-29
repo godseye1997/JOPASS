@@ -21,9 +21,11 @@ function copyDir(src, dest) {
 }
 
 // HTML pages — website-only pages excluded from the app bundle
-const websiteOnly = ['home.html', 'about.html'];
+const websiteOnly = ['about.html'];
 const htmlFiles = fs.readdirSync(__dirname).filter(f => f.endsWith('.html') && !websiteOnly.includes(f));
 htmlFiles.forEach(f => fs.copyFileSync(path.join(__dirname, f), path.join(WWW, f)));
+// App needs login.html as index.html (the root entry point for the app)
+fs.copyFileSync(path.join(__dirname, 'login.html'), path.join(WWW, 'index.html'));
 
 // Asset folders
 ['css', 'js'].forEach(dir => {

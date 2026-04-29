@@ -62,7 +62,7 @@
     } else {
       await _supabase.auth.signOut();
       document.getElementById('pwResetOverlay').remove();
-      window.location.href = 'index.html';
+      window.location.href = 'login.html';
     }
   };
 

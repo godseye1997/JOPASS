@@ -29,7 +29,7 @@ const TZ = 'Asia/Amman'; // GMT+3
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await _supabase.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
+  if (!session) { window.location.href = 'login.html'; return; }
 
   state.userId = session.user.id;
 
@@ -158,7 +158,7 @@ function updateUserDisplay() {
   if (nameEl)  nameEl.textContent  = name;
   if (emailEl) emailEl.textContent = email;
 
-  const logoutLink = document.querySelector('.sidebar-footer a[href="index.html"]');
+  const logoutLink = document.querySelector('.sidebar-footer a[href="login.html"]');
   if (logoutLink) {
     logoutLink.removeAttribute('href');
     logoutLink.style.cursor = 'pointer';
@@ -1670,7 +1670,7 @@ function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmSt
 
 async function signOutUser() {
   await _supabase.auth.signOut();
-  window.location.href = 'index.html';
+  window.location.href = 'login.html';
 }
 
 function shareReferral() {
