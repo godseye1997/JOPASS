@@ -124,7 +124,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     scheduleReminders();
   } catch (err) {
     console.error('Init error:', err);
-    main.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--danger);">Failed to load. Please refresh the page.</div>`;
+    // Auto-retry once after a short delay before showing error
+    setTimeout(async () => {
+      try {
+        const d2 = await dbFetchInitData(state.userId);
+        VENDORS = d2.vendors;
+        if (d2.profile) {
+          state.credits      = d2.profile.credits      || 0;
+          state.userName     = d2.profile.full_name    || '';
+          state.userEmail    = d2.profile.email        || '';
+          state.userPhone    = d2.profile.phone        || '';
+          state.referralCode = d2.profile.referral_code || '';
+        }
+        state.openingsMap = {};
+        d2.openings.forEach(o => {
+          if (!state.openingsMap[o.vendor_id]) state.openingsMap[o.vendor_id] = [];
+          state.openingsMap[o.vendor_id].push(dbParseOpening(o));
+        });
+        state.servicesMap = {};
+        d2.services.forEach(s => {
+          if (!state.servicesMap[s.vendor_id]) state.servicesMap[s.vendor_id] = [];
+          state.servicesMap[s.vendor_id].push({ id: s.id, vendor_id: s.vendor_id, name: s.name, duration: s.duration, price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits, blockedSlots: s.blocked_slots || [], singleSlot: s.single_slot || false });
+        });
+        state.bookings = _parseBookings(d2.bookings);
+        updateCreditDisplay();
+        updateUserDisplay();
+        navigateTo('browse');
+      } catch (_) {
+        main.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--danger);">Failed to load. Please check your connection and try again.</div>`;
+      }
+    }, 2000);
   }
 });
 

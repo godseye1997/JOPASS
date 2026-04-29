@@ -128,7 +128,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 30000);
   } catch (err) {
     console.error('Owner init error:', err);
-    if (main) main.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--danger);">Failed to load. Please refresh.</div>`;
+    // Auto-retry once after 2 seconds
+    setTimeout(async () => {
+      try {
+        window.location.reload();
+      } catch (_) {
+        if (main) main.innerHTML = `<div style="padding:40px 20px; text-align:center; color:var(--danger);">Failed to load. Please check your connection.</div>`;
+      }
+    }, 2000);
   }
 });
 
