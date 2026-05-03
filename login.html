@@ -103,9 +103,11 @@
       const btn   = document.querySelector('#forgotPanel .btn-primary');
       if (!email) { msgEl.textContent = 'Please enter your email.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
       btn.disabled = true; btn.textContent = 'Sending…';
-      const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'com.jopass.app://reset-password',
-      });
+      const isNative  = window.Capacitor?.isNativePlatform();
+      const redirectTo = isNative
+        ? 'com.jopass.app://reset-password'
+        : 'https://jopass.online/reset-password.html';
+      const { error } = await _supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) {
         msgEl.textContent = error.message; msgEl.style.color = 'var(--danger)';
       } else {
