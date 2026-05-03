@@ -887,7 +887,7 @@ function showTimeSlots() {
   ];
 
   const isToday = state.selectedDate.toDateString() === new Date().toDateString();
-  const dateStr = state.selectedDate.toISOString().slice(0, 10);
+  const dateStr = localDateStr(state.selectedDate);
   const blocked = state.selectedService?.blockedSlots || [];
 
   const slots = allSlots.map(slot => ({
