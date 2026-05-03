@@ -52,11 +52,21 @@
             </div>
             <div class="input-group">
               <label for="password">Password</label>
-              <input type="password" id="password" placeholder="••••••••">
+              <div style="position:relative;">
+                <input type="password" id="password" placeholder="••••••••" style="padding-right:44px;">
+                <button type="button" onclick="togglePw('password','eyeP')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                  <svg id="eyeP" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
             </div>
             <div class="input-group">
               <label for="confirmPassword">Confirm Password</label>
-              <input type="password" id="confirmPassword" placeholder="••••••••">
+              <div style="position:relative;">
+                <input type="password" id="confirmPassword" placeholder="••••••••" style="padding-right:44px;">
+                <button type="button" onclick="togglePw('confirmPassword','eyeC')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);padding:0;line-height:1;">
+                  <svg id="eyeC" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
             </div>
             <p id="formError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
             <button type="submit" class="btn btn-primary btn-full">Create Account</button>
@@ -83,6 +93,14 @@
   </div>
 
   <script>
+    function togglePw(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon  = document.getElementById(iconId);
+      const show  = input.type === 'password';
+      input.type  = show ? 'text' : 'password';
+      icon.style.opacity = show ? '1' : '0.4';
+    }
+
     // Capture referral code from URL e.g. signup.html?ref=JO-AB12
     (function() {
       const ref = new URLSearchParams(window.location.search).get('ref');
