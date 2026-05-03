@@ -105,6 +105,15 @@
     (function() {
       const ref = new URLSearchParams(window.location.search).get('ref');
       if (ref) sessionStorage.setItem('jopass_ref', ref);
+
+      // On Android browser (not already in the app), try to open the app
+      const isAndroid = /android/i.test(navigator.userAgent);
+      const isNative  = window.Capacitor?.isNativePlatform();
+      if (isAndroid && !isNative && ref) {
+        const PLAY = 'https://play.google.com/store/apps/details?id=com.jopass.app';
+        const intentUrl = `intent://signup?ref=${encodeURIComponent(ref)}#Intent;scheme=com.jopass.app;package=com.jopass.app;S.browser_fallback_url=${encodeURIComponent(PLAY)};end`;
+        window.location.href = intentUrl;
+      }
     })();
 
     function setLoginViewMode(mode) {

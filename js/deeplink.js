@@ -80,16 +80,29 @@
       const AppPlugin = Capacitor.Plugins?.App;
       if (AppPlugin) {
         AppPlugin.addListener('appUrlOpen', (event) => {
-          if (!event.url.includes('type=recovery')) return;
-          // Extract hash and update location so Supabase can parse tokens
-          const hashIdx = event.url.indexOf('#');
-          if (hashIdx !== -1) {
-            const hash = event.url.slice(hashIdx + 1);
-            history.replaceState(null, '', window.location.pathname + '#' + hash);
-            // Re-init Supabase session from the new hash
-            _supabase.auth.getSession();
+          const url = event.url;
+
+          // Password recovery link
+          if (url.includes('type=recovery')) {
+            const hashIdx = url.indexOf('#');
+            if (hashIdx !== -1) {
+              const hash = url.slice(hashIdx + 1);
+              history.replaceState(null, '', window.location.pathname + '#' + hash);
+              _supabase.auth.getSession();
+            }
+            showPasswordResetOverlay();
+            return;
           }
-          showPasswordResetOverlay();
+
+          // Referral signup link: com.jopass.app://signup?ref=JO-XXXX
+          if (url.startsWith('com.jopass.app://signup')) {
+            const qIdx = url.indexOf('?');
+            const ref  = qIdx !== -1
+              ? new URLSearchParams(url.slice(qIdx + 1)).get('ref')
+              : null;
+            if (ref) sessionStorage.setItem('jopass_ref', ref);
+            window.location.href = 'signup.html' + (ref ? `?ref=${encodeURIComponent(ref)}` : '');
+          }
         });
       }
     }
