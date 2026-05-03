@@ -1198,12 +1198,50 @@ function processPayment() {
 }
 
 /* ── Bookings View ── */
+let _bookingsFilter = 'all';
+
+function setBookingsFilter(f) {
+  _bookingsFilter = f;
+  renderBookings(document.getElementById('mainContent'));
+}
+
+function _filterBookings(bookings) {
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (_bookingsFilter === 'today') {
+    return bookings.filter(b => b.date >= today && b.date < new Date(today.getTime() + 86400000));
+  }
+  if (_bookingsFilter === 'week') {
+    const start = new Date(today); start.setDate(today.getDate() - today.getDay());
+    const end   = new Date(start.getTime() + 7 * 86400000);
+    return bookings.filter(b => b.date >= start && b.date < end);
+  }
+  if (_bookingsFilter === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end   = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return bookings.filter(b => b.date >= start && b.date < end);
+  }
+  return bookings;
+}
+
 function renderBookings(container) {
   checkBookingStatuses();
+  const filtered = _filterBookings(state.bookings);
+  const filters = ['all','today','week','month'];
+  const labels  = { all:'All', today:'Today', week:'This Week', month:'This Month' };
+  const filterBar = `
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+      ${filters.map(f => `
+        <button onclick="setBookingsFilter('${f}')"
+          style="padding:6px 14px; border-radius:20px; font-size:.78rem; font-weight:600; cursor:pointer; border:1.5px solid ${_bookingsFilter===f ? 'var(--primary)' : 'var(--border)'}; background:${_bookingsFilter===f ? 'var(--primary)' : 'var(--surface)'}; color:${_bookingsFilter===f ? '#fff' : 'var(--text-muted)'};">
+          ${labels[f]}
+        </button>`).join('')}
+    </div>`;
   container.innerHTML = `
     <div class="page-header">
       <h2>My Bookings</h2>
     </div>
+    ${filterBar}
     ${state.bookings.length === 0 ? `
       <div class="empty-state">
         <div class="icon"><i data-lucide="calendar" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
@@ -1211,7 +1249,13 @@ function renderBookings(container) {
         <p>Browse deals and book your first experience!</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('browse')">Browse Deals</button>
       </div>
-    ` : state.bookings.map(b => {
+    ` : filtered.length === 0 ? `
+      <div class="empty-state">
+        <div class="icon"><i data-lucide="calendar" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
+        <h3>No Bookings Found</h3>
+        <p>No bookings match the selected filter.</p>
+      </div>
+    ` : filtered.map(b => {
       const dateStr     = fmtDate(b.date);
       const review      = state.reviews[b.id];
       const isCompleted = b.status === 'completed';
@@ -1255,6 +1299,7 @@ function renderBookings(container) {
       `;
     }).join('')}
   `;
+  if (window.lucide) lucide.createIcons();
 }
 
 /* ── Review Modal ── */
