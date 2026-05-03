@@ -225,45 +225,43 @@ function fmtDateLong(date) {
 }
 
 /* ── Notifications ── */
-function _openNativeNotificationSettings() {
-  const isAndroid = /android/i.test(navigator.userAgent);
-  if (isAndroid) {
-    // Android: open notification settings for this app via intent
-    window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.jopass.app;end';
-  } else {
-    // iOS
-    const AppPlugin = window.Capacitor?.Plugins?.App;
-    if (AppPlugin?.openUrl) AppPlugin.openUrl({ url: 'app-settings:' });
-  }
-}
-
 async function openNotificationSettings() {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
-  if (LN) {
-    try {
-      const { display } = await LN.checkPermissions();
-      if (display === 'granted') {
-        // Already enabled — open settings so they can manage channels
-        _openNativeNotificationSettings();
-        return;
-      }
-      if (display === 'denied') {
-        // Permanently denied — must go to settings manually
-        _openNativeNotificationSettings();
-        return;
-      }
-      // Not yet asked — show the system permission dialog
-      const { display: result } = await LN.requestPermissions();
-      if (result === 'granted') {
-        showToast('Notifications enabled!', 'success');
-      } else {
-        showToast('Notifications were not enabled.', 'error');
-      }
-    } catch (_) {
-      _openNativeNotificationSettings();
+  if (!LN) {
+    showToast('Open Settings → Apps → JoPass → Notifications to manage alerts.', 'info');
+    return;
+  }
+  try {
+    const { display } = await LN.checkPermissions();
+    if (display === 'granted') {
+      showConfirmDialog({
+        title: 'Notifications Enabled',
+        message: 'JoPass notifications are <strong>enabled</strong>.<br><br>To change notification settings, go to:<br><strong>Settings → Apps → JoPass → Notifications</strong>',
+        confirmLabel: 'OK',
+        confirmStyle: 'background:var(--primary);color:#fff;',
+        onConfirm: () => {},
+      });
+      return;
     }
-  } else {
-    showToast('Go to Settings → Apps → JoPass → Notifications to enable alerts.', 'info');
+    if (display === 'denied') {
+      showConfirmDialog({
+        title: 'Notifications Blocked',
+        message: 'Notifications are blocked. To enable them, go to:<br><br><strong>Settings → Apps → JoPass → Notifications</strong><br><br>and turn them on.',
+        confirmLabel: 'OK',
+        confirmStyle: 'background:var(--primary);color:#fff;',
+        onConfirm: () => {},
+      });
+      return;
+    }
+    // Not yet asked — show the native system permission dialog
+    const { display: result } = await LN.requestPermissions();
+    if (result === 'granted') {
+      showToast('Notifications enabled!', 'success');
+    } else {
+      showToast('Notifications not enabled. You can turn them on in Settings.', 'info');
+    }
+  } catch (_) {
+    showToast('Open Settings → Apps → JoPass → Notifications to manage alerts.', 'info');
   }
 }
 
