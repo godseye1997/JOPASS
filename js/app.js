@@ -1178,15 +1178,21 @@ function processPayment() {
   btn.textContent = 'Processing…';
 
   setTimeout(async () => {
-    const pack = state.selectedPack;
-    state.credits += pack.credits;
-    await dbUpdateCredits(state.userId, state.credits).catch(console.error);
-    // Reward referrer on first purchase
-    _supabase.rpc('claim_referral_purchase').catch(() => {});
-    updateCreditDisplay();
-    closePaymentModal();
-    showToast(`${pack.credits} credits added to your balance!`, 'success');
-    renderCredits(document.getElementById('mainContent'));
+    try {
+      const pack = state.selectedPack;
+      state.credits += pack.credits;
+      await dbUpdateCredits(state.userId, state.credits).catch(console.error);
+      _supabase.rpc('claim_referral_purchase').catch(() => {});
+      updateCreditDisplay();
+      closePaymentModal();
+      showToast(`${pack.credits} credits added to your balance!`, 'success');
+      renderCredits(document.getElementById('mainContent'));
+    } catch (err) {
+      console.error('processPayment error:', err);
+      btn.disabled    = false;
+      btn.textContent = 'Pay Now';
+      showToast('Payment failed. Please try again.', 'error');
+    }
   }, 1800);
 }
 
@@ -1219,7 +1225,8 @@ function renderBookings(container) {
       const action = isCancelled ? '' :
         isCompleted
           ? (review
-              ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>`
+              ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>
+                 <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);margin-left:8px;" onclick="clearBooking('${b.id}')">Remove</button>`
               : `<button class="btn btn-sm btn-primary" onclick="openReviewModal('${b.id}')">Review</button>`)
           : `<button class="btn btn-sm btn-outline" style="${refundable ? '' : 'color:var(--danger);border-color:var(--danger);'}"
                title="${refundable ? 'Full credit refund' : 'No refund — within 12-hour window'}"
@@ -1380,6 +1387,25 @@ async function _doCancelBooking(id) {
     console.error(err);
     showToast('Could not cancel booking. Please try again.', 'error');
   }
+}
+
+function clearBooking(id) {
+  showConfirmDialog({
+    title: 'Remove Booking?',
+    message: 'Remove this completed booking from your history?',
+    confirmLabel: 'Remove',
+    confirmStyle: 'background:var(--danger);color:#fff;',
+    onConfirm: async () => {
+      try {
+        await dbClearBooking(id);
+        state.bookings = state.bookings.filter(b => b.id !== id);
+        renderBookings(document.getElementById('mainContent'));
+      } catch (err) {
+        console.error(err);
+        showToast('Could not remove booking. Please try again.', 'error');
+      }
+    },
+  });
 }
 
 /* ── Profile View ── */

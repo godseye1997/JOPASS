@@ -1,8 +1,15 @@
 /* ── JoPass — Supabase Data Layer ── */
 
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 /* ─── Consumer: fetch all init data ─── */
 async function dbFetchInitData(userId) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr(new Date());
   const [
     { data: profile },
     { data: vendors },
@@ -22,6 +29,7 @@ async function dbFetchInitData(userId) {
     _supabase.from('bookings')
       .select('*, vendors(name,icon,color,category)')
       .eq('user_id', userId)
+      .eq('cleared_by_customer', false)
       .order('date', { ascending: false }),
     _supabase.from('reviews').select('*').eq('user_id', userId),
   ]);
@@ -43,8 +51,16 @@ async function dbFetchUserBookings(userId) {
     .from('bookings')
     .select('*, vendors(name,icon,color,category)')
     .eq('user_id', userId)
+    .eq('cleared_by_customer', false)
     .order('date', { ascending: false });
   return data || [];
+}
+
+async function dbClearBooking(bookingId) {
+  const { error } = await _supabase.from('bookings')
+    .update({ cleared_by_customer: true })
+    .eq('id', bookingId);
+  if (error) throw error;
 }
 
 /* ─── Consumer writes ─── */
@@ -57,7 +73,7 @@ async function dbCreateBooking({ userId, vendorId, service, date, time }) {
     service_credits: service.credits,
     service_price:  service.jopassPrice,
     original_price: service.price,
-    date:           date.toISOString().slice(0, 10),
+    date:           localDateStr(date),
     time,
     status:         'confirmed',
   }).select().single();
@@ -236,7 +252,7 @@ async function dbAddOpening({ vendorId, serviceName, duration, originalPrice, jo
     jopass_price:   jopassPrice,
     credits,
     capacity,
-    date:           date.toISOString().slice(0, 10),
+    date:           localDateStr(date),
     slots,
     booked_slots:   [],
   }).select().single();

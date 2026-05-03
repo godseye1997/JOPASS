@@ -468,11 +468,14 @@ function _renderManageSlotsView(container, s) {
   }
   calHtml += `</div>`;
 
+  const visibleServiceSlots = _manageSlotsDate
+    ? ALL_SERVICE_SLOTS.filter(slot => !slotIsPast(new Date(_manageSlotsDate + 'T00:00:00'), slot))
+    : [];
   const slotsHtml = _manageSlotsDate ? `
     <div style="margin-top:16px;">
       <div style="font-size:.85rem; font-weight:600; margin-bottom:10px;">Slots for ${_manageSlotsDate} — tap to close/open:</div>
       <div style="display:flex; flex-wrap:wrap; gap:8px;">
-        ${ALL_SERVICE_SLOTS.map(slot => {
+        ${visibleServiceSlots.length > 0 ? visibleServiceSlots.map(slot => {
           const key = `${_manageSlotsDate}|${slot}`;
           const blocked = _manageSlotsBlocked.includes(key);
           return `<button onclick="toggleManagedSlot('${key}')"
@@ -482,7 +485,7 @@ function _renderManageSlotsView(container, s) {
               color:${blocked ? 'var(--danger)' : 'var(--success)'};">
             ${slot} ${blocked ? '✕' : '✓'}
           </button>`;
-        }).join('')}
+        }).join('') : `<p style="font-size:.85rem; color:var(--danger);">No slots remaining for today.</p>`}
       </div>
       <p style="font-size:.75rem; color:var(--text-muted); margin-top:10px;">✓ = open &nbsp; ✕ = closed</p>
     </div>
@@ -742,7 +745,7 @@ async function removeOpening(id) {
 
   try {
     // Cancel related confirmed bookings
-    const dateStr = opening.date.toISOString().slice(0, 10);
+    const dateStr = localDateStr(opening.date);
     await dbCancelBookingsForOpening(OWNER_VENDOR.id, opening.service.name, dateStr);
     await dbDeleteOpening(id);
 
@@ -835,16 +838,20 @@ function renderAddOpening(container) {
       <div class="calendar">${calHtml}</div>
     </div>
 
-    ${f.date ? `
+    ${f.date ? (() => {
+      const availableSlots = ALL_SLOTS.filter(slot => !slotIsPast(f.date, slot));
+      return `
       <div class="card" style="margin-bottom:16px;">
         <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">Available Time Slots</label>
         <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Select every slot when this service is open for booking.</p>
         <div class="time-slots">
-          ${ALL_SLOTS.map(slot => `
+          ${availableSlots.length > 0 ? availableSlots.map(slot => `
             <div class="time-slot ${f.selectedSlots.includes(slot) ? 'selected' : ''}"
               onclick="ownerToggleSlot('${slot}')">${slot}</div>
-          `).join('')}
-        </div>
+          `).join('') : `<p style="font-size:.85rem; color:var(--danger);">No slots remaining for today. Please select a future date.</p>`}
+        </div>`;
+    })() : ''}
+    ${f.date ? `
         <p id="ownerSlotCount" style="font-size:.78rem; color:var(--text-muted); margin-top:10px;">
           ${f.selectedSlots.length} slot${f.selectedSlots.length !== 1 ? 's' : ''} selected
         </p>
