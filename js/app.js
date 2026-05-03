@@ -225,23 +225,34 @@ function fmtDateLong(date) {
 }
 
 /* ── Notifications ── */
+function _openNativeNotificationSettings() {
+  const isAndroid = /android/i.test(navigator.userAgent);
+  if (isAndroid) {
+    // Android: open notification settings for this app via intent
+    window.location.href = 'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.jopass.app;end';
+  } else {
+    // iOS
+    const AppPlugin = window.Capacitor?.Plugins?.App;
+    if (AppPlugin?.openUrl) AppPlugin.openUrl({ url: 'app-settings:' });
+  }
+}
+
 async function openNotificationSettings() {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (LN) {
     try {
       const { display } = await LN.checkPermissions();
       if (display === 'granted') {
-        showToast('Notifications are already enabled.', 'success');
+        // Already enabled — open settings so they can manage channels
+        _openNativeNotificationSettings();
         return;
       }
       if (display === 'denied') {
-        // Already denied — send user to system settings
-        const AppPlugin = window.Capacitor?.Plugins?.App;
-        if (AppPlugin?.openUrl) AppPlugin.openUrl({ url: 'app-settings:' });
-        else showToast('Go to Settings → Apps → JoPass → Notifications and enable them.', 'info');
+        // Permanently denied — must go to settings manually
+        _openNativeNotificationSettings();
         return;
       }
-      // Not yet asked — request permission natively
+      // Not yet asked — show the system permission dialog
       const { display: result } = await LN.requestPermissions();
       if (result === 'granted') {
         showToast('Notifications enabled!', 'success');
@@ -249,7 +260,7 @@ async function openNotificationSettings() {
         showToast('Notifications were not enabled.', 'error');
       }
     } catch (_) {
-      showToast('Go to Settings → Apps → JoPass → Notifications to enable alerts.', 'info');
+      _openNativeNotificationSettings();
     }
   } else {
     showToast('Go to Settings → Apps → JoPass → Notifications to enable alerts.', 'info');
