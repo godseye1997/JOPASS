@@ -123,9 +123,13 @@
       padding: 48px; display: flex; flex-wrap: wrap; gap: 32px;
       justify-content: space-between; align-items: center;
     }
-    footer .brand img { height: 28px; filter: brightness(0) invert(1); opacity: .8; }
+    footer .brand .brand-name { font-size: 1.2rem; font-weight: 800; color: #fff; letter-spacing: -.01em; }
     footer .brand p { font-size: .82rem; margin-top: 8px; }
-    footer nav.footer-nav { display: flex; gap: 24px; flex-wrap: wrap; }
+    footer nav.footer-nav {
+      display: flex; gap: 24px; flex-wrap: wrap;
+      background: transparent; position: static; height: auto;
+      padding: 0; border: none; backdrop-filter: none;
+    }
     footer nav.footer-nav a { color: rgba(255,255,255,.6); text-decoration: none; font-size: .85rem; transition: color .15s; }
     footer nav.footer-nav a:hover { color: #fff; }
     footer .copy { font-size: .78rem; width: 100%; text-align: center; border-top: 1px solid rgba(255,255,255,.1); padding-top: 24px; }
@@ -139,7 +143,7 @@
     <div class="links">
       <a href="index.html">Home</a>
       <a href="about.html">About Us</a>
-      <a href="index.html" class="btn-nav btn-outline">Sign In</a>
+      <a href="login.html" class="btn-nav btn-outline">Sign In</a>
       <a href="signup.html" class="btn-nav btn-solid">Get Started</a>
     </div>
   </nav>
@@ -241,7 +245,7 @@
   <!-- Footer -->
   <footer>
     <div class="brand">
-      <img src="logo.png" alt="JoPass">
+      <div class="brand-name">JoPass</div>
       <p>Jordan's pass-based booking platform.</p>
     </div>
     <nav class="footer-nav">
