@@ -29,7 +29,6 @@ async function dbFetchInitData(userId) {
     _supabase.from('bookings')
       .select('*, vendors(name,icon,color,category)')
       .eq('user_id', userId)
-      .eq('cleared_by_customer', false)
       .order('date', { ascending: false }),
     _supabase.from('reviews').select('*').eq('user_id', userId),
   ]);
@@ -51,7 +50,6 @@ async function dbFetchUserBookings(userId) {
     .from('bookings')
     .select('*, vendors(name,icon,color,category)')
     .eq('user_id', userId)
-    .eq('cleared_by_customer', false)
     .order('date', { ascending: false });
   return data || [];
 }

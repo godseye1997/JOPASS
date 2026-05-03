@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function _parseBookings(rows) {
-  return rows.map(b => ({
+  return rows.filter(b => !b.cleared_by_customer).map(b => ({
     id:       b.id,
     vendorId: b.vendor_id,
     vendor: b.vendors
@@ -1180,17 +1180,18 @@ function processPayment() {
   setTimeout(async () => {
     try {
       const pack = state.selectedPack;
+      if (!pack) return;
       state.credits += pack.credits;
       await dbUpdateCredits(state.userId, state.credits).catch(console.error);
       _supabase.rpc('claim_referral_purchase').catch(() => {});
       updateCreditDisplay();
       closePaymentModal();
       showToast(`${pack.credits} credits added to your balance!`, 'success');
-      renderCredits(document.getElementById('mainContent'));
+      const main = document.getElementById('mainContent');
+      if (main) renderCredits(main);
     } catch (err) {
       console.error('processPayment error:', err);
-      btn.disabled    = false;
-      btn.textContent = 'Pay Now';
+      if (btn) { btn.disabled = false; btn.textContent = 'Pay Now'; }
       showToast('Payment failed. Please try again.', 'error');
     }
   }, 1800);
