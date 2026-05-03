@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JoPass">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>JoPass — Login</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body mode-mobile">
+
+
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+    <div class="login-scroll">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="logo">
+            <img src="logo.png" alt="JoPass" style="height:72px; object-fit:contain;">
+          </div>
+          <p class="tagline">Book amazing experiences for less.</p>
+
+          <form id="loginForm">
+            <div class="input-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" placeholder="you@example.com">
+            </div>
+            <div class="input-group">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label for="password" style="margin:0;">Password</label>
+                <a href="#" onclick="sendForgotPassword(); return false;" style="font-size:.78rem; color:var(--primary);">Forgot password?</a>
+              </div>
+              <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <p id="loginError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
+            <button type="submit" class="btn btn-primary btn-full">Log In</button>
+          </form>
+
+          <div id="forgotPanel" style="display:none; margin-top:16px; padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);">
+            <div style="font-weight:600; font-size:.88rem; margin-bottom:10px;">Reset your password</div>
+            <div class="input-group" style="margin-bottom:10px;">
+              <label for="forgotEmail">Email address</label>
+              <input type="email" id="forgotEmail" placeholder="you@example.com">
+            </div>
+            <p id="forgotMsg" style="font-size:.82rem; margin-bottom:10px; display:none;"></p>
+            <button class="btn btn-primary btn-full" onclick="sendForgotEmail()">Send Reset Link</button>
+            <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="document.getElementById('forgotPanel').style.display='none'">Cancel</button>
+          </div>
+
+          <p class="login-footer">Don't have an account? <a href="signup.html">Sign up</a></p>
+
+          <a href="owner-login.html" style="display:block; text-align:center; margin-top:20px; font-size:.75rem; color:var(--text-muted); text-decoration:none;">Are you a venue? <span style="text-decoration:underline;">Sign in here</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setLoginViewMode(mode) {
+      document.body.className = `login-body mode-${mode}`;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn     = e.target.querySelector('button[type=submit]');
+      const email   = document.getElementById('email').value.trim();
+      const pass    = document.getElementById('password').value;
+      const errorEl = document.getElementById('loginError');
+      btn.textContent = 'Signing in…';
+      btn.disabled    = true;
+      const { error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Log In';
+        btn.disabled    = false;
+      } else {
+        window.location.href = 'dashboard.html';
+      }
+    });
+
+  </script>
+  <script>
+    function sendForgotPassword() {
+      const panel = document.getElementById('forgotPanel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      document.getElementById('forgotEmail').value = document.getElementById('email').value;
+      document.getElementById('forgotMsg').style.display = 'none';
+    }
+    async function sendForgotEmail() {
+      const email = document.getElementById('forgotEmail').value.trim();
+      const msgEl = document.getElementById('forgotMsg');
+      const btn   = document.querySelector('#forgotPanel .btn-primary');
+      if (!email) { msgEl.textContent = 'Please enter your email.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      const isNative  = window.Capacitor?.isNativePlatform();
+      const redirectTo = isNative
+        ? 'com.jopass.app://reset-password'
+        : 'https://jopass.online/reset-password.html';
+      const { error } = await _supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        msgEl.textContent = error.message; msgEl.style.color = 'var(--danger)';
+      } else {
+        msgEl.textContent = 'Check your email and tap the reset link to open the app.';
+        msgEl.style.color = 'var(--success)';
+        btn.textContent = 'Sent!';
+      }
+      msgEl.style.display = 'block';
+    }
+  </script>
+  <script src="js/native.js"></script>
+  <script src="js/deeplink.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script>
+    if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
+      document.body.classList.replace('mode-mobile', 'mode-desktop');
+    }
+  </script>
+</body>
+</html>

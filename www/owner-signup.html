@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JoPass">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>JoPass — Owner Sign Up</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body mode-mobile">
+
+  <div class="view-toggle">
+    <button class="toggle-btn active" data-mode="mobile" onclick="setLoginViewMode('mobile')">Phone</button>
+    <button class="toggle-btn" data-mode="desktop" onclick="setLoginViewMode('desktop')">Desktop</button>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="login-scroll">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="logo">
+            <img src="logo.png" alt="JoPass" style="height:72px; object-fit:contain;">
+          </div>
+          <p class="tagline" style="margin-bottom:6px;">Owner Sign Up</p>
+          <p style="text-align:center; font-size:.78rem; color:var(--text-muted); margin-bottom:24px;">
+            Your email must be approved by the JoPass admin first.
+          </p>
+
+          <!-- Step 1: check email -->
+          <div id="step1">
+            <div class="input-group">
+              <label for="ownerEmail">Business Email</label>
+              <input type="email" id="ownerEmail" placeholder="you@business.com">
+            </div>
+            <p id="step1Error" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
+            <button class="btn btn-primary btn-full" onclick="checkEmail()">Continue</button>
+          </div>
+
+          <!-- Step 2: create account (shown after email verified) -->
+          <div id="step2" style="display:none;">
+            <div id="approvedBadge" style="background:rgba(0,184,148,.1); border:1px solid rgba(0,184,148,.3); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:18px; font-size:.85rem; color:var(--success); font-weight:500;"></div>
+            <div class="input-group">
+              <label for="ownerName">Your Name</label>
+              <input type="text" id="ownerName" placeholder="Full name">
+            </div>
+            <div class="input-group">
+              <label for="ownerPassword">Password</label>
+              <input type="password" id="ownerPassword" placeholder="At least 6 characters">
+            </div>
+            <div class="input-group">
+              <label for="ownerConfirm">Confirm Password</label>
+              <input type="password" id="ownerConfirm" placeholder="••••••••">
+            </div>
+            <p id="step2Error" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
+            <button class="btn btn-primary btn-full" onclick="createOwnerAccount()">Create Account</button>
+          </div>
+
+          <p class="login-footer" style="margin-top:16px;">
+            Already have an account? <a href="owner-login.html">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/native.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script>
+    let _approvedOwner = null;
+
+    function setLoginViewMode(mode) {
+      document.body.className = `login-body mode-${mode}`;
+      document.querySelectorAll('.toggle-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+
+    async function checkEmail() {
+      const email   = document.getElementById('ownerEmail').value.trim().toLowerCase();
+      const errorEl = document.getElementById('step1Error');
+      if (!email) { errorEl.textContent = 'Please enter your email.'; errorEl.style.display = 'block'; return; }
+
+      const { data } = await _supabase
+        .from('approved_owners')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (!data) {
+        errorEl.textContent = 'This email is not on the approved list. Contact JoPass admin to get access.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (data.claimed) {
+        errorEl.textContent = 'An account already exists for this email. Please sign in instead.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      _approvedOwner = data;
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      document.getElementById('approvedBadge').textContent = `✓ Approved for ${data.name || email}`;
+    }
+
+    async function createOwnerAccount() {
+      const name     = document.getElementById('ownerName').value.trim();
+      const password = document.getElementById('ownerPassword').value;
+      const confirm  = document.getElementById('ownerConfirm').value;
+      const errorEl  = document.getElementById('step2Error');
+      const btn      = document.querySelector('#step2 button');
+      const email    = document.getElementById('ownerEmail').value.trim().toLowerCase();
+
+      if (!name || !password) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = 'block'; return; }
+      if (password.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = 'block'; return; }
+      if (password !== confirm) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+
+      btn.textContent = 'Creating account…';
+      btn.disabled = true;
+
+      const { data, error } = await _supabase.auth.signUp({
+        email, password, options: { data: { full_name: name } }
+      });
+
+      if (error) {
+        errorEl.textContent = error.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+        return;
+      }
+
+      // Create vendor + link to profile atomically via RPC (bypasses RLS safely)
+      const { data: vendorId, error: rpcError } = await _supabase.rpc('create_vendor_for_owner', {
+        p_user_id:      data.user.id,
+        p_business_name: _approvedOwner.name || name,
+      });
+
+      if (rpcError) {
+        errorEl.textContent = 'Account created but vendor setup failed: ' + rpcError.message;
+        errorEl.style.display = 'block';
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+        return;
+      }
+
+      // Update profile with name and phone
+      await _supabase.from('profiles').update({
+        full_name: name,
+        phone: _approvedOwner.phone || '',
+        email,
+      }).eq('id', data.user.id);
+
+      // Mark as claimed
+      await _supabase.from('approved_owners').update({ claimed: true }).eq('email', email);
+
+      window.location.href = 'owner.html';
+    }
+  </script>
+</body>
+</html>

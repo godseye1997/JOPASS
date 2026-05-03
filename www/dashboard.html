@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JoPass">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>JoPass — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+  <!-- Phone Frame (wraps app in mobile mode) -->
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+
+    <div class="app">
+      <!-- Mobile Header -->
+      <header class="mobile-header">
+        <div class="mobile-header-left">
+          <img src="logo.png" alt="JoPass" style="height:28px; object-fit:contain;">
+        </div>
+        <div class="mobile-header-right">
+          <div class="credit-pill" onclick="navigateTo('credits')">
+            <i data-lucide="credit-card" style="width:14px;height:14px;"></i>
+            <span id="creditCountHeader">15</span>
+          </div>
+          <div class="user-avatar-sm">TU</div>
+        </div>
+      </header>
+
+      <!-- Desktop Sidebar (hidden on mobile) -->
+      <aside class="sidebar">
+        <div class="logo">
+          <img src="logo.png" alt="JoPass" style="height:48px; object-fit:contain;">
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="active" data-view="browse" onclick="navigateTo('browse'); return false;">
+            <span class="icon"><i data-lucide="search"></i></span> Browse Deals
+          </a>
+          <a href="#" data-view="credits" onclick="navigateTo('credits'); return false;">
+            <span class="icon"><i data-lucide="credit-card"></i></span> Buy Credits
+            <span style="margin-left:auto; background:var(--primary); color:#fff; font-size:.75rem; padding:2px 8px; border-radius:12px;" id="creditCount">15</span>
+          </a>
+          <a href="#" data-view="bookings" onclick="navigateTo('bookings'); return false;">
+            <span class="icon"><i data-lucide="calendar"></i></span> My Bookings
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <div class="user-avatar">TU</div>
+            <div class="user-details">
+              <div class="name">Test User</div>
+              <div class="email">demo@jopass.com</div>
+            </div>
+          </div>
+          <a href="login.html" style="display:block; margin-top:12px; font-size:.8rem; color:var(--text-muted);">← Log out</a>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main" id="mainContent">
+        <!-- Rendered by JS -->
+      </main>
+
+      <!-- Bottom Tab Bar (mobile) -->
+      <nav class="bottom-nav">
+        <a href="#" class="bottom-nav-item active" data-view="browse" onclick="navigateTo('browse'); return false;">
+          <span class="bottom-nav-icon"><i data-lucide="search"></i></span>
+          <span class="bottom-nav-label">Browse</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-view="credits" onclick="navigateTo('credits'); return false;">
+          <span class="bottom-nav-icon"><i data-lucide="credit-card"></i></span>
+          <span class="bottom-nav-label">Credits</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-view="bookings" onclick="navigateTo('bookings'); return false;">
+          <span class="bottom-nav-icon"><i data-lucide="calendar"></i></span>
+          <span class="bottom-nav-label">Bookings</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-view="profile" onclick="navigateTo('profile'); return false;">
+          <span class="bottom-nav-icon"><i data-lucide="user"></i></span>
+          <span class="bottom-nav-label">Profile</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Booking Modal -->
+  <div class="modal-overlay" id="bookingModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Book Service</h3>
+        <button class="modal-close" onclick="closeBookingModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeBookingModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirmBookingBtn" disabled onclick="confirmBooking()">Select Date & Time</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Complete Payment</h3>
+        <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="paymentModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closePaymentModal()">Cancel</button>
+        <button class="btn btn-primary" id="payBtn" disabled onclick="processPayment()">Pay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-overlay" id="reviewModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Leave a Review</h3>
+        <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="reviewModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeReviewModal()">Skip</button>
+        <button class="btn btn-primary" id="submitReviewBtn" disabled onclick="submitReview()">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/native.js"></script>
+  <script src="js/deeplink.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/lucide.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
+      setViewMode('desktop');
+    } else {
+      setViewMode('mobile');
+    }
+    lucide.createIcons();
+  </script>
+</body>
+</html>

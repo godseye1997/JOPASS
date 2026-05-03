@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JoPass">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>JoPass — Owner Portal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+  <div class="phone-frame" id="phoneFrame">
+    <div class="phone-notch"></div>
+
+    <div class="app">
+      <!-- Mobile Header -->
+      <header class="mobile-header">
+        <div class="mobile-header-left" style="display:flex; align-items:center; gap:8px;">
+          <button id="ownerBackBtn" onclick="ownerGoBack()" style="display:none; background:none; border:none; padding:4px 6px 4px 0; cursor:pointer; color:var(--primary); font-size:1.2rem; line-height:1;">‹</button>
+          <img src="logo.png" alt="JoPass" style="height:28px; object-fit:contain;">
+        </div>
+        <div class="mobile-header-right">
+          <span style="font-size:.7rem; color:var(--text-muted); font-weight:600; margin-right:10px;">OWNER</span>
+          <a href="login.html" style="font-size:.8rem; color:var(--text-muted); font-weight:500;">🚪 Log out</a>
+        </div>
+      </header>
+
+      <!-- Desktop Sidebar -->
+      <aside class="sidebar">
+        <div class="logo">
+          <img src="logo.png" alt="JoPass" style="height:48px; object-fit:contain;">
+        </div>
+        <div style="padding:8px 24px 16px; font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--text-muted); text-transform:uppercase;">Owner Portal</div>
+        <nav class="sidebar-nav">
+          <a href="#" data-view="profile" onclick="ownerNav('profile'); return false;">
+            <span class="icon"><i data-lucide="building-2"></i></span> Business Profile
+          </a>
+          <a href="#" class="active" data-view="listings" onclick="ownerNav('listings'); return false;">
+            <span class="icon"><i data-lucide="clock"></i></span> Deals
+          </a>
+          <a href="#" data-view="add" onclick="ownerNav('add'); return false;">
+            <span class="icon"><i data-lucide="plus-circle"></i></span> Add Deal
+          </a>
+          <a href="#" data-view="services" onclick="ownerNav('services'); return false;">
+            <span class="icon"><i data-lucide="layers"></i></span> Standard
+          </a>
+          <a href="#" data-view="received" onclick="ownerNav('received'); return false;">
+            <span class="icon"><i data-lucide="inbox"></i></span> Bookings Received
+            <span id="sidebarBadge" style="display:none; margin-left:auto; background:var(--danger); color:#fff; font-size:.7rem; padding:2px 7px; border-radius:12px;"></span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <div class="user-avatar" id="ownerAvatarDesk">FZ</div>
+            <div class="user-details">
+              <div class="name" id="ownerNameDesk">Owner</div>
+              <div class="email" id="ownerEmailDesk"></div>
+            </div>
+          </div>
+          <a href="#" onclick="ownerSignOut(); return false;" style="display:block; margin-top:12px; font-size:.8rem; color:var(--text-muted);">← Log out</a>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main" id="ownerMain"></main>
+
+      <!-- Bottom Tab Bar -->
+      <nav class="bottom-nav">
+        <a href="#" class="bottom-nav-item" data-view="profile" onclick="ownerNav('profile'); return false;">
+          <span class="bottom-nav-icon"><i data-lucide="building-2"></i></span>
+          <span class="bottom-nav-label">Profile</span>
+        </a>
+        <a href="#" class="bottom-nav-item active" data-view="bookingsHub" onclick="ownerNav('bookingsHub'); return false;">
+          <span class="bottom-nav-icon"><i data-lucide="layout-grid"></i></span>
+          <span class="bottom-nav-label">Bookings</span>
+        </a>
+        <a href="#" class="bottom-nav-item" data-view="received" onclick="ownerNav('received'); return false;">
+          <span class="bottom-nav-icon" style="position:relative; display:inline-flex;">
+            <i data-lucide="inbox"></i>
+            <span id="bottomNavBadge" style="display:none; position:absolute; top:-5px; right:-7px; min-width:16px; height:16px; background:var(--danger); color:#fff; font-size:.6rem; font-weight:700; border-radius:10px; padding:0 4px; line-height:16px; text-align:center; border:2px solid var(--surface);"></span>
+          </span>
+          <span class="bottom-nav-label">Received</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/native.js"></script>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/lucide.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/owner.js"></script>
+  <script>
+    if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
+      setViewMode('desktop');
+    } else {
+      setViewMode('mobile');
+    }
+    lucide.createIcons();
+  </script>
+</body>
+</html>
