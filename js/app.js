@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigateTo('browse');
 
     setInterval(() => { checkBookingStatuses(); refreshBookings(); }, 30000);
-    scheduleReminders();
+    scheduleAllReminders();
   } catch (err) {
     console.error('Init error:', err);
     // Auto-retry once after a short delay before showing error
@@ -225,6 +225,47 @@ function fmtDateLong(date) {
 }
 
 /* ── Notifications ── */
+function _bookingNotifId(bookingId) {
+  return Math.abs(parseInt(String(bookingId).replace(/-/g, '').slice(0, 7), 16)) % 2000000000;
+}
+
+async function scheduleBookingReminder(bookingId, date, time, serviceName, vendorName) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN) return;
+  try {
+    const { display } = await LN.checkPermissions();
+    if (display !== 'granted') return;
+    const m = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!m) return;
+    let h = parseInt(m[1]), min = parseInt(m[2]);
+    if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+    if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
+    const bookingDt = new Date(date); bookingDt.setHours(h, min, 0, 0);
+    const reminderDt = new Date(bookingDt.getTime() - 3600000);
+    if (reminderDt <= new Date()) return;
+    await LN.schedule({ notifications: [{
+      id:    _bookingNotifId(bookingId),
+      title: '⏰ Upcoming Booking',
+      body:  `${serviceName} at ${vendorName} is in 1 hour (${time})`,
+      schedule: { at: reminderDt },
+    }]});
+  } catch (_) {}
+}
+
+async function cancelBookingReminder(bookingId) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN) return;
+  try { await LN.cancel({ notifications: [{ id: _bookingNotifId(bookingId) }] }); } catch (_) {}
+}
+
+async function scheduleAllReminders() {
+  for (const b of state.bookings) {
+    if (b.status === 'confirmed') {
+      scheduleBookingReminder(b.id, b.date, b.time, b.service.name, b.vendor.name);
+    }
+  }
+}
+
 async function openNotificationSettings() {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (!LN) {
@@ -997,9 +1038,12 @@ async function _doConfirmBooking() {
       status:   'confirmed',
     });
 
+    // Schedule 1-hour reminder notification
+    scheduleBookingReminder(bookingId, new Date(state.selectedDate), state.selectedTime, s.name, state.selectedVendor.name);
+
     // Auto-close slot if service is set to single booking per slot
     if (s.singleSlot) {
-      const dateStr = state.selectedDate.toISOString().slice(0, 10);
+      const dateStr = localDateStr(state.selectedDate);
       const key = `${dateStr}|${state.selectedTime}`;
       if (!s.blockedSlots) s.blockedSlots = [];
       s.blockedSlots.push(key);
@@ -1426,6 +1470,7 @@ async function _doCancelBooking(id) {
 
   try {
     await dbUpdateBookingStatus(id, 'cancelled');
+    cancelBookingReminder(id);
 
     if (refundable && booking.service.credits > 0) {
       state.credits += booking.service.credits;
