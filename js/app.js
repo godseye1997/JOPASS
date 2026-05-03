@@ -1096,7 +1096,7 @@ function openPaymentModal(pack) {
     <div style="display:flex; flex-direction:column; gap:14px;">
       <div>
         <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:6px;">Cardholder Name</label>
-        <input id="cardName" type="text" placeholder="Yazeed Hijazi" autocomplete="cc-name"
+        <input id="cardName" type="text" placeholder="Cardholder Name" autocomplete="cc-name"
           oninput="updateCardPreview()"
           style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
       </div>

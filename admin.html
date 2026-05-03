@@ -57,10 +57,10 @@
         </nav>
         <div class="sidebar-footer">
           <div class="user-info">
-            <div class="user-avatar" style="background:var(--danger);">YH</div>
+            <div class="user-avatar" style="background:var(--danger);" id="adminAvatar">A</div>
             <div class="user-details">
-              <div class="name">Yazeed Hijazi</div>
-              <div class="email">hijaziyazeed@gmail.com</div>
+              <div class="name" id="adminName">Admin</div>
+              <div class="email" id="adminEmail"></div>
             </div>
           </div>
           <a href="owner-login.html" style="display:block; margin-top:12px; font-size:.8rem; color:var(--text-muted);">← Log out</a>
@@ -100,6 +100,17 @@
   <script src="js/data.js"></script>
   <script src="js/db.js"></script>
   <script src="js/admin.js"></script>
-  <script>setViewMode('mobile'); lucide.createIcons();</script>
+  <script>
+    setViewMode('mobile'); lucide.createIcons();
+    _supabase.auth.getUser().then(({ data }) => {
+      const u = data?.user;
+      if (!u) return;
+      const name = u.user_metadata?.full_name || u.email || 'Admin';
+      const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+      document.getElementById('adminName').textContent    = name;
+      document.getElementById('adminEmail').textContent   = u.email || '';
+      document.getElementById('adminAvatar').textContent  = initials;
+    });
+  </script>
 </body>
 </html>
