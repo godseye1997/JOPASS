@@ -129,6 +129,7 @@ async function dbGetOwnerServices(vendorId) {
     price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits,
     blockedSlots: s.blocked_slots || [],
     singleSlot: s.single_slot || false,
+    availableSlots: s.available_slots || [],
   }));
 }
 
@@ -194,7 +195,7 @@ async function dbGetOwnerReviews(vendorId) {
 
 /* ─── Owner: write services ─── */
 
-async function dbAddService({ vendorId, name, duration, price, jopassPrice, singleSlot = false }) {
+async function dbAddService({ vendorId, name, duration, price, jopassPrice, singleSlot = false, availableSlots = [] }) {
   const credits = Math.round(jopassPrice);
   const { data, error } = await _supabase.from('services').insert({
     vendor_id: vendorId, name,
@@ -203,12 +204,13 @@ async function dbAddService({ vendorId, name, duration, price, jopassPrice, sing
     jopass_price: jopassPrice,
     credits,
     single_slot: singleSlot,
+    available_slots: availableSlots,
   }).select().single();
   if (error) throw error;
   return {
     id: data.id, name: data.name, duration: data.duration,
     price: parseFloat(data.price), jopassPrice: parseFloat(data.jopass_price), credits: data.credits,
-    blockedSlots: [], singleSlot: data.single_slot || false,
+    blockedSlots: [], singleSlot: data.single_slot || false, availableSlots: data.available_slots || [],
   };
 }
 
@@ -217,11 +219,12 @@ async function dbDeleteService(serviceId) {
   if (error) throw error;
 }
 
-async function dbUpdateService(serviceId, { name, duration, price, jopassPrice, singleSlot }) {
+async function dbUpdateService(serviceId, { name, duration, price, jopassPrice, singleSlot, availableSlots = [] }) {
   const credits = Math.round(jopassPrice);
   const { error } = await _supabase.from('services').update({
     name, duration: duration || null, price, jopass_price: jopassPrice, credits,
     single_slot: singleSlot ?? false,
+    available_slots: availableSlots,
   }).eq('id', serviceId);
   if (error) throw error;
 }

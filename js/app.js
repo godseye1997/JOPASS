@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         state.servicesMap = {};
         d2.services.forEach(s => {
           if (!state.servicesMap[s.vendor_id]) state.servicesMap[s.vendor_id] = [];
-          state.servicesMap[s.vendor_id].push({ id: s.id, vendor_id: s.vendor_id, name: s.name, duration: s.duration, price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits, blockedSlots: s.blocked_slots || [], singleSlot: s.single_slot || false });
+          state.servicesMap[s.vendor_id].push({ id: s.id, vendor_id: s.vendor_id, name: s.name, duration: s.duration, price: parseFloat(s.price), jopassPrice: parseFloat(s.jopass_price), credits: s.credits, blockedSlots: s.blocked_slots || [], singleSlot: s.single_slot || false, availableSlots: s.available_slots || [] });
         });
         state.bookings = _parseBookings(d2.bookings);
         updateCreditDisplay();
@@ -938,13 +938,16 @@ function showTimeSlots() {
 
   const isToday = state.selectedDate.toDateString() === new Date().toDateString();
   const dateStr = localDateStr(state.selectedDate);
-  const blocked = state.selectedService?.blockedSlots || [];
+  const blocked   = state.selectedService?.blockedSlots || [];
+  const available = state.selectedService?.availableSlots || [];
 
-  const slots = allSlots.map(slot => ({
-    slot,
-    past:    isToday && slotIsPast(state.selectedDate, slot),
-    blocked: blocked.includes(`${dateStr}|${slot}`),
-  })).filter(s => !s.past);
+  const slots = allSlots
+    .filter(slot => available.length === 0 || available.includes(slot))
+    .map(slot => ({
+      slot,
+      past:    isToday && slotIsPast(state.selectedDate, slot),
+      blocked: blocked.includes(`${dateStr}|${slot}`),
+    })).filter(s => !s.past);
 
   if (slots.length === 0) {
     slotsDiv.innerHTML = `<p style="font-size:.82rem; color:var(--text-muted); padding:8px 0;">No more available slots for today. Please select another date.</p>`;

@@ -286,6 +286,18 @@ function renderServices(container) {
             style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
           Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
         </label>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:8px;">Available Time Slots <span style="font-weight:400; color:var(--text-muted);">(tap to close/open)</span></label>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;" id="newSvcSlotGrid">
+            ${ALL_SERVICE_SLOTS.map(slot => `
+              <button type="button" onclick="toggleNewSvcSlot('${slot}')" data-slot="${slot}"
+                style="padding:5px 10px; border-radius:var(--radius-sm); font-size:.75rem; font-weight:600; cursor:pointer;
+                  border:1.5px solid var(--success); background:rgba(0,184,148,.1); color:var(--success);">
+                ${slot}
+              </button>`).join('')}
+          </div>
+          <p style="font-size:.72rem; color:var(--text-muted); margin-top:6px;">Green = open &nbsp; Grey = closed</p>
+        </div>
         <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard</button>
       </div>
     </div>
@@ -316,6 +328,24 @@ function updateAddServiceBtn() {
   }
 }
 
+let _newSvcClosedSlots = new Set();
+
+function toggleNewSvcSlot(slot) {
+  const btn = document.querySelector(`#newSvcSlotGrid [data-slot="${slot}"]`);
+  if (!btn) return;
+  if (_newSvcClosedSlots.has(slot)) {
+    _newSvcClosedSlots.delete(slot);
+    btn.style.borderColor = 'var(--success)';
+    btn.style.background  = 'rgba(0,184,148,.1)';
+    btn.style.color       = 'var(--success)';
+  } else {
+    _newSvcClosedSlots.add(slot);
+    btn.style.borderColor = 'var(--border)';
+    btn.style.background  = 'var(--bg)';
+    btn.style.color       = 'var(--text-muted)';
+  }
+}
+
 async function addService() {
   const name       = document.getElementById('svcName').value.trim();
   const duration   = document.getElementById('svcDuration').value.trim();
@@ -329,11 +359,13 @@ async function addService() {
   btn.disabled = true;
 
   try {
-    const singleSlot = document.getElementById('svcSingleSlot')?.checked || false;
+    const singleSlot     = document.getElementById('svcSingleSlot')?.checked || false;
+    const availableSlots = ALL_SERVICE_SLOTS.filter(s => !_newSvcClosedSlots.has(s));
     const svc = await dbAddService({
       vendorId: OWNER_VENDOR.id,
-      name, duration: duration || null, price, jopassPrice: jPrice, singleSlot,
+      name, duration: duration || null, price, jopassPrice: jPrice, singleSlot, availableSlots,
     });
+    _newSvcClosedSlots = new Set();
     ownerServices.push(svc);
     showOwnerToast('Service added!', 'success');
     renderServices(document.getElementById('ownerMain'));
@@ -389,23 +421,59 @@ function renderEditService(container, serviceId) {
             style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
           Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
         </label>
+        <div>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:8px;">Available Time Slots <span style="font-weight:400; color:var(--text-muted);">(tap to close/open)</span></label>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;" id="editSvcSlotGrid">
+            ${ALL_SERVICE_SLOTS.map(slot => {
+              const avail = s.availableSlots;
+              const isOpen = !avail || avail.length === 0 || avail.includes(slot);
+              return `<button type="button" onclick="toggleEditSvcSlot('${slot}')" data-slot="${slot}"
+                style="padding:5px 10px; border-radius:var(--radius-sm); font-size:.75rem; font-weight:600; cursor:pointer;
+                  border:1.5px solid ${isOpen ? 'var(--success)' : 'var(--border)'};
+                  background:${isOpen ? 'rgba(0,184,148,.1)' : 'var(--bg)'};
+                  color:${isOpen ? 'var(--success)' : 'var(--text-muted)'};">
+                ${slot}
+              </button>`;
+            }).join('')}
+          </div>
+          <p style="font-size:.72rem; color:var(--text-muted); margin-top:6px;">Green = open &nbsp; Grey = closed</p>
+        </div>
         <button class="btn btn-primary btn-full" onclick="saveEditService(${s.id})">Save Changes</button>
       </div>
     </div>
   `;
 }
 
+function toggleEditSvcSlot(slot) {
+  const btn = document.querySelector(`#editSvcSlotGrid [data-slot="${slot}"]`);
+  if (!btn) return;
+  const isOpen = btn.style.color.includes('184');
+  if (isOpen) {
+    btn.style.borderColor = 'var(--border)';
+    btn.style.background  = 'var(--bg)';
+    btn.style.color       = 'var(--text-muted)';
+  } else {
+    btn.style.borderColor = 'var(--success)';
+    btn.style.background  = 'rgba(0,184,148,.1)';
+    btn.style.color       = 'var(--success)';
+  }
+}
+
 async function saveEditService(serviceId) {
-  const name       = document.getElementById('editSvcName')?.value.trim();
-  const duration   = document.getElementById('editSvcDuration')?.value.trim();
-  const price      = parseFloat(document.getElementById('editSvcPrice')?.value);
+  const name        = document.getElementById('editSvcName')?.value.trim();
+  const duration    = document.getElementById('editSvcDuration')?.value.trim();
+  const price       = parseFloat(document.getElementById('editSvcPrice')?.value);
   const jopassPrice = parseFloat(document.getElementById('editSvcJopassPrice')?.value);
-  const singleSlot = document.getElementById('editSvcSingleSlot')?.checked || false;
+  const singleSlot  = document.getElementById('editSvcSingleSlot')?.checked || false;
   if (!name || !price || !jopassPrice) { showOwnerToast('Please fill all required fields.', 'error'); return; }
+  const availableSlots = ALL_SERVICE_SLOTS.filter(slot => {
+    const btn = document.querySelector(`#editSvcSlotGrid [data-slot="${slot}"]`);
+    return btn ? btn.style.color.includes('184') : true;
+  });
   try {
-    await dbUpdateService(serviceId, { name, duration, price, jopassPrice, singleSlot });
+    await dbUpdateService(serviceId, { name, duration, price, jopassPrice, singleSlot, availableSlots });
     const s = ownerServices.find(sv => sv.id === serviceId);
-    if (s) { s.name = name; s.duration = duration; s.price = price; s.jopassPrice = jopassPrice; s.credits = Math.round(jopassPrice); s.singleSlot = singleSlot; }
+    if (s) { s.name = name; s.duration = duration; s.price = price; s.jopassPrice = jopassPrice; s.credits = Math.round(jopassPrice); s.singleSlot = singleSlot; s.availableSlots = availableSlots; }
     showOwnerToast('Service updated!', 'success');
     ownerNav('services');
   } catch (err) {
