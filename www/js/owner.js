@@ -1469,23 +1469,21 @@ function _renderBusinessProfileWith(container, p) {
 
     <!-- Photos -->
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:10px;">Photos <span style="font-weight:400; color:var(--text-muted); font-size:.8rem;">(paste image URLs)</span></div>
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        ${p.photos.map((url, i) => `
-          <div>
-            <div style="display:flex; gap:8px; margin-bottom:6px;">
-              <label class="btn btn-outline" style="cursor:pointer; font-size:.8rem; padding:7px 10px; flex-shrink:0;">
-                Upload
-                <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload(this, ${i})">
-              </label>
-              <input id="profPhoto${i}" type="url" placeholder="https://… or upload" value="${url}"
-                oninput="updatePhotoPreview(${i})"
-                style="flex:1; padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.85rem; background:var(--surface); color:var(--text);">
-            </div>
-            <div id="photoPreview${i}" style="margin-top:0; ${url ? '' : 'display:none;'}">
-              <img src="${url}" onerror="this.parentElement.style.display='none'" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm);">
-            </div>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:4px;">Gallery Photos</div>
+      <div style="font-size:.78rem; color:var(--text-muted); margin-bottom:12px;">Up to 6 photos. Tap a slot to upload, tap a photo to remove it.</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;">
+        ${p.photos.map((url, i) => url ? `
+          <div style="position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; cursor:pointer;" onclick="deleteGalleryPhoto(${i})">
+            <img src="${url}" onerror="this.parentElement.onclick=null;this.parentElement.innerHTML=''" style="width:100%;height:100%;object-fit:cover;">
+            <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.8rem;line-height:1;">✕</div>
           </div>
+        ` : `
+          <label id="photoSlot${i}" style="aspect-ratio:1; border:2px dashed var(--border); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--bg); flex-direction:column; gap:4px;">
+            <span style="font-size:1.4rem; color:var(--text-muted);">+</span>
+            <span style="font-size:.7rem; color:var(--text-muted);">Add Photo</span>
+            <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload(this,${i})">
+            <input type="hidden" id="profPhoto${i}" value="">
+          </label>
         `).join('')}
       </div>
     </div>
@@ -1590,28 +1588,44 @@ async function handleGalleryUpload(input, index) {
   const file = input.files[0];
   if (!file) return;
   const label = input.closest('label');
-  if (label) { label.textContent = '…'; label.style.opacity = '.5'; label.style.pointerEvents = 'none'; }
+  if (label) { label.style.opacity = '.5'; label.style.pointerEvents = 'none'; }
   try {
-    const ext  = file.name.split('.').pop();
+    const ext = file.name.split('.').pop();
     const path = `vendor_${OWNER_VENDOR.id}/gallery_${index}.${ext}`;
     const url  = await dbUploadImage(file, path);
-    const urlInput = document.getElementById(`profPhoto${index}`);
-    if (urlInput) { urlInput.value = url; }
-    updatePhotoPreview(index);
+    if (_ownerProfile) _ownerProfile.photos[index] = url;
+    _refreshGalleryGrid();
     showOwnerToast('Photo uploaded!', 'success');
   } catch (err) {
     showOwnerToast('Upload failed: ' + err.message, 'error');
-  } finally {
-    if (label) { label.textContent = 'Upload'; label.style.opacity = ''; label.style.pointerEvents = ''; }
+    if (label) { label.style.opacity = ''; label.style.pointerEvents = ''; }
   }
 }
 
-function updatePhotoPreview(i) {
-  const url     = document.getElementById(`profPhoto${i}`).value.trim();
-  const preview = document.getElementById(`photoPreview${i}`);
-  if (!url) { preview.style.display = 'none'; return; }
-  preview.style.display = 'block';
-  preview.innerHTML = `<img src="${url}" onerror="this.parentElement.style.display='none'" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius-sm);">`;
+function deleteGalleryPhoto(index) {
+  if (!_ownerProfile) return;
+  _ownerProfile.photos[index] = '';
+  _refreshGalleryGrid();
+}
+
+function _refreshGalleryGrid() {
+  const p = _ownerProfile;
+  if (!p) return;
+  const grid = document.querySelector('.card [style*="grid-template-columns"]');
+  if (!grid) return;
+  grid.innerHTML = p.photos.map((url, i) => url ? `
+    <div style="position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; cursor:pointer;" onclick="deleteGalleryPhoto(${i})">
+      <img src="${url}" onerror="this.parentElement.onclick=null;this.parentElement.innerHTML=''" style="width:100%;height:100%;object-fit:cover;">
+      <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.8rem;line-height:1;">✕</div>
+    </div>
+  ` : `
+    <label id="photoSlot${i}" style="aspect-ratio:1; border:2px dashed var(--border); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--bg); flex-direction:column; gap:4px;">
+      <span style="font-size:1.4rem; color:var(--text-muted);">+</span>
+      <span style="font-size:.7rem; color:var(--text-muted);">Add Photo</span>
+      <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload(this,${i})">
+      <input type="hidden" id="profPhoto${i}" value="">
+    </label>
+  `).join('');
 }
 
 async function getGPSLocation() {
@@ -1683,7 +1697,7 @@ async function saveProfileForm() {
     twitter:   document.getElementById('profTw').value.trim(),
   };
   p.amenities = [...document.querySelectorAll('[data-amenity]:checked')].map(el => el.dataset.amenity);
-  p.photos    = Array.from({ length: 6 }, (_, i) => document.getElementById(`profPhoto${i}`)?.value.trim() || '');
+  p.photos    = (p.photos || []).concat(Array(6).fill('')).slice(0, 6);
 
   if (status?.dataset.lat) {
     p.location = p.location || {};
