@@ -249,8 +249,42 @@ function renderServices(container) {
       </div>
     ` : ''}
 
-    <div class="card" style="margin-top:8px; border:2px dashed var(--border); box-shadow:none;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">+ Add Standard</div>
+    <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="ownerNav('addService')">+ Add Standard</button>
+  `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function toggleJopassPriceField() {
+  const noDiscount = document.getElementById('svcNoDiscount')?.checked;
+  const wrapper    = document.getElementById('svcJopassWrapper');
+  if (wrapper) wrapper.style.display = noDiscount ? 'none' : 'block';
+  updateAddServiceBtn();
+}
+
+function updateAddServiceBtn() {
+  const name       = document.getElementById('svcName')?.value.trim();
+  const price      = parseFloat(document.getElementById('svcPrice')?.value);
+  const noDiscount = document.getElementById('svcNoDiscount')?.checked;
+  const jPrice     = parseFloat(document.getElementById('svcJopassPrice')?.value);
+  const btn        = document.getElementById('addServiceBtn');
+  const preview    = document.getElementById('svcPayoutPreview');
+  if (!btn) return;
+  const jopassOk = noDiscount || (jPrice > 0 && jPrice <= price);
+  btn.disabled = !(name && price > 0 && jopassOk);
+  if (preview) {
+    const jp = noDiscount ? price : jPrice;
+    preview.innerHTML = (jp > 0) ? _payoutHtml(jp) : '';
+  }
+}
+
+/* ── Add Service Page ── */
+let _newSvcClosedSlots = new Set();
+
+function renderAddService(container) {
+  _newSvcClosedSlots = new Set();
+  container.innerHTML = `
+    <div class="page-header"><h2>Add Standard</h2></div>
+    <div class="card" style="margin-bottom:14px;">
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
@@ -288,64 +322,37 @@ function renderServices(container) {
             style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
           Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
         </label>
-        <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:8px;">Available Time Slots <span style="font-weight:400; color:var(--text-muted);">(tap to close/open)</span></label>
-          <div style="display:flex; flex-wrap:wrap; gap:6px;" id="newSvcSlotGrid">
-            ${ALL_SERVICE_SLOTS.map(slot => `
-              <button type="button" onclick="toggleNewSvcSlot('${slot}')" data-slot="${slot}"
-                style="padding:5px 10px; border-radius:var(--radius-sm); font-size:.75rem; font-weight:600; cursor:pointer;
-                  border:1.5px solid var(--success); background:rgba(0,184,148,.1); color:var(--success);">
-                ${slot}
-              </button>`).join('')}
-          </div>
-          <p style="font-size:.72rem; color:var(--text-muted); margin-top:6px;">Green = open &nbsp; Grey = closed</p>
-        </div>
-        <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard</button>
       </div>
     </div>
+    <div class="card" style="margin-bottom:14px;">
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">Available Time Slots</label>
+      <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Tap a slot to close it. Green = open, grey = closed.</p>
+      <div id="newSvcSlotGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+    </div>
+    <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard</button>
   `;
-  if (typeof lucide !== 'undefined') lucide.createIcons();
+  _renderNewSvcSlotGrid();
 }
 
-function toggleJopassPriceField() {
-  const noDiscount = document.getElementById('svcNoDiscount')?.checked;
-  const wrapper    = document.getElementById('svcJopassWrapper');
-  if (wrapper) wrapper.style.display = noDiscount ? 'none' : 'block';
-  updateAddServiceBtn();
+function _renderNewSvcSlotGrid() {
+  const grid = document.getElementById('newSvcSlotGrid');
+  if (!grid) return;
+  grid.innerHTML = ALL_SERVICE_SLOTS.map(slot => {
+    const closed = _newSvcClosedSlots.has(slot);
+    return `<button type="button" onclick="toggleNewSvcSlot('${slot}')"
+      style="padding:7px 12px; border-radius:var(--radius-sm); font-size:.78rem; font-weight:600; cursor:pointer;
+        border:2px solid ${closed ? 'var(--border)' : 'var(--success)'};
+        background:${closed ? 'var(--bg)' : 'rgba(0,184,148,.1)'};
+        color:${closed ? 'var(--text-muted)' : 'var(--success)'};">
+      ${slot}
+    </button>`;
+  }).join('');
 }
-
-function updateAddServiceBtn() {
-  const name       = document.getElementById('svcName')?.value.trim();
-  const price      = parseFloat(document.getElementById('svcPrice')?.value);
-  const noDiscount = document.getElementById('svcNoDiscount')?.checked;
-  const jPrice     = parseFloat(document.getElementById('svcJopassPrice')?.value);
-  const btn        = document.getElementById('addServiceBtn');
-  const preview    = document.getElementById('svcPayoutPreview');
-  if (!btn) return;
-  const jopassOk = noDiscount || (jPrice > 0 && jPrice <= price);
-  btn.disabled = !(name && price > 0 && jopassOk);
-  if (preview) {
-    const jp = noDiscount ? price : jPrice;
-    preview.innerHTML = (jp > 0) ? _payoutHtml(jp) : '';
-  }
-}
-
-let _newSvcClosedSlots = new Set();
 
 function toggleNewSvcSlot(slot) {
-  const btn = document.querySelector(`#newSvcSlotGrid [data-slot="${slot}"]`);
-  if (!btn) return;
-  if (_newSvcClosedSlots.has(slot)) {
-    _newSvcClosedSlots.delete(slot);
-    btn.style.borderColor = 'var(--success)';
-    btn.style.background  = 'rgba(0,184,148,.1)';
-    btn.style.color       = 'var(--success)';
-  } else {
-    _newSvcClosedSlots.add(slot);
-    btn.style.borderColor = 'var(--border)';
-    btn.style.background  = 'var(--bg)';
-    btn.style.color       = 'var(--text-muted)';
-  }
+  if (_newSvcClosedSlots.has(slot)) _newSvcClosedSlots.delete(slot);
+  else _newSvcClosedSlots.add(slot);
+  _renderNewSvcSlotGrid();
 }
 
 async function addService() {
@@ -370,7 +377,7 @@ async function addService() {
     _newSvcClosedSlots = new Set();
     ownerServices.push(svc);
     showOwnerToast('Service added!', 'success');
-    renderServices(document.getElementById('ownerMain'));
+    ownerNav('services');
   } catch (err) {
     console.error(err);
     showOwnerToast('Failed to add service. Please try again.', 'error');
@@ -596,6 +603,7 @@ const _ownerParent = {
   listings:     'bookingsHub',
   services:     'bookingsHub',
   add:          'bookingsHub',
+  addService:   'services',
   editProfile:  'profile',
   editService:  'services',
   manageSlots:  'services',
@@ -626,6 +634,7 @@ function ownerNav(view, param) {
     case 'profile':  renderProfilePreview(main); break;
     case 'editProfile': renderBusinessProfile(main); break;
     case 'services':     renderServices(main);                      break;
+    case 'addService':   renderAddService(main);                    break;
     case 'listings':     renderListings(main);                      break;
     case 'add':          renderAddOpening(main);                    break;
     case 'bookingsHub':  renderBookingsHub(main);                   break;
