@@ -570,6 +570,13 @@ async function renderVendorDetail(container) {
       </h2>
     </div>
 
+    ${v.image ? `
+      <div style="width:100%; height:180px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:16px;">
+        <img src="${v.image}" onerror="this.style.display='none'"
+          style="width:100%; height:100%; object-fit:cover;">
+      </div>
+    ` : ''}
+
     ${photos.length > 0 ? `
       <div style="display:flex; gap:6px; overflow-x:auto; margin-bottom:16px; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
         ${photos.map(url => `
