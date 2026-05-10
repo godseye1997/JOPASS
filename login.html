@@ -126,6 +126,11 @@
     if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
       document.body.classList.replace('mode-mobile', 'mode-desktop');
     }
+    // Auto-login: skip login screen if session already exists
+    (async () => {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session) window.location.replace('dashboard.html');
+    })();
   </script>
 </body>
 </html>
