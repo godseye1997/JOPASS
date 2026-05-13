@@ -258,6 +258,13 @@
     <div class="copy">© 2025 JoPass. All rights reserved.</div>
   </footer>
 
+  <script src="js/native.js"></script>
+  <script>
+    // When running inside the Android/iOS app, go to login screen instead
+    if (window.Capacitor?.isNativePlatform()) {
+      window.location.replace('login.html');
+    }
+  </script>
   <script src="js/supabase.min.js"></script>
   <script src="js/supabase-client.js"></script>
   <script>

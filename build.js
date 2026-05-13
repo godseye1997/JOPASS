@@ -24,8 +24,8 @@ function copyDir(src, dest) {
 const websiteOnly = ['about.html'];
 const htmlFiles = fs.readdirSync(__dirname).filter(f => f.endsWith('.html') && !websiteOnly.includes(f));
 htmlFiles.forEach(f => fs.copyFileSync(path.join(__dirname, f), path.join(WWW, f)));
-// App needs login.html as index.html (the root entry point for the app)
-fs.copyFileSync(path.join(__dirname, 'login.html'), path.join(WWW, 'index.html'));
+// index.html is the landing page — it detects Capacitor and redirects to login.html in the app
+// (No override needed; index.html is already copied above with the other HTML files)
 
 // Asset folders
 ['css', 'js'].forEach(dir => {
