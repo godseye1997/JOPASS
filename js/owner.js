@@ -1240,6 +1240,9 @@ function renderReceived(container) {
 async function renderProfilePreview(container) {
   await loadOpeningsFromDB();
   const p = await loadProfile();
+  const { count: followerCount } = await _supabase
+    .from('follows').select('*', { count: 'exact', head: true })
+    .eq('vendor_id', OWNER_VENDOR.id).catch(() => ({ count: 0 }));
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const activeOpenings = ownerState.openings.filter(o => new Date(o.date) >= today && o.slots.length > 0);
   const photos = (p.photos || []).filter(u => u);
@@ -1259,6 +1262,14 @@ async function renderProfilePreview(container) {
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
       <h2>My Profile</h2>
       <button class="btn btn-primary btn-sm" onclick="ownerNav('editProfile')">Edit Profile</button>
+    </div>
+
+    <div style="background:linear-gradient(135deg,var(--primary),#0a7a8e); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; color:#fff; display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <div style="font-size:.78rem; opacity:.8; margin-bottom:2px;">Total Followers</div>
+        <div style="font-size:2rem; font-weight:800; line-height:1;">${followerCount ?? 0}</div>
+      </div>
+      <div style="font-size:2.2rem; opacity:.3;">❤️</div>
     </div>
 
     <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:16px;text-align:center;">
