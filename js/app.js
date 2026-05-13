@@ -725,32 +725,6 @@ async function renderVendorDetail(container) {
       })() : ''}
     </div>
 
-    ${profile?.amenities?.length > 0 ? `
-      <div style="margin-bottom:16px;">
-        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">AMENITIES</div>
-        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-          ${profile.amenities.map(a => `
-            <span style="padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; background:var(--bg); border:1px solid var(--border);">${a}</span>
-          `).join('')}
-        </div>
-      </div>
-    ` : ''}
-
-    ${profile?.location?.address || profile?.location?.lat ? `
-      <div style="margin-bottom:16px;">
-        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">LOCATION</div>
-        ${profile.location.address ? `<p style="font-size:.85rem; margin-bottom:8px;">📍 ${profile.location.address}</p>` : ''}
-        ${profile.location.lat ? `
-          <iframe
-            src="https://www.openstreetmap.org/export/embed.html?bbox=${profile.location.lng-0.008},${profile.location.lat-0.008},${profile.location.lng+0.008},${profile.location.lat+0.008}&layer=mapnik&marker=${profile.location.lat},${profile.location.lng}"
-            style="width:100%; height:160px; border:1px solid var(--border); border-radius:var(--radius-sm);" loading="lazy">
-          </iframe>
-          <a href="https://www.google.com/maps?q=${profile.location.lat},${profile.location.lng}" target="_blank"
-            style="display:block; text-align:center; font-size:.78rem; margin-top:6px; color:var(--primary);">Open in Google Maps ↗</a>
-        ` : ''}
-      </div>
-    ` : ''}
-
     ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Standard</h4>` : ''}
     <div class="grid grid-2">
       ${services.map(s => {
@@ -815,6 +789,32 @@ async function renderVendorDetail(container) {
             </div>
           </div>`;
       }).join('')}
+    ` : ''}
+
+    ${profile?.amenities?.length > 0 ? `
+      <div style="margin-top:20px; margin-bottom:16px;">
+        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">AMENITIES</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${profile.amenities.map(a => `
+            <span style="padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; background:var(--bg); border:1px solid var(--border);">${a}</span>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${profile?.location?.address || profile?.location?.lat ? `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">LOCATION</div>
+        ${profile.location.address ? `<p style="font-size:.85rem; margin-bottom:8px;">📍 ${profile.location.address}</p>` : ''}
+        ${profile.location.lat ? `
+          <iframe
+            src="https://www.openstreetmap.org/export/embed.html?bbox=${profile.location.lng-0.008},${profile.location.lat-0.008},${profile.location.lng+0.008},${profile.location.lat+0.008}&layer=mapnik&marker=${profile.location.lat},${profile.location.lng}"
+            style="width:100%; height:160px; border:1px solid var(--border); border-radius:var(--radius-sm);" loading="lazy">
+          </iframe>
+          <a href="https://www.google.com/maps?q=${profile.location.lat},${profile.location.lng}" target="_blank"
+            style="display:block; text-align:center; font-size:.78rem; margin-top:6px; color:var(--primary);">Open in Google Maps ↗</a>
+        ` : ''}
+      </div>
     ` : ''}
 
     ${renderVendorReviews(v.id)}
