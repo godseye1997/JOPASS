@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     scheduleAllReminders();
     state.follows = await dbFetchFollows(state.userId).catch(() => []);
     _subscribeFollowedOpenings();
+    _registerPushToken();
   } catch (err) {
     console.error('Init error:', err);
     // Auto-retry once after a short delay before showing error
@@ -281,6 +282,35 @@ async function scheduleAllReminders() {
       scheduleBookingReminder(b.id, b.date, b.time, b.service.name, b.vendor.name);
     }
   }
+}
+
+/* ── Push Token Registration ── */
+async function _registerPushToken() {
+  const PN = window.Capacitor?.Plugins?.PushNotifications;
+  if (!PN) return;
+  try {
+    const { receive } = await PN.requestPermissions();
+    if (receive !== 'granted') return;
+    await PN.register();
+    PN.addListener('registration', async ({ value: token }) => {
+      await _supabase.from('device_tokens').upsert(
+        { user_id: state.userId, token },
+        { onConflict: 'user_id,token' }
+      ).catch(() => {});
+    });
+  } catch (_) {}
+}
+
+const EDGE_BASE = 'https://csqenogssghecrtrzdvs.supabase.co/functions/v1';
+async function callSendPush(payload) {
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    await fetch(`${EDGE_BASE}/send-push`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body:    JSON.stringify(payload),
+    });
+  } catch (_) {}
 }
 
 /* ── Follow / Unfollow ── */
@@ -1135,6 +1165,8 @@ async function _doConfirmBooking() {
 
     // Schedule 1-hour reminder notification
     scheduleBookingReminder(bookingId, new Date(state.selectedDate), state.selectedTime, s.name, state.selectedVendor.name);
+    // Notify vendor owner via FCM
+    callSendPush({ type: 'new_booking', ownerId: state.selectedVendor.ownerId, vendorId: state.selectedVendor.id, serviceName: s.name, date: localDateStr(state.selectedDate), time: state.selectedTime });
 
     // Auto-close slot if service is set to single booking per slot
     if (s.singleSlot) {

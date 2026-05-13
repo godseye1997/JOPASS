@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "392522226508",
+    "project_id": "jopass-246ca",
+    "storage_bucket": "jopass-246ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:392522226508:android:1283001dd0bed8f0000de9",
+        "android_client_info": {
+          "package_name": "com.jopass.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5cS7L6KHzMn-gtK9b_BOsV2Z-2XjXWJQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -66,6 +66,34 @@ async function _fireOwnerBookingNotif(serviceName, date, time) {
   } catch (_) {}
 }
 
+async function _registerOwnerPushToken() {
+  const PN = window.Capacitor?.Plugins?.PushNotifications;
+  if (!PN) return;
+  try {
+    const { receive } = await PN.requestPermissions();
+    if (receive !== 'granted') return;
+    await PN.register();
+    PN.addListener('registration', async ({ value: token }) => {
+      await _supabase.from('device_tokens').upsert(
+        { user_id: _ownerUserId, token },
+        { onConflict: 'user_id,token' }
+      ).catch(() => {});
+    });
+  } catch (_) {}
+}
+
+const _EDGE_BASE = 'https://csqenogssghecrtrzdvs.supabase.co/functions/v1';
+async function _callSendPush(payload) {
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    await fetch(`${_EDGE_BASE}/send-push`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body:    JSON.stringify(payload),
+    });
+  } catch (_) {}
+}
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await _supabase.auth.getSession();
@@ -119,6 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ownerNav('bookingsHub');
     updateBadge();
     _initOwnerNotifChannel();
+    _registerOwnerPushToken();
 
     // Realtime: notify owner of new bookings instantly
     _supabase.channel('owner-bookings')
@@ -1067,6 +1096,8 @@ async function ownerSubmitOpening() {
     });
 
     ownerState.openings.push(opening);
+    // Notify followers via FCM push
+    _callSendPush({ type: 'new_deal', vendorId: OWNER_VENDOR.id, serviceName: f.serviceName.trim(), price: jp.toFixed(2) });
 
     ownerState.addForm = {
       serviceName: '', duration: '', originalPrice: '', jopassPrice: '',
