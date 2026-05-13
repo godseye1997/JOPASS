@@ -7,6 +7,7 @@ const state = {
   referralCode: '',
   credits:  0,
   bookings: [],
+  follows:  [],           // vendorIds the user follows
   reviews:  {},           // bookingId  → { rating, comment }
   servicesMap:      {},   // vendorId   → [services]
   openingsMap:      {},   // vendorId   → [openings]
@@ -123,6 +124,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(() => { checkBookingStatuses(); refreshBookings(); }, 30000);
     _initNotifChannel();
     scheduleAllReminders();
+    state.follows = await dbFetchFollows(state.userId).catch(() => []);
+    _subscribeFollowedOpenings();
   } catch (err) {
     console.error('Init error:', err);
     // Auto-retry once after a short delay before showing error
@@ -280,6 +283,66 @@ async function scheduleAllReminders() {
   }
 }
 
+/* ── Follow / Unfollow ── */
+async function toggleFollow(vendorId) {
+  const isFollowing = state.follows.includes(vendorId);
+  try {
+    if (isFollowing) {
+      await dbUnfollowVendor(state.userId, vendorId);
+      state.follows = state.follows.filter(id => id !== vendorId);
+      showToast('Unfollowed.', 'info');
+    } else {
+      await dbFollowVendor(state.userId, vendorId);
+      state.follows.push(vendorId);
+      showToast('Following! You\'ll be notified of new deals.', 'success');
+    }
+    // Re-render the follow button
+    const btn = document.getElementById('followBtn');
+    if (btn) _renderFollowBtn(btn, vendorId);
+  } catch (err) {
+    console.error(err);
+    showToast('Could not update follow. Please try again.', 'error');
+  }
+}
+
+function _renderFollowBtn(btn, vendorId) {
+  const following = state.follows.includes(vendorId);
+  btn.textContent  = following ? '❤️ Following' : '🤍 Follow';
+  btn.style.background    = following ? 'rgba(225,112,85,.12)' : 'var(--surface)';
+  btn.style.color         = following ? 'var(--danger)' : 'var(--text-muted)';
+  btn.style.borderColor   = following ? 'var(--danger)' : 'var(--border)';
+}
+
+function _subscribeFollowedOpenings() {
+  _supabase.channel('followed-openings')
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'openings',
+    }, payload => {
+      const o = payload.new;
+      if (!state.follows.includes(o.vendor_id)) return;
+      const vendor = VENDORS.find(v => v.id === o.vendor_id);
+      const name   = vendor?.name || 'A venue you follow';
+      _fireFollowNotif(name, o.service_name, o.jopass_price);
+    })
+    .subscribe();
+}
+
+async function _fireFollowNotif(vendorName, serviceName, price) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN) return;
+  try {
+    const { display } = await LN.checkPermissions();
+    if (display !== 'granted') return;
+    await LN.schedule({ notifications: [{
+      id:        Math.floor(Math.random() * 1000000) + 3000000,
+      title:     `🎯 New Deal from ${vendorName}`,
+      body:      `${serviceName} — ${price ? price + ' JOD' : 'Check it out!'}`,
+      channelId: 'jopass-reminders',
+      sound:     'default',
+    }]});
+  } catch (_) {}
+}
+
 async function openNotificationSettings() {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (!LN) {
@@ -378,6 +441,8 @@ function navigateTo(view, vendorId) {
       renderVendorDetail(main).then(() => {
         main.scrollTop = 0;
         if (typeof lucide !== 'undefined') lucide.createIcons();
+        const followBtn = document.getElementById('followBtn');
+        if (followBtn && state.selectedVendor) _renderFollowBtn(followBtn, state.selectedVendor.id);
       });
       return;
     case 'credits':  renderCredits(main);       break;
@@ -601,7 +666,13 @@ async function renderVendorDetail(container) {
     ` : ''}
 
     <div style="margin-bottom:16px;">
-      <h3>${vendorIcon(v, '24px')} ${v.name}</h3>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <h3 style="margin:0;">${vendorIcon(v, '24px')} ${v.name}</h3>
+        <button id="followBtn" onclick="toggleFollow(${v.id})"
+          style="padding:7px 14px; border-radius:20px; font-size:.8rem; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--text-muted); flex-shrink:0;">
+          🤍 Follow
+        </button>
+      </div>
       <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description || ''}</p>
 
       ${profile?.phone || profile?.website ? `
