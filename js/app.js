@@ -121,6 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigateTo('browse');
 
     setInterval(() => { checkBookingStatuses(); refreshBookings(); }, 30000);
+    _initNotifChannel();
     scheduleAllReminders();
   } catch (err) {
     console.error('Init error:', err);
@@ -229,6 +230,17 @@ function _bookingNotifId(bookingId) {
   return Math.abs(parseInt(String(bookingId).replace(/-/g, '').slice(0, 7), 16)) % 2000000000;
 }
 
+async function _initNotifChannel() {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN?.createChannel) return;
+  try {
+    await LN.createChannel({
+      id: 'jopass-reminders', name: 'Booking Reminders',
+      importance: 4, sound: 'default', vibration: true, visibility: 1,
+    });
+  } catch (_) {}
+}
+
 async function scheduleBookingReminder(bookingId, date, time, serviceName, vendorName) {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (!LN) return;
@@ -244,10 +256,12 @@ async function scheduleBookingReminder(bookingId, date, time, serviceName, vendo
     const reminderDt = new Date(bookingDt.getTime() - 3600000);
     if (reminderDt <= new Date()) return;
     await LN.schedule({ notifications: [{
-      id:    _bookingNotifId(bookingId),
-      title: '⏰ Upcoming Booking',
-      body:  `${serviceName} at ${vendorName} is in 1 hour (${time})`,
-      schedule: { at: reminderDt },
+      id:        _bookingNotifId(bookingId),
+      title:     '⏰ Upcoming Booking',
+      body:      `${serviceName} at ${vendorName} is in 1 hour (${time})`,
+      schedule:  { at: reminderDt },
+      channelId: 'jopass-reminders',
+      sound:     'default',
     }]});
   } catch (_) {}
 }

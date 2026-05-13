@@ -37,6 +37,35 @@ const ALL_SERVICE_SLOTS = ALL_SLOTS;
 let ownerServices       = [];
 let ownerServicesNextId = 1;
 
+/* ── Owner Notifications ── */
+async function _initOwnerNotifChannel() {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN?.createChannel) return;
+  try {
+    await LN.createChannel({
+      id: 'jopass-owner', name: 'New Bookings',
+      importance: 5, sound: 'default', vibration: true, visibility: 1,
+    });
+  } catch (_) {}
+}
+
+let _ownerNotifCounter = 1000000;
+async function _fireOwnerBookingNotif(serviceName, date, time) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN) return;
+  try {
+    const { display } = await LN.checkPermissions();
+    if (display !== 'granted') return;
+    await LN.schedule({ notifications: [{
+      id:        _ownerNotifCounter++,
+      title:     '🔔 New Booking!',
+      body:      `${serviceName} on ${date} at ${time}`,
+      channelId: 'jopass-owner',
+      sound:     'default',
+    }]});
+  } catch (_) {}
+}
+
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await _supabase.auth.getSession();
@@ -89,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     ownerNav('bookingsHub');
     updateBadge();
+    _initOwnerNotifChannel();
 
     // Realtime: notify owner of new bookings instantly
     _supabase.channel('owner-bookings')
@@ -115,6 +145,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         updateBadge();
         showOwnerToast(`New booking: ${b.service_name} on ${b.date} at ${b.time}`, 'success');
+        _fireOwnerBookingNotif(b.service_name, b.date, b.time);
         if (ownerState.currentView === 'received') {
           renderReceived(document.getElementById('ownerMain'));
         }
