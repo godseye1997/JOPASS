@@ -332,7 +332,7 @@ async function toggleFollow(vendorId) {
     if (btn) _renderFollowBtn(btn, vendorId);
   } catch (err) {
     console.error(err);
-    showToast('Could not update follow. Please try again.', 'error');
+    showToast('Follow error: ' + (err?.message || JSON.stringify(err)), 'error');
   }
 }
 
