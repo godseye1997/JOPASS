@@ -315,11 +315,12 @@ async function callSendPush(payload) {
 
 /* ── Follow / Unfollow ── */
 async function toggleFollow(vendorId) {
-  const isFollowing = state.follows.includes(vendorId);
+  vendorId = parseInt(vendorId);
+  const isFollowing = state.follows.map(Number).includes(vendorId);
   try {
     if (isFollowing) {
       await dbUnfollowVendor(state.userId, vendorId);
-      state.follows = state.follows.filter(id => id !== vendorId);
+      state.follows = state.follows.filter(id => parseInt(id) !== vendorId);
       showToast('Unfollowed.', 'info');
     } else {
       await dbFollowVendor(state.userId, vendorId);
@@ -336,7 +337,7 @@ async function toggleFollow(vendorId) {
 }
 
 function _renderFollowBtn(btn, vendorId) {
-  const following = state.follows.includes(vendorId);
+  const following = state.follows.map(Number).includes(parseInt(vendorId));
   btn.textContent  = following ? '❤️ Following' : '🤍 Follow';
   btn.style.background    = following ? 'rgba(225,112,85,.12)' : 'var(--surface)';
   btn.style.color         = following ? 'var(--danger)' : 'var(--text-muted)';

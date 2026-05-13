@@ -50,10 +50,12 @@ async function dbFetchFollows(userId) {
   return (data || []).map(r => r.vendor_id);
 }
 async function dbFollowVendor(userId, vendorId) {
-  await _supabase.from('follows').insert({ user_id: userId, vendor_id: vendorId });
+  const { error } = await _supabase.from('follows').insert({ user_id: userId, vendor_id: vendorId });
+  if (error) throw error;
 }
 async function dbUnfollowVendor(userId, vendorId) {
-  await _supabase.from('follows').delete().eq('user_id', userId).eq('vendor_id', vendorId);
+  const { error } = await _supabase.from('follows').delete().eq('user_id', userId).eq('vendor_id', vendorId);
+  if (error) throw error;
 }
 
 /* ─── Consumer: refresh bookings ─── */
