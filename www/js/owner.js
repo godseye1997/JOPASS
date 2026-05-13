@@ -1240,9 +1240,13 @@ function renderReceived(container) {
 async function renderProfilePreview(container) {
   await loadOpeningsFromDB();
   const p = await loadProfile();
-  const { count: followerCount } = await _supabase
-    .from('follows').select('*', { count: 'exact', head: true })
-    .eq('vendor_id', OWNER_VENDOR.id).catch(() => ({ count: 0 }));
+  let followerCount = 0;
+  try {
+    const { count } = await _supabase
+      .from('follows').select('*', { count: 'exact', head: true })
+      .eq('vendor_id', OWNER_VENDOR.id);
+    followerCount = count ?? 0;
+  } catch (_) {}
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const activeOpenings = ownerState.openings.filter(o => new Date(o.date) >= today && o.slots.length > 0);
   const photos = (p.photos || []).filter(u => u);
