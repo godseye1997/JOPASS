@@ -577,23 +577,19 @@ function renderVendorCards(vendors) {
       const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
       badge     = discount > 0 ? `<span class="badge">${discount}% OFF</span>` : '';
       priceHtml = discount > 0
-        ? `<span class="price">From ${cheapest.credits} credits</span>
-           <span style="font-size:.75rem; color:var(--success); display:block; margin-top:2px;">Save ${saving} JOD</span>`
-        : `<span class="price">From ${cheapest.credits} credits</span>`;
+        ? `<span style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${saving} JOD</span>`
+        : '';
     } else {
       const totalSlots = openings.reduce((n, o) => n + o.slots.length, 0);
       badge     = `<span class="badge" style="background:var(--accent);">${totalSlots} Slot${totalSlots !== 1 ? 's' : ''}</span>`;
-      const next = openings[0];
-      priceHtml = next.credits
-        ? `<span class="price">From ${next.credits} credits</span>`
-        : `<span class="price">${fmtDate(next.date)}</span>`;
+      priceHtml = '';
     }
 
     const dealsPreview = openings.length > 0 ? `
       <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;">
         ${openings.slice(0, 2).map(o => `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-            <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">🔥 ${o.service.name}</span>
+            <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${o.service.name}</span>
             <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${o.credits ? o.credits + ' credits' : fmtDate(o.date)}</span>
           </div>
         `).join('')}
