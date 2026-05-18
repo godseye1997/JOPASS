@@ -725,32 +725,8 @@ async function renderVendorDetail(container) {
       })() : ''}
     </div>
 
-    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Standard Booking</h4>` : ''}
-    <div class="grid grid-2">
-      ${services.map(s => {
-        const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
-        return `
-        <div class="card" style="cursor:pointer;" onclick="openBookingModal(${v.id}, ${s.id})">
-          <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div>
-              <h4 style="font-size:.9rem;">${s.name}</h4>
-              <p style="font-size:.8rem; color:var(--text-muted);">${s.duration || ''}</p>
-            </div>
-            <div style="text-align:right;">
-              <div class="price" style="font-size:1rem;">${s.credits} credits</div>
-              ${s.price > s.jopassPrice ? `<div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${toJOD(s.price - s.jopassPrice)} JOD</div>` : ''}
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
-            <span style="font-size:.75rem; font-weight:600; color:var(--success);">Save ${discount}%</span>
-            <button class="btn btn-primary btn-sm">Book Now</button>
-          </div>
-        </div>
-      `}).join('')}
-    </div>
-
     ${openings.length > 0 ? `
-      <h4 style="margin:20px 0 12px;">Deals</h4>
+      <h4 style="margin-bottom:12px;">Deals</h4>
       ${openings.map(o => {
         const capacity  = o.capacity || 1;
         const dateStr   = fmtDate(o.date);
@@ -790,6 +766,31 @@ async function renderVendorDetail(container) {
           </div>`;
       }).join('')}
     ` : ''}
+
+    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Standard Booking</h4>` : ''}
+    <div class="grid grid-2">
+      ${services.map(s => {
+        const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
+        return `
+        <div class="card" style="cursor:pointer;" onclick="openBookingModal(${v.id}, ${s.id})">
+          <div style="display:flex; justify-content:space-between; align-items:start;">
+            <div>
+              <h4 style="font-size:.9rem;">${s.name}</h4>
+              <p style="font-size:.8rem; color:var(--text-muted);">${s.duration || ''}</p>
+            </div>
+            <div style="text-align:right;">
+              <div class="price" style="font-size:1rem;">${s.credits} credits</div>
+              ${s.price > s.jopassPrice ? `<div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${toJOD(s.price - s.jopassPrice)} JOD</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+            <span style="font-size:.75rem; font-weight:600; color:var(--success);">Save ${discount}%</span>
+            <button class="btn btn-primary btn-sm">Book Now</button>
+          </div>
+        </div>
+      `}).join('')}
+    </div>
+
 
     ${profile?.amenities?.length > 0 ? `
       <div style="margin-top:20px; margin-bottom:16px;">
