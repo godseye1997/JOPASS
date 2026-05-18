@@ -593,8 +593,8 @@ function renderVendorCards(vendors) {
       <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;">
         ${openings.slice(0, 2).map(o => `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-            <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65%;">🔥 ${o.service.name}</span>
-            <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${fmtDate(o.date)}</span>
+            <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">🔥 ${o.service.name}</span>
+            <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${o.credits ? o.credits + ' credits' : fmtDate(o.date)}</span>
           </div>
         `).join('')}
         ${openings.length > 2 ? `<div style="font-size:.68rem; color:var(--accent); font-weight:600;">+${openings.length - 2} more deal${openings.length - 2 > 1 ? 's' : ''}</div>` : ''}
