@@ -254,7 +254,7 @@ async function checkOwnerBookingStatuses() {
 function renderServices(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h2>Standard</h2>
+      <h2>Standard Booking</h2>
     </div>
     <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">
       Fixed offerings customers can book anytime at their preferred date and time.
@@ -304,12 +304,12 @@ function renderServices(container) {
     ${ownerServices.length === 0 ? `
       <div class="empty-state" style="padding:24px 0;">
         <div class="icon"><i data-lucide="layers" style="width:40px;height:40px;color:var(--primary);"></i></div>
-        <h3>No Standard Bookings Yet</h3>
+        <h3>No Standard Booking Yet</h3>
         <p>Add your first service below.</p>
       </div>
     ` : ''}
 
-    <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="ownerNav('addService')">+ Add Standard</button>
+    <button class="btn btn-primary btn-full" style="margin-top:8px;" onclick="ownerNav('addService')">+ Add Standard Booking</button>
   `;
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -343,7 +343,7 @@ let _newSvcClosedSlots = new Set();
 function renderAddService(container) {
   _newSvcClosedSlots = new Set();
   container.innerHTML = `
-    <div class="page-header"><h2>Add Standard</h2></div>
+    <div class="page-header"><h2>Add Standard Booking</h2></div>
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
@@ -389,7 +389,7 @@ function renderAddService(container) {
       <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Tap a slot to close it. Green = open, grey = closed.</p>
       <div id="newSvcSlotGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
     </div>
-    <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard</button>
+    <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">Add Standard Booking</button>
   `;
   _renderNewSvcSlotGrid();
 }
@@ -767,7 +767,7 @@ function renderBookingsHub(container) {
         <i data-lucide="layers" style="width:24px;height:24px;color:var(--primary);"></i>
       </div>
       <div style="flex:1;">
-        <div style="font-weight:700; font-size:.95rem;">Standard</div>
+        <div style="font-weight:700; font-size:.95rem;">Standard Booking</div>
         <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">Fixed offerings customers book anytime</div>
       </div>
       <i data-lucide="chevron-right" style="width:18px;height:18px;color:var(--text-muted);"></i>
