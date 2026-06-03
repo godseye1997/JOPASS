@@ -956,9 +956,9 @@ function renderAddOpening(container) {
         ${(() => { const op = parseFloat(f.originalPrice), jp = parseFloat(f.jopassPrice); return op > 0 && jp > 0 && jp <= op ? _openingPricePreviewHtml(op, jp) : ''; })()}
       </div>
 
-      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:6px;">Slots Available per Time <span style="font-weight:400; color:var(--text-muted);">(1–100)</span></label>
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:6px;">Slots Available per Time <span style="font-weight:400; color:var(--text-muted);">(1–25)</span></label>
       <div style="display:flex; align-items:center; gap:12px;">
-        <input id="ownerCapacity" type="range" min="1" max="100" value="${f.capacity}"
+        <input id="ownerCapacity" type="range" min="1" max="25" value="${f.capacity}"
           oninput="ownerState.addForm.capacity = parseInt(this.value); document.getElementById('ownerCapacityVal').textContent = this.value"
           style="flex:1; accent-color:var(--primary);">
         <span id="ownerCapacityVal" style="font-size:1.1rem; font-weight:700; color:var(--primary); min-width:36px; text-align:right;">${f.capacity}</span>
