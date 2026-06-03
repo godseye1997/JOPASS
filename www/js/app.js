@@ -624,14 +624,18 @@ function getServicesForVendor(vendorId) {
 }
 
 function slotIsPast(date, slot) {
-  const d = new Date(date);
+  const now  = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const openingDay = new Date(date);
+  openingDay.setHours(0, 0, 0, 0);
+  // Only consider past if opening is today
+  if (openingDay.getTime() !== today.getTime()) return false;
   const m = slot.match(/(\d+):(\d+)\s*(AM|PM)/i);
   if (!m) return false;
   let h = parseInt(m[1]), min = parseInt(m[2]);
   if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
   if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
-  d.setHours(h, min, 0, 0);
-  return d < new Date();
+  return h * 60 + min < now.getHours() * 60 + now.getMinutes();
 }
 
 function getOpeningsForVendor(vendorId) {
