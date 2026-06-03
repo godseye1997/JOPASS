@@ -310,7 +310,7 @@ function renderServices(container) {
         </div>
         <div style="display:flex; gap:8px; margin-bottom:10px;">
           <button class="btn btn-sm btn-outline" style="flex:1;" onclick="ownerNav('editService', ${s.id})">✏️ Edit</button>
-          <button class="btn btn-sm btn-outline" style="flex:1;" onclick="ownerNav('manageSlots', ${s.id})">🗓 Manage Slots</button>
+          <button class="btn btn-sm btn-outline" style="flex:1;" onclick="ownerNav('manageSlots', ${s.id})">🗓 ${t('owner.manageSlots')}</button>
         </div>
         <div style="display:flex; gap:16px; flex-wrap:wrap;">
           ${s.price > s.jopassPrice ? `
@@ -386,17 +386,17 @@ function renderAddService(container) {
     <div class="card" style="margin-bottom:14px;">
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.serviceName')}</label>
           <input id="svcName" type="text" placeholder="e.g. Hot Yoga Class"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
             oninput="updateAddServiceBtn()">
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.duration')} <span style="font-weight:400; color:var(--text-muted);">${t('owner.durationOpt')}</span></label>
           ${_durationPickerHtml('svc', '')}
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.regularPrice')}</label>
           <input id="svcPrice" type="number" min="0" step="0.5" placeholder="15.00"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
             oninput="updateAddServiceBtn()">
@@ -405,11 +405,11 @@ function renderAddService(container) {
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.88rem; font-weight:500; user-select:none;">
             <input type="checkbox" id="svcNoDiscount" onchange="toggleJopassPriceField()"
               style="width:16px; height:16px; accent-color:var(--primary); cursor:pointer;">
-            No discount — list at regular price
+            ${t('owner.noDiscount')}
           </label>
         </div>
         <div id="svcJopassWrapper">
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">JoPass Price (JOD)</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.jopassPrice')}</label>
           <input id="svcJopassPrice" type="number" min="0" step="0.5" placeholder="e.g. 10.00"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);"
             oninput="updateAddServiceBtn()">
@@ -418,13 +418,13 @@ function renderAddService(container) {
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.88rem; font-weight:500; user-select:none; padding:4px 0;">
           <input type="checkbox" id="svcSingleSlot"
             style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
-          Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
+          ${t('owner.autoClose')} <span style="font-size:.78rem; color:var(--text-muted);">${t('owner.autoCloseDesc')}</span>
         </label>
       </div>
     </div>
     <div class="card" style="margin-bottom:14px;">
-      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">Available Time Slots</label>
-      <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Tap a slot to close it. Green = open, grey = closed.</p>
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">${t('owner.availableSlots')}</label>
+      <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">${t('owner.slotsDesc')}</p>
       <div id="newSvcSlotGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
     </div>
     <button id="addServiceBtn" class="btn btn-primary btn-full" disabled onclick="addService()">${t('owner.addStandardBtn')}</button>
@@ -500,35 +500,35 @@ function renderEditService(container, serviceId) {
   if (!s) { ownerNav('services'); return; }
 
   container.innerHTML = `
-    <div class="page-header"><h2>Edit Service</h2></div>
+    <div class="page-header"><h2>${t('owner.editService')}</h2></div>
     <div class="card">
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Service Name</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.serviceName')}</label>
           <input id="editSvcName" type="text" value="${s.name}"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.duration')} <span style="font-weight:400; color:var(--text-muted);">${t('owner.durationOpt')}</span></label>
           ${_durationPickerHtml('editSvc', s.duration || '')}
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.regularPrice')}</label>
           <input id="editSvcPrice" type="number" min="0" step="0.5" value="${s.price}"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">JoPass Price (JOD)</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('owner.jopassPrice')}</label>
           <input id="editSvcJopassPrice" type="number" min="0" step="0.5" value="${s.jopassPrice}"
             style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.88rem; font-weight:500; user-select:none; padding:4px 0;">
           <input type="checkbox" id="editSvcSingleSlot" ${s.singleSlot ? 'checked' : ''}
             style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
-          Auto-close slot after booking <span style="font-size:.78rem; color:var(--text-muted);">(1 reservation per slot)</span>
+          ${t('owner.autoClose')} <span style="font-size:.78rem; color:var(--text-muted);">${t('owner.autoCloseDesc')}</span>
         </label>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:8px;">Available Time Slots <span style="font-weight:400; color:var(--text-muted);">(tap to close/open)</span></label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:8px;">${t('owner.availableSlots')} <span style="font-weight:400; color:var(--text-muted);">(${_lang === 'ar' ? 'اضغط للإغلاق/الفتح' : 'tap to close/open'})</span></label>
           <div style="display:flex; flex-wrap:wrap; gap:6px;" id="editSvcSlotGrid">
             ${ALL_SERVICE_SLOTS.map(slot => {
               const avail = s.availableSlots;
@@ -544,7 +544,7 @@ function renderEditService(container, serviceId) {
           </div>
           <p style="font-size:.72rem; color:var(--text-muted); margin-top:6px;">Green = open &nbsp; Grey = closed</p>
         </div>
-        <button class="btn btn-primary btn-full" onclick="saveEditService(${s.id})">Save Changes</button>
+        <button class="btn btn-primary btn-full" onclick="saveEditService(${s.id})">${t('owner.saveChanges')}</button>
       </div>
     </div>
   `;
@@ -659,7 +659,7 @@ function _renderManageSlotsView(container, s) {
   ` : `<p style="font-size:.85rem; color:var(--text-muted); margin-top:12px;">Select a date to manage its slots.</p>`;
 
   container.innerHTML = `
-    <div class="page-header"><h2>Manage Slots — ${s.name}</h2></div>
+    <div class="page-header"><h2>${t('owner.manageSlots')} — ${s.name}</h2></div>
     <div class="card">
       <div class="calendar" id="manageSlotsCalendar">${calHtml}</div>
       ${slotsHtml}
@@ -782,9 +782,9 @@ function markBookingViewed(bookingId) {
 function renderBookingsHub(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h2>Bookings</h2>
+      <h2>${t('owner.bookingsHub')}</h2>
     </div>
-    <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:20px;">Choose what you'd like to manage.</p>
+    <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:20px;">${_lang === 'ar' ? 'اختر ما تريد إدارته.' : "Choose what you'd like to manage."}</p>
 
     <div class="card" style="margin-bottom:14px; cursor:pointer; display:flex; align-items:center; gap:16px; padding:20px;"
          onclick="ownerNav('listings')">
@@ -792,8 +792,8 @@ function renderBookingsHub(container) {
         <i data-lucide="clock" style="width:24px;height:24px;color:var(--success);"></i>
       </div>
       <div style="flex:1;">
-        <div style="font-weight:700; font-size:.95rem;">Deals</div>
-        <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">Time-limited slots customers can book</div>
+        <div style="font-weight:700; font-size:.95rem;">${t('owner.dealsCard')}</div>
+        <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${t('owner.dealsCardDesc')}</div>
       </div>
       <i data-lucide="chevron-right" style="width:18px;height:18px;color:var(--text-muted);"></i>
     </div>
@@ -804,8 +804,8 @@ function renderBookingsHub(container) {
         <i data-lucide="layers" style="width:24px;height:24px;color:var(--primary);"></i>
       </div>
       <div style="flex:1;">
-        <div style="font-weight:700; font-size:.95rem;">${t('owner.standard')}</div>
-        <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">Fixed offerings customers book anytime</div>
+        <div style="font-weight:700; font-size:.95rem;">${t('owner.standardCard')}</div>
+        <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${t('owner.standardCardDesc')}</div>
       </div>
       <i data-lucide="chevron-right" style="width:18px;height:18px;color:var(--text-muted);"></i>
     </div>
@@ -838,8 +838,8 @@ function renderListings(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Deals</h2>
-      <button class="btn btn-primary btn-sm" onclick="ownerNav('add')">+ Add</button>
+      <h2>${t('owner.deals')}</h2>
+      <button class="btn btn-primary btn-sm" onclick="ownerNav('add')">${t('owner.addBtn')}</button>
     </div>
 
     <div class="card" style="margin-bottom:16px; display:flex; align-items:center; gap:14px;">
@@ -854,12 +854,12 @@ function renderListings(container) {
     ${openings.length === 0 ? `
       <div class="empty-state">
         <div class="icon"><i data-lucide="clock" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
-        <h3>No Deals Yet</h3>
-        <p>Add available time slots to start receiving bookings from customers.</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Deal</button>
+        <h3>${t('owner.noDeals')}</h3>
+        <p>${t('owner.noDealsDesc')}</p>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">${t('owner.addDeal')}</button>
       </div>
     ` : openings.map(o => {
-      const dateStr       = o.isEveryday ? 'Every Day' : o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      const dateStr       = o.isEveryday ? t('vendor.everyday') : o.date.toLocaleDateString(_lang === 'ar' ? 'ar-JO' : 'en-US', { weekday: 'long', month: 'short', day: 'numeric' });
       const capacity      = o.capacity || 1;
       const totalBooked   = o.booked.length;
       const allSlotsPast  = !o.isEveryday && o.slots.every(s => slotIsPast(o.date, s));
@@ -899,7 +899,7 @@ function renderListings(container) {
             }).join('')}
           </div>
           <div style="font-size:.78rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px; margin-top:2px;">
-            ${o.slots.length} time slots · ${capacity} seat${capacity !== 1 ? 's' : ''} each · ${totalBooked} booked · ${totalCapacity - totalBooked} remaining
+            ${o.slots.length} ${t('owner.timeSlots')} · ${capacity} ${capacity !== 1 ? t('owner.seatsEach') : t('owner.seat')} · ${totalBooked} ${t('owner.booked')} · ${totalCapacity - totalBooked} ${t('owner.remaining')}
           </div>
           ${o.jopassPrice ? _payoutHtml(parseFloat(o.jopassPrice)) : ''}
         </div>
@@ -961,27 +961,27 @@ function renderAddOpening(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Add Deal</h2>
+      <h2>${t('owner.addDeal')}</h2>
     </div>
 
     <div class="card" style="margin-bottom:14px;">
-      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:8px;">Service Name</label>
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:8px;">${t('owner.serviceName')}</label>
       <input id="ownerServiceName" type="text" placeholder="e.g. Deep Tissue Massage"
         value="${f.serviceName}"
         oninput="ownerState.addForm.serviceName = this.value; updateOwnerSubmitBtn()"
         style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
-      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:8px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:8px;">${t('owner.duration')} <span style="font-weight:400; color:var(--text-muted);">${t('owner.durationOpt')}</span></label>
       ${_durationPickerHtml('addDeal', f.duration)}
       <div style="display:flex; gap:10px; margin-top:12px;">
         <div style="flex:1;">
-          <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:6px;">Original Price (JOD)</label>
+          <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:6px;">${t('owner.regularPrice')}</label>
           <input id="ownerOriginalPrice" type="number" min="0" step="0.5" placeholder="10.00"
             value="${f.originalPrice}"
             oninput="ownerState.addForm.originalPrice = this.value; updateOpeningPricePreview(); updateOwnerSubmitBtn()"
             style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <div style="flex:1;">
-          <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:6px;">JoPass Price (JOD)</label>
+          <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:6px;">${t('owner.jopassPrice')}</label>
           <input id="ownerJopassPrice" type="number" min="0" step="0.5" placeholder="7.00"
             value="${f.jopassPrice}"
             oninput="ownerState.addForm.jopassPrice = this.value; updateOpeningPricePreview(); updateOwnerSubmitBtn()"
@@ -992,7 +992,7 @@ function renderAddOpening(container) {
         ${(() => { const op = parseFloat(f.originalPrice), jp = parseFloat(f.jopassPrice); return op > 0 && jp > 0 && jp <= op ? _openingPricePreviewHtml(op, jp) : ''; })()}
       </div>
 
-      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:6px;">Slots Available per Time <span style="font-weight:400; color:var(--text-muted);">(1–25)</span></label>
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:6px;">${t('owner.slotsPerTime')} <span style="font-weight:400; color:var(--text-muted);">(1–25)</span></label>
       <div style="display:flex; align-items:center; gap:12px;">
         <input id="ownerCapacity" type="range" min="1" max="25" value="${f.capacity}"
           oninput="ownerState.addForm.capacity = parseInt(this.value); document.getElementById('ownerCapacityVal').textContent = this.value"
@@ -1006,14 +1006,14 @@ function renderAddOpening(container) {
         <input type="checkbox" id="ownerEveryday" ${f.isEveryday ? 'checked' : ''}
           onchange="ownerState.addForm.isEveryday = this.checked; ownerState.addForm.date = null; ownerState.addForm.selectedSlots = []; renderAddOpening(document.getElementById('ownerMain'))"
           style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
-        Everyday Offer
-        <span style="font-size:.78rem; font-weight:400; color:var(--text-muted);">Available every day at selected times</span>
+        ${t('owner.everyday')}
+        <span style="font-size:.78rem; font-weight:400; color:var(--text-muted);">${t('owner.everydayDesc')}</span>
       </label>
     </div>
 
     ${!f.isEveryday ? `
     <div class="card" style="margin-bottom:14px;">
-      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:10px;">Date</label>
+      <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:10px;">${t('owner.dateLabel')}</label>
       <div class="calendar">${calHtml}</div>
     </div>
     ` : ''}
@@ -1023,8 +1023,8 @@ function renderAddOpening(container) {
       const canSubmitNow = f.serviceName.trim() && f.selectedSlots.length > 0 && parseFloat(f.originalPrice) > 0 && parseFloat(f.jopassPrice) > 0;
       return `
       <div class="card" style="margin-bottom:16px;">
-        <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">Available Time Slots</label>
-        <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Select the time slots for this offer.</p>
+        <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">${t('owner.availableSlots')}</label>
+        <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">${t('owner.slotsSelectDesc')}</p>
         <div class="time-slots">
           ${availableSlots.length > 0 ? availableSlots.map(slot => `
             <div class="time-slot ${f.selectedSlots.includes(slot) ? 'selected' : ''}"
@@ -1036,7 +1036,7 @@ function renderAddOpening(container) {
         </p>
       </div>
       <button id="ownerSubmitBtn" class="btn btn-primary btn-full" onclick="ownerSubmitOpening()" ${canSubmitNow ? '' : 'disabled'}>
-        Publish Opening
+        ${t('owner.publish')}
       </button>`;
     })() : ''}
   `;
@@ -1205,7 +1205,7 @@ function renderReceived(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Bookings Received</h2>
+      <h2>${t('owner.receivedTitle')}</h2>
     </div>
 
     <div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;">
@@ -1239,7 +1239,7 @@ function renderReceived(container) {
     ${bookings.length === 0 ? `
       <div class="empty-state">
         <div class="icon"><i data-lucide="inbox" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
-        <h3>${_receivedFilter === 'all' ? 'No Bookings Yet' : 'No Bookings Found'}</h3>
+        <h3>${_receivedFilter === 'all' ? t('owner.noBookingsYet') : t('owner.noBookingsFound')}</h3>
         <p>${_receivedFilter === 'all' ? 'Once customers book your services or openings, they\'ll appear here.' : 'No bookings match this date filter.'}</p>
         ${_receivedFilter === 'all' ? `<button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add a Deal</button>` : `<button class="btn btn-outline" style="margin-top:16px;" onclick="setReceivedFilter('all')">Show All</button>`}
       </div>
@@ -1312,20 +1312,20 @@ async function renderProfilePreview(container) {
 
   container.innerHTML = `
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
-      <h2>My Profile</h2>
-      <button class="btn btn-primary btn-sm" onclick="ownerNav('editProfile')">Edit Profile</button>
+      <h2>${t('owner.profile')}</h2>
+      <button class="btn btn-primary btn-sm" onclick="ownerNav('editProfile')">${t('owner.editProfile')}</button>
     </div>
 
     <div style="background:linear-gradient(135deg,var(--primary),#0a7a8e); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; color:#fff; display:flex; align-items:center; justify-content:space-between;">
       <div>
-        <div style="font-size:.78rem; opacity:.8; margin-bottom:2px;">Total Followers</div>
+        <div style="font-size:.78rem; opacity:.8; margin-bottom:2px;">${t('owner.totalFollowers')}</div>
         <div style="font-size:2rem; font-weight:800; line-height:1;">${followerCount ?? 0}</div>
       </div>
       <div style="font-size:2.2rem; opacity:.3;">❤️</div>
     </div>
 
     <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:16px;text-align:center;">
-      👁 Customer view — this is how your venue appears to customers
+      ${t('owner.customerView')}
     </div>
 
     ${OWNER_VENDOR.image ? `
@@ -1467,8 +1467,8 @@ function _renderBusinessProfileWith(container, p) {
     <div class="page-header">
       <h2><a href="#" onclick="ownerNav('profile'); return false;" style="color:var(--text-muted);font-size:.9rem;">← Back</a></h2>
     </div>
-    <h2 style="margin-bottom:4px;">Edit Profile</h2>
-    <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">This information is shown to customers on your venue page.</p>
+    <h2 style="margin-bottom:4px;">${t('owner.editProfile')}</h2>
+    <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:16px;">${_lang === 'ar' ? 'تظهر هذه المعلومات للعملاء في صفحة مكانك.' : 'This information is shown to customers on your venue page.'}</p>
 
     <!-- Business Name -->
     <div class="card" style="margin-bottom:14px;">
@@ -1635,7 +1635,7 @@ function _renderBusinessProfileWith(container, p) {
       ` : ''}
     </div>
 
-    <button class="btn btn-primary btn-full" onclick="saveProfileForm()" style="margin-bottom:24px;">Save Profile</button>
+    <button class="btn btn-primary btn-full" onclick="saveProfileForm()" style="margin-bottom:24px;">${t('owner.saveProfile')}</button>
   `;
 }
 
@@ -1833,7 +1833,7 @@ async function saveProfileForm() {
   p.location.address = document.getElementById('profAddress').value.trim();
 
   const saveBtn = document.querySelector('button[onclick="saveProfileForm()"]');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = t('owner.saving'); }
 
   try {
     // Update vendor row (name, category, description, banner image)
@@ -1858,7 +1858,7 @@ async function saveProfileForm() {
     console.error(err);
     showOwnerToast('Failed to save profile. Please try again.', 'error');
   } finally {
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Profile'; }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = t('owner.saveProfile'); }
   }
 }
 
