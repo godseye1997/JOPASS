@@ -253,7 +253,7 @@ body.mode-desktop .main {
   transition: all .15s;
 }
 .bottom-nav-item:hover { text-decoration: none; color: var(--primary); }
-.bottom-nav-item.active { color: var(--primary); }
+.bottom-nav-item.active { color: var(--primary); border-bottom: 2.5px solid var(--primary); margin-bottom: -2.5px; }
 .bottom-nav-icon { font-size: 1.3rem; }
 .bottom-nav-label { font-size: .7rem; }
 
