@@ -826,7 +826,7 @@ function renderListings(container) {
       const dateStr       = o.isEveryday ? 'Every Day' : o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
       const capacity      = o.capacity || 1;
       const totalBooked   = o.booked.length;
-      const allSlotsPast  = o.slots.every(s => slotIsPast(o.date, s));
+      const allSlotsPast  = !o.isEveryday && o.slots.every(s => slotIsPast(o.date, s));
       const totalCapacity = o.slots.length * capacity;
       const isFull        = !allSlotsPast && totalBooked >= totalCapacity;
       return `
