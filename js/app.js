@@ -643,19 +643,7 @@ function getOpeningsForVendor(vendorId) {
   const all = state.openingsMap?.[vendorId] || [];
   const everyday = all
     .filter(o => o.isEveryday)
-    .map(o => ({
-      ...o,
-      slots:     o.slots,
-      pastSlots: o.slots.filter(s => {
-        const now = new Date();
-        const m = s.match(/(\d+):(\d+)\s*(AM|PM)/i);
-        if (!m) return false;
-        let h = parseInt(m[1]), min = parseInt(m[2]);
-        if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
-        if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
-        return h * 60 + min < now.getHours() * 60 + now.getMinutes();
-      }),
-    }))
+    .map(o => ({ ...o, slots: o.slots, pastSlots: [] }))
     .filter(o => o.slots.length > 0);
   const dated = all
     .filter(o => !o.isEveryday && o.date >= today)

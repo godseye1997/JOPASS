@@ -796,7 +796,7 @@ function renderListings(container) {
   const openings = [...ownerState.openings]
     .filter(o => o.isEveryday || new Date(o.date) >= today)
     .sort((a, b) => (a.isEveryday ? -1 : b.isEveryday ? 1 : a.date - b.date))
-    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.isEveryday ? new Date() : o.date, s)) }));
+    .map(o => ({ ...o, slots: o.isEveryday ? o.slots : o.slots.filter(s => !slotIsPast(o.date, s)) }));
 
   const services = ownerServices;
 
@@ -877,9 +877,11 @@ async function removeOpening(id) {
   if (!opening) return;
 
   try {
-    // Cancel related confirmed bookings
-    const dateStr = localDateStr(opening.date);
-    await dbCancelBookingsForOpening(OWNER_VENDOR.id, opening.service.name, dateStr);
+    // Cancel related confirmed bookings (everyday offers have no specific date)
+    if (!opening.isEveryday && opening.date) {
+      const dateStr = localDateStr(opening.date);
+      await dbCancelBookingsForOpening(OWNER_VENDOR.id, opening.service.name, dateStr);
+    }
     await dbDeleteOpening(id);
 
     ownerState.openings = ownerState.openings.filter(o => o.id !== id);
