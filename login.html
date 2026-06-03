@@ -60,9 +60,9 @@
             <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="document.getElementById('forgotPanel').style.display='none'">Cancel</button>
           </div>
 
-          <p class="login-footer">Don't have an account? <a href="signup.html">Sign up</a></p>
+          <p class="login-footer" id="loginFooterSignup">Don't have an account? <a href="signup.html" id="loginSignupLink">Sign up</a></p>
 
-          <a href="owner-login.html" style="display:block; text-align:center; margin-top:20px; font-size:.75rem; color:var(--text-muted); text-decoration:none;">Are you a venue? <span style="text-decoration:underline;">Sign in here</span></a>
+          <a href="owner-login.html" id="loginVenueLink" style="display:block; text-align:center; margin-top:20px; font-size:.75rem; color:var(--text-muted); text-decoration:none;"><span id="loginVenueText">Are you a venue?</span> <span style="text-decoration:underline;" id="loginVenueAction">Sign in here</span></a>
         </div>
       </div>
     </div>
@@ -136,7 +136,7 @@
     function _applyLoginLang() {
       const el = id => document.getElementById(id);
       const q  = sel => document.querySelector(sel);
-      if (el('loginTagline'))   el('loginTagline').textContent   = t('login.title');
+      if (el('loginTagline'))    el('loginTagline').textContent   = t('login.title');
       if (q('label[for=email]')) q('label[for=email]').textContent = t('login.email');
       if (q('label[for=password]')) q('label[for=password]').textContent = t('login.password');
       const forgotLink = q('a[onclick*="sendForgotPassword"]');
@@ -144,6 +144,12 @@
       const submitBtn = q('#loginForm button[type=submit]');
       if (submitBtn && submitBtn.textContent.trim() !== t('login.signing'))
         submitBtn.textContent = t('login.signin');
+      if (el('loginSignupLink'))  el('loginSignupLink').textContent  = t('login.signup');
+      if (el('loginVenueText'))   el('loginVenueText').textContent   = t('login.venue');
+      if (el('loginVenueAction')) el('loginVenueAction').textContent = t('login.venueLink');
+      // Update "Don't have an account?" text node
+      const footer = el('loginFooterSignup');
+      if (footer) footer.childNodes[0].textContent = t('login.noAccount') + ' ';
     }
     const _origSetLang = typeof setLang === 'function' ? setLang : null;
     window.setLang = function(lang) { if (_origSetLang) _origSetLang(lang); _applyLoginLang(); };
