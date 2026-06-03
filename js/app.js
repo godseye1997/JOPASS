@@ -1222,37 +1222,37 @@ function renderCredits(container) {
     </div>
     <div class="credit-bar">
       <div>
-        <div class="label">Current Balance</div>
-        <div class="balance" id="creditBarCount">${state.credits} Credits</div>
+        <div class="label">${t('credits.balance')}</div>
+        <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
       </div>
     </div>
-    <h4 style="margin-bottom:12px;">Credit Packs</h4>
+    <h4 style="margin-bottom:12px;">${t('credits.packs')}</h4>
     ${CREDIT_PACKS.map(p => `
       <div class="credit-pack" onclick="buyCredits(${p.id})">
         <div class="pack-info">
-          <h4 style="font-size:.9rem;">${p.label} — ${p.credits} Credits</h4>
+          <h4 style="font-size:.9rem;">${p.label} — ${p.credits} ${t('credits.credits')}</h4>
           <p>${p.description}</p>
         </div>
         <div class="pack-price">${p.price.toFixed(2)} JOD</div>
       </div>
     `).join('')}
     <div class="card" style="margin-top:20px;">
-      <h4 style="margin-bottom:12px;">How It Works</h4>
+      <h4 style="margin-bottom:12px;">${t('credits.howWorks')}</h4>
       <div style="margin-bottom:12px;">
-        <strong>1. Buy Credits</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">Choose a pack that fits your needs.</p>
+        <strong>${t('credits.step1')}</strong>
+        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step1Desc')}</p>
       </div>
       <div style="margin-bottom:12px;">
-        <strong>2. Browse Deals</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">Discover discounted services nearby.</p>
+        <strong>${t('credits.step2')}</strong>
+        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step2Desc')}</p>
       </div>
       <div style="margin-bottom:12px;">
-        <strong>3. Book &amp; Save</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">Use credits to book at up to 50% off.</p>
+        <strong>${t('credits.step3')}</strong>
+        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step3Desc')}</p>
       </div>
       <div>
-        <strong>4. Enjoy!</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">Show up and enjoy the experience.</p>
+        <strong>${t('credits.step4')}</strong>
+        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step4Desc')}</p>
       </div>
     </div>
   `;
@@ -1667,7 +1667,7 @@ function renderProfile(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Profile</h2>
+      <h2>${t('profile.title')}</h2>
     </div>
     <div class="profile-card">
       <div class="profile-avatar">${initials}</div>
@@ -1679,16 +1679,16 @@ function renderProfile(container) {
 
     <div class="credit-bar" style="cursor:pointer;" onclick="navigateTo('credits')">
       <div>
-        <div class="label">Credit Balance</div>
-        <div class="balance" id="creditBarCount">${state.credits} Credits</div>
+        <div class="label">${t('profile.creditBalance')}</div>
+        <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
       </div>
       <span style="font-size:1.2rem;">→</span>
     </div>
 
     ${state.referralCode ? `
     <div class="card" style="margin-bottom:12px;">
-      <div style="font-size:.78rem; font-weight:700; color:var(--text-muted); letter-spacing:.05em; margin-bottom:8px;">REFER A FRIEND</div>
-      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">Share your code — earn <strong>2 credits</strong> every time a friend makes their first credit purchase.</p>
+      <div style="font-size:.78rem; font-weight:700; color:var(--text-muted); letter-spacing:.05em; margin-bottom:8px;">${t('profile.referTitle')}</div>
+      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">${t('profile.referDesc')}</p>
       <div style="display:flex; align-items:center; gap:10px;">
         <div style="flex:1; background:var(--bg); border:1.5px dashed var(--primary); border-radius:var(--radius-sm); padding:10px 14px; font-size:1.1rem; font-weight:800; letter-spacing:.12em; color:var(--primary); text-align:center;">
           ${state.referralCode}
@@ -1702,48 +1702,48 @@ function renderProfile(container) {
 
     <div class="profile-menu-item" onclick="navigateTo('editProfile')">
       <span class="pm-icon"><i data-lucide="user-pen"></i></span>
-      <span class="pm-label">Edit Profile</span>
+      <span class="pm-label">${t('profile.editProfile')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('bookings')">
       <span class="pm-icon"><i data-lucide="calendar"></i></span>
-      <span class="pm-label">My Bookings</span>
+      <span class="pm-label">${t('profile.myBookings')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('credits')">
       <span class="pm-icon"><i data-lucide="credit-card"></i></span>
-      <span class="pm-label">Buy Credits</span>
+      <span class="pm-label">${t('profile.buyCredits')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="openNotificationSettings()" style="cursor:pointer;">
       <span class="pm-icon"><i data-lucide="bell"></i></span>
-      <span class="pm-label">Notifications</span>
+      <span class="pm-label">${t('profile.notifications')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('settings')">
       <span class="pm-icon"><i data-lucide="settings"></i></span>
-      <span class="pm-label">Settings</span>
+      <span class="pm-label">${t('profile.settings')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="navigateTo('settings')">
       <span class="pm-icon"><i data-lucide="help-circle"></i></span>
-      <span class="pm-label">Help &amp; Support</span>
+      <span class="pm-label">${t('profile.help')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <a href="privacy.html" target="_blank" class="profile-menu-item" style="text-decoration:none; color:inherit;">
       <span class="pm-icon"><i data-lucide="shield"></i></span>
-      <span class="pm-label">Privacy Policy</span>
+      <span class="pm-label">${t('profile.privacy')}</span>
       <span class="pm-arrow">›</span>
     </a>
     <a href="terms.html" target="_blank" class="profile-menu-item" style="text-decoration:none; color:inherit;">
       <span class="pm-icon"><i data-lucide="file-text"></i></span>
-      <span class="pm-label">Terms &amp; Conditions</span>
+      <span class="pm-label">${t('profile.terms')}</span>
       <span class="pm-arrow">›</span>
     </a>
 
     <div class="profile-menu-item" onclick="signOutUser()" style="margin-top:20px; color:var(--danger); cursor:pointer;">
       <span class="pm-icon"><i data-lucide="log-out" style="color:var(--danger);"></i></span>
-      <span class="pm-label" style="color:var(--danger);">Log Out</span>
+      <span class="pm-label" style="color:var(--danger);">${t('profile.logout')}</span>
       <span class="pm-arrow">›</span>
     </div>
   `;
@@ -1932,7 +1932,7 @@ function renderSettings(container) {
         <a href="#" onclick="navigateTo('profile'); return false;" style="color:var(--text-muted); font-size:.9rem;">← Back</a>
       </h2>
     </div>
-    <h2 style="margin-bottom:20px;">Settings</h2>
+    <h2 style="margin-bottom:20px;">${t('settings.title')}</h2>
     ${SETTINGS_SECTIONS.map(s => `
       <div class="card" style="margin-bottom:10px; padding:0; overflow:hidden;">
         <div onclick="toggleSettingsSection('${s.id}')" style="display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer;">
@@ -1971,7 +1971,7 @@ function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmSt
       <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">${message}</p>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <button id="confirmDialogYes" style="padding:14px;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:700;cursor:pointer;${confirmStyle || 'background:var(--primary);color:#fff;'}">${confirmLabel}</button>
-        <button onclick="document.getElementById('confirmDialog').remove()" style="padding:14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text);">Cancel</button>
+        <button onclick="document.getElementById('confirmDialog').remove()" style="padding:14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.95rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text);">${t('dialog.cancel')}</button>
       </div>
     </div>
   `;

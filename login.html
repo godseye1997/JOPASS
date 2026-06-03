@@ -22,10 +22,16 @@
     <div class="login-scroll">
       <div class="login-container">
         <div class="login-card">
+          <div style="text-align:right; margin-bottom:8px;">
+            <button class="lang-toggle-btn" onclick="setLang(_lang === 'ar' ? 'en' : 'ar')"
+              style="background:none; border:1.5px solid var(--border); border-radius:20px; padding:4px 12px; font-size:.8rem; font-weight:700; color:var(--primary); cursor:pointer;">
+              عر
+            </button>
+          </div>
           <div class="logo">
             <img src="logo.png" alt="JoPass" style="height:72px; object-fit:contain;">
           </div>
-          <p class="tagline">Book amazing experiences for less.</p>
+          <p class="tagline" id="loginTagline">Book amazing experiences for less.</p>
 
           <form id="loginForm">
             <div class="input-group">
@@ -118,6 +124,7 @@
       msgEl.style.display = 'block';
     }
   </script>
+  <script src="js/i18n.js"></script>
   <script src="js/native.js"></script>
   <script src="js/deeplink.js"></script>
   <script src="js/supabase.min.js"></script>
@@ -126,6 +133,21 @@
     if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
       document.body.classList.replace('mode-mobile', 'mode-desktop');
     }
+    function _applyLoginLang() {
+      const el = id => document.getElementById(id);
+      const q  = sel => document.querySelector(sel);
+      if (el('loginTagline'))   el('loginTagline').textContent   = t('login.title');
+      if (q('label[for=email]')) q('label[for=email]').textContent = t('login.email');
+      if (q('label[for=password]')) q('label[for=password]').textContent = t('login.password');
+      const forgotLink = q('a[onclick*="sendForgotPassword"]');
+      if (forgotLink) forgotLink.textContent = t('login.forgot');
+      const submitBtn = q('#loginForm button[type=submit]');
+      if (submitBtn && submitBtn.textContent.trim() !== t('login.signing'))
+        submitBtn.textContent = t('login.signin');
+    }
+    const _origSetLang = typeof setLang === 'function' ? setLang : null;
+    window.setLang = function(lang) { if (_origSetLang) _origSetLang(lang); _applyLoginLang(); };
+    document.addEventListener('DOMContentLoaded', _applyLoginLang);
     // Auto-login: skip login screen if session already exists
     (async () => {
       const { data: { session } } = await _supabase.auth.getSession();
