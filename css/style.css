@@ -28,6 +28,18 @@ body {
   line-height: 1.6;
 }
 
+/* ── RTL (Arabic) ── */
+[dir="rtl"] body,
+[dir="rtl"] { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+[dir="rtl"] .page-header h2 { text-align: right; }
+[dir="rtl"] .sidebar-nav a { flex-direction: row-reverse; }
+[dir="rtl"] .card { text-align: right; }
+[dir="rtl"] .booking-details { text-align: right; }
+[dir="rtl"] .credit-bar { flex-direction: row-reverse; }
+[dir="rtl"] .filter-bar { direction: rtl; }
+[dir="rtl"] .bottom-nav { direction: rtl; }
+[dir="rtl"] .mobile-header { flex-direction: row-reverse; }
+
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 

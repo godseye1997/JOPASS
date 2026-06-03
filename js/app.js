@@ -338,7 +338,7 @@ async function toggleFollow(vendorId) {
 
 function _renderFollowBtn(btn, vendorId) {
   const following = state.follows.map(Number).includes(parseInt(vendorId));
-  btn.textContent  = following ? '❤️ Following' : '🤍 Follow';
+  btn.textContent  = following ? t('vendor.following') : t('vendor.follow');
   btn.style.background    = following ? 'rgba(225,112,85,.12)' : 'var(--surface)';
   btn.style.color         = following ? 'var(--danger)' : 'var(--text-muted)';
   btn.style.borderColor   = following ? 'var(--danger)' : 'var(--border)';
@@ -503,14 +503,14 @@ function renderBrowse(container) {
 
   container.innerHTML = `
     <div class="page-header">
-      <h2>Discover Deals</h2>
+      <h2>${t('browse.title')}</h2>
     </div>
     <div class="credit-bar">
       <div>
         <div class="label">Your Balance</div>
         <div class="balance" id="creditBarCount">${state.credits} Credits</div>
       </div>
-      <button class="btn" onclick="navigateTo('credits')">+ Buy Credits</button>
+      <button class="btn" onclick="navigateTo('credits')">${t('browse.buy')}</button>
     </div>
     <div style="position:relative; margin-bottom:12px;">
       <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); pointer-events:none;"></i>
@@ -721,7 +721,7 @@ async function renderVendorDetail(container) {
         <h3 style="margin:0;">${vendorIcon(v, '24px')} ${v.name}</h3>
         <button id="followBtn" onclick="toggleFollow(${v.id})"
           style="padding:7px 14px; border-radius:20px; font-size:.8rem; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--text-muted); flex-shrink:0;">
-          🤍 Follow
+          ${t('vendor.follow')}
         </button>
       </div>
       <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description || ''}</p>
@@ -749,7 +749,7 @@ async function renderVendorDetail(container) {
       <h4 style="margin-bottom:12px;">Deals</h4>
       ${openings.map(o => {
         const capacity  = o.capacity || 1;
-        const dateStr   = o.isEveryday ? 'Every Day' : fmtDate(o.date);
+        const dateStr   = o.isEveryday ? t('vendor.everyday') : fmtDate(o.date);
         const hasPrice  = o.jopassPrice > 0;
         const canAfford = !hasPrice || state.credits >= o.credits;
         return `
@@ -788,7 +788,7 @@ async function renderVendorDetail(container) {
       }).join('')}
     ` : ''}
 
-    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">Standard Booking</h4>` : ''}
+    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">${t('vendor.standard')}</h4>` : ''}
     <div class="grid grid-2">
       ${services.map(s => {
         const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
@@ -806,7 +806,7 @@ async function renderVendorDetail(container) {
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
             <span style="font-size:.75rem; font-weight:600; color:var(--success);">Save ${discount}%</span>
-            <button class="btn btn-primary btn-sm">Book Now</button>
+            <button class="btn btn-primary btn-sm">${t('vendor.bookNow')}</button>
           </div>
         </div>
       `}).join('')}
@@ -815,7 +815,7 @@ async function renderVendorDetail(container) {
 
     ${profile?.amenities?.length > 0 ? `
       <div style="margin-top:20px; margin-bottom:16px;">
-        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">AMENITIES</div>
+        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">${t('vendor.amenities')}</div>
         <div style="display:flex; flex-wrap:wrap; gap:6px;">
           ${profile.amenities.map(a => `
             <span style="padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; background:var(--bg); border:1px solid var(--border);">${a}</span>
@@ -826,7 +826,7 @@ async function renderVendorDetail(container) {
 
     ${profile?.location?.address || profile?.location?.lat ? `
       <div style="margin-bottom:16px;">
-        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">LOCATION</div>
+        <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">${t('vendor.location')}</div>
         ${profile.location.address ? `<p style="font-size:.85rem; margin-bottom:8px;">📍 ${profile.location.address}</p>` : ''}
         ${profile.location.lat ? `
           <iframe
@@ -1218,7 +1218,7 @@ async function _doConfirmBooking() {
 function renderCredits(container) {
   container.innerHTML = `
     <div class="page-header">
-      <h2>Buy Credits</h2>
+      <h2>${t('credits.title')}</h2>
     </div>
     <div class="credit-bar">
       <div>
@@ -1431,7 +1431,7 @@ function renderBookings(container) {
   checkBookingStatuses();
   const filtered = _filterBookings(state.bookings);
   const filters = ['all','today','week','month'];
-  const labels  = { all:'All', today:'Today', week:'This Week', month:'This Month' };
+  const labels  = { all:t('bookings.all'), today:t('bookings.today'), week:t('bookings.week'), month:t('bookings.month') };
   const filterBar = `
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
       ${filters.map(f => `
@@ -1442,20 +1442,20 @@ function renderBookings(container) {
     </div>`;
   container.innerHTML = `
     <div class="page-header">
-      <h2>My Bookings</h2>
+      <h2>${t('bookings.title')}</h2>
     </div>
     ${filterBar}
     ${state.bookings.length === 0 ? `
       <div class="empty-state">
         <div class="icon"><i data-lucide="calendar" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
-        <h3>No Bookings Yet</h3>
-        <p>Browse deals and book your first experience!</p>
-        <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('browse')">Browse Deals</button>
+        <h3>${t('bookings.empty')}</h3>
+        <p>${t('bookings.emptyDesc')}</p>
+        <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('browse')">${t('bookings.browseDeals')}</button>
       </div>
     ` : filtered.length === 0 ? `
       <div class="empty-state">
         <div class="icon"><i data-lucide="calendar" style="width:48px;height:48px;color:var(--primary);opacity:.4;"></i></div>
-        <h3>No Bookings Found</h3>
+        <h3>${t('bookings.noFound')}</h3>
         <p>No bookings match the selected filter.</p>
       </div>
     ` : filtered.map(b => {
@@ -1473,9 +1473,9 @@ function renderBookings(container) {
       const action = isCancelled ? '' :
         isCompleted
           ? (review
-              ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">Reviewed</span>
-                 <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);margin-left:8px;" onclick="clearBooking('${b.id}')">Remove</button>`
-              : `<button class="btn btn-sm btn-primary" onclick="openReviewModal('${b.id}')">Review</button>`)
+              ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">${t('bookings.reviewed')}</span>
+                 <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);margin-left:8px;" onclick="clearBooking('${b.id}')">${t('bookings.remove')}</button>`
+              : `<button class="btn btn-sm btn-primary" onclick="openReviewModal('${b.id}')">${t('bookings.review')}</button>`)
           : `<button class="btn btn-sm btn-outline" style="${refundable ? '' : 'color:var(--danger);border-color:var(--danger);'}"
                title="${refundable ? 'Full credit refund' : 'No refund — within 12-hour window'}"
                onclick="cancelBooking('${b.id}')">
@@ -1495,7 +1495,7 @@ function renderBookings(container) {
           <span class="booking-status ${isCompleted ? '' : isCancelled ? '' : 'confirmed'}" style="
             ${isCancelled ? 'background:rgba(225,112,85,.1); color:var(--danger);' :
               isCompleted && !review ? 'background:rgba(0,184,148,.1); color:var(--success);' : ''}">
-            ${isCancelled ? 'Cancelled' : isCompleted ? 'Completed' : 'Confirmed'}
+            ${isCancelled ? t('bookings.cancelled') : isCompleted ? t('bookings.completed') : t('bookings.confirmed')}
           </span>
           ${action ? `<div style="width:100%; padding-left:54px; margin-top:8px;">${action}</div>` : ''}
         </div>
