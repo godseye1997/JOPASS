@@ -18,6 +18,7 @@ const ownerState = {
     selectedSlots: [],
     calendarMonth: new Date().getMonth(),
     calendarYear:  new Date().getFullYear(),
+    isEveryday:    false,
   },
 };
 
@@ -793,9 +794,9 @@ function renderListings(container) {
 
   // Only show openings from today onwards — don't auto-delete anything
   const openings = [...ownerState.openings]
-    .filter(o => new Date(o.date) >= today)
-    .sort((a, b) => a.date - b.date)
-    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.date, s)) }));
+    .filter(o => o.isEveryday || new Date(o.date) >= today)
+    .sort((a, b) => (a.isEveryday ? -1 : b.isEveryday ? 1 : a.date - b.date))
+    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.isEveryday ? new Date() : o.date, s)) }));
 
   const services = ownerServices;
 
@@ -822,7 +823,7 @@ function renderListings(container) {
         <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('add')">Add Deal</button>
       </div>
     ` : openings.map(o => {
-      const dateStr       = o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      const dateStr       = o.isEveryday ? 'Every Day' : o.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
       const capacity      = o.capacity || 1;
       const totalBooked   = o.booked.length;
       const allSlotsPast  = o.slots.every(s => slotIsPast(o.date, s));
@@ -966,33 +967,43 @@ function renderAddOpening(container) {
     </div>
 
     <div class="card" style="margin-bottom:14px;">
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.9rem; font-weight:600; user-select:none;">
+        <input type="checkbox" id="ownerEveryday" ${f.isEveryday ? 'checked' : ''}
+          onchange="ownerState.addForm.isEveryday = this.checked; ownerState.addForm.date = null; ownerState.addForm.selectedSlots = []; renderAddOpening(document.getElementById('ownerMain'))"
+          style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0;">
+        Everyday Offer
+        <span style="font-size:.78rem; font-weight:400; color:var(--text-muted);">Available every day at selected times</span>
+      </label>
+    </div>
+
+    ${!f.isEveryday ? `
+    <div class="card" style="margin-bottom:14px;">
       <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:10px;">Date</label>
       <div class="calendar">${calHtml}</div>
     </div>
+    ` : ''}
 
-    ${f.date ? (() => {
-      const availableSlots = ALL_SLOTS.filter(slot => !slotIsPast(f.date, slot));
+    ${(f.isEveryday || f.date) ? (() => {
+      const availableSlots = f.isEveryday ? ALL_SLOTS : ALL_SLOTS.filter(slot => !slotIsPast(f.date, slot));
+      const canSubmitNow = f.serviceName.trim() && f.selectedSlots.length > 0 && parseFloat(f.originalPrice) > 0 && parseFloat(f.jopassPrice) > 0;
       return `
       <div class="card" style="margin-bottom:16px;">
         <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:4px;">Available Time Slots</label>
-        <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Select every slot when this service is open for booking.</p>
+        <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:12px;">Select the time slots for this offer.</p>
         <div class="time-slots">
           ${availableSlots.length > 0 ? availableSlots.map(slot => `
             <div class="time-slot ${f.selectedSlots.includes(slot) ? 'selected' : ''}"
               onclick="ownerToggleSlot('${slot}')">${slot}</div>
           `).join('') : `<p style="font-size:.85rem; color:var(--danger);">No slots remaining for today. Please select a future date.</p>`}
-        </div>`;
-    })() : ''}
-    ${f.date ? `
+        </div>
         <p id="ownerSlotCount" style="font-size:.78rem; color:var(--text-muted); margin-top:10px;">
           ${f.selectedSlots.length} slot${f.selectedSlots.length !== 1 ? 's' : ''} selected
         </p>
       </div>
-
-      <button id="ownerSubmitBtn" class="btn btn-primary btn-full" onclick="ownerSubmitOpening()" ${canSubmit ? '' : 'disabled'}>
+      <button id="ownerSubmitBtn" class="btn btn-primary btn-full" onclick="ownerSubmitOpening()" ${canSubmitNow ? '' : 'disabled'}>
         Publish Opening
-      </button>
-    ` : ''}
+      </button>`;
+    })() : ''}
   `;
 }
 
@@ -1057,7 +1068,7 @@ function updateOwnerSubmitBtn() {
   const op  = parseFloat(f.originalPrice);
   const jp  = parseFloat(f.jopassPrice);
   const btn = document.getElementById('ownerSubmitBtn');
-  if (btn) btn.disabled = !(f.serviceName.trim() && f.date && f.selectedSlots.length > 0 && op > 0 && jp > 0 && jp <= op);
+  if (btn) btn.disabled = !(f.serviceName.trim() && (f.date || f.isEveryday) && f.selectedSlots.length > 0 && op > 0 && jp > 0 && jp <= op);
 }
 
 function ownerToggleSlot(slot) {
@@ -1075,7 +1086,7 @@ function ownerToggleSlot(slot) {
 
 async function ownerSubmitOpening() {
   const f = ownerState.addForm;
-  if (!f.serviceName.trim() || !f.date || f.selectedSlots.length === 0) return;
+  if (!f.serviceName.trim() || (!f.date && !f.isEveryday) || f.selectedSlots.length === 0) return;
 
   const op  = parseFloat(f.originalPrice);
   const jp  = parseFloat(f.jopassPrice);
@@ -1091,8 +1102,9 @@ async function ownerSubmitOpening() {
       jopassPrice:  jp,
       credits:      Math.round(jp),
       capacity:     f.capacity,
-      date:         new Date(f.date),
+      date:         f.isEveryday ? null : new Date(f.date),
       slots:        [...f.selectedSlots].sort((a, b) => ALL_SLOTS.indexOf(a) - ALL_SLOTS.indexOf(b)),
+      isEveryday:   f.isEveryday,
     });
 
     ownerState.openings.push(opening);
@@ -1103,6 +1115,7 @@ async function ownerSubmitOpening() {
       serviceName: '', duration: '', originalPrice: '', jopassPrice: '',
       capacity: 1, date: null, selectedSlots: [],
       calendarMonth: new Date().getMonth(), calendarYear: new Date().getFullYear(),
+      isEveryday: false,
     };
 
     showOwnerToast('Deal published!', 'success');
@@ -1248,7 +1261,7 @@ async function renderProfilePreview(container) {
     followerCount = count ?? 0;
   } catch (_) {}
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const activeOpenings = ownerState.openings.filter(o => new Date(o.date) >= today && o.slots.length > 0);
+  const activeOpenings = ownerState.openings.filter(o => (o.isEveryday || new Date(o.date) >= today) && o.slots.length > 0);
   const photos = (p.photos || []).filter(u => u);
 
   const socsHtml = (() => {
@@ -1335,7 +1348,7 @@ async function renderProfilePreview(container) {
       <h4 style="margin-bottom:12px;">Deals</h4>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
         ${activeOpenings.map(o => {
-          const dateStr = o.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+          const dateStr = o.isEveryday ? 'Every Day' : o.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
           const capacity = o.capacity || 1;
           return `
             <div class="card">

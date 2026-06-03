@@ -258,7 +258,7 @@ async function dbGetServiceBlockedSlots(serviceId) {
 
 /* ─── Owner: write openings ─── */
 
-async function dbAddOpening({ vendorId, serviceName, duration, originalPrice, jopassPrice, credits, capacity, date, slots }) {
+async function dbAddOpening({ vendorId, serviceName, duration, originalPrice, jopassPrice, credits, capacity, date, slots, isEveryday = false }) {
   const { data, error } = await _supabase.from('openings').insert({
     vendor_id:      vendorId,
     service_name:   serviceName,
@@ -267,9 +267,10 @@ async function dbAddOpening({ vendorId, serviceName, duration, originalPrice, jo
     jopass_price:   jopassPrice,
     credits,
     capacity,
-    date:           localDateStr(date),
+    date:           isEveryday ? null : localDateStr(date),
     slots,
     booked_slots:   [],
+    is_everyday:    isEveryday,
   }).select().single();
   if (error) throw error;
   return dbParseOpening(data);
@@ -343,7 +344,8 @@ function dbParseOpening(o) {
     jopassPrice:  parseFloat(o.jopass_price),
     credits:      o.credits,
     capacity:     o.capacity,
-    date:         new Date(o.date + 'T00:00:00'),
+    date:         o.date ? new Date(o.date + 'T00:00:00') : null,
+    isEveryday:   o.is_everyday || false,
     slots:        o.slots        || [],
     booked:       o.booked_slots || [],
   };

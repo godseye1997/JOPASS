@@ -636,14 +636,17 @@ function slotIsPast(date, slot) {
 
 function getOpeningsForVendor(vendorId) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  return (state.openingsMap?.[vendorId] || [])
-    .filter(o => o.date >= today)
-    .map(o => ({
-      ...o,
-      slots: o.slots.filter(s => !slotIsPast(o.date, s)),
-    }))
+  const all = state.openingsMap?.[vendorId] || [];
+  const everyday = all
+    .filter(o => o.isEveryday)
+    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(new Date(), s)) }))
+    .filter(o => o.slots.length > 0);
+  const dated = all
+    .filter(o => !o.isEveryday && o.date >= today)
+    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.date, s)) }))
     .filter(o => o.slots.length > 0)
     .sort((a, b) => a.date - b.date);
+  return [...everyday, ...dated];
 }
 
 function getVendorCategory(vendor) {
@@ -738,7 +741,7 @@ async function renderVendorDetail(container) {
       <h4 style="margin-bottom:12px;">Deals</h4>
       ${openings.map(o => {
         const capacity  = o.capacity || 1;
-        const dateStr   = fmtDate(o.date);
+        const dateStr   = o.isEveryday ? 'Every Day' : fmtDate(o.date);
         const hasPrice  = o.jopassPrice > 0;
         const canAfford = !hasPrice || state.credits >= o.credits;
         return `
