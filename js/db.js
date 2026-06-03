@@ -23,7 +23,7 @@ async function dbFetchInitData(userId) {
     _supabase.from('profiles').select('*').eq('id', userId).single(),
     _supabase.from('vendors').select('*').order('name'),
     _supabase.from('services').select('*').order('vendor_id, id'),
-    _supabase.from('openings').select('*').gte('date', today).order('date'),
+    _supabase.from('openings').select('*').or(`date.gte.${today},is_everyday.eq.true`).order('date'),
     _supabase.from('vendor_profiles').select('*'),
     _supabase.from('reviews').select('*, bookings(service_name, date)').order('created_at', { ascending: false }),
     _supabase.from('bookings')

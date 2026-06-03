@@ -692,9 +692,9 @@ async function renderVendorDetail(container) {
 
   // Re-fetch openings fresh so customer always sees latest slots
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr(new Date());
     const { data } = await _supabase.from('openings').select('*')
-      .eq('vendor_id', v.id).gte('date', today).order('date');
+      .eq('vendor_id', v.id).or(`date.gte.${today},is_everyday.eq.true`).order('date');
     if (data) {
       state.openingsMap[v.id] = data.map(dbParseOpening);
     }
