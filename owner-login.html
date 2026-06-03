@@ -22,6 +22,12 @@
     <div class="login-scroll">
       <div class="login-container">
         <div class="login-card">
+          <div style="text-align:right; margin-bottom:8px;">
+            <button class="lang-toggle-btn" onclick="setLang(_lang === 'ar' ? 'en' : 'ar')"
+              style="background:none; border:1.5px solid var(--border); border-radius:20px; padding:4px 12px; font-size:.8rem; font-weight:700; color:var(--primary); cursor:pointer;">
+              عر
+            </button>
+          </div>
           <div class="logo">
             <img src="logo.png" alt="JoPass" style="height:72px; object-fit:contain;">
           </div>
@@ -148,6 +154,7 @@
       msgEl.style.display = 'block';
     }
   </script>
+  <script src="js/i18n.js"></script>
   <script src="js/native.js"></script>
   <script src="js/deeplink.js"></script>
   <script src="js/supabase.min.js"></script>
