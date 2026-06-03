@@ -643,7 +643,11 @@ function getOpeningsForVendor(vendorId) {
     .filter(o => o.slots.length > 0);
   const dated = all
     .filter(o => !o.isEveryday && o.date >= today)
-    .map(o => ({ ...o, slots: o.slots.filter(s => !slotIsPast(o.date, s)) }))
+    .map(o => ({
+      ...o,
+      slots: o.slots,
+      pastSlots: o.slots.filter(s => slotIsPast(o.date, s)),
+    }))
     .filter(o => o.slots.length > 0)
     .sort((a, b) => a.date - b.date);
   return [...everyday, ...dated];
@@ -763,15 +767,16 @@ async function renderVendorDetail(container) {
               ${o.slots.map(slot => {
                 const bookedCount = o.booked.filter(b => b === slot).length;
                 const isFull   = bookedCount >= capacity;
-                const disabled = isFull || !canAfford;
+                const isPast   = (o.pastSlots || []).includes(slot);
+                const disabled = isFull || !canAfford || isPast;
                 return `
                   <button
                     onclick="${disabled ? '' : `reserveOpeningSlot('${o.id}', '${slot}')`}"
                     style="padding:7px 14px; border-radius:var(--radius-sm); font-size:.8rem; font-weight:500; cursor:${disabled ? 'default' : 'pointer'};
-                      border:2px solid ${isFull ? 'var(--border)' : disabled ? 'var(--border)' : 'var(--primary)'};
-                      background:${isFull ? 'var(--bg)' : 'transparent'};
-                      color:${isFull ? 'var(--text-muted)' : disabled ? 'var(--text-muted)' : 'var(--primary)'};">
-                    ${slot}${capacity > 1 ? ` · ${capacity - bookedCount} left` : ''}${isFull ? ' · Full' : ''}
+                      border:2px solid ${disabled ? 'var(--border)' : 'var(--primary)'};
+                      background:${disabled ? 'var(--bg)' : 'transparent'};
+                      color:${disabled ? 'var(--text-muted)' : 'var(--primary)'}; ${isPast ? 'text-decoration:line-through;' : ''}">
+                    ${slot}${capacity > 1 && !isPast ? ` · ${capacity - bookedCount} left` : ''}${isFull ? ' · Full' : ''}${isPast ? ' · Passed' : ''}
                   </button>`;
               }).join('')}
             </div>
