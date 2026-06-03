@@ -31,41 +31,41 @@
           <div class="logo">
             <img src="logo.png" alt="JoPass" style="height:72px; object-fit:contain;">
           </div>
-          <p class="tagline" style="margin-bottom:6px;">Owner & Admin Portal</p>
-          <p style="text-align:center; font-size:.78rem; color:var(--text-muted); margin-bottom:24px;">Access is restricted to approved business accounts.</p>
+          <p class="tagline" id="olTagline" style="margin-bottom:6px;">Owner & Admin Portal</p>
+          <p id="olSubtitle" style="text-align:center; font-size:.78rem; color:var(--text-muted); margin-bottom:24px;">Access is restricted to approved business accounts.</p>
 
           <form id="ownerLoginForm">
             <div class="input-group">
-              <label for="email">Email</label>
+              <label for="email" id="olEmailLabel">Email</label>
               <input type="email" id="email" placeholder="you@business.com" autocomplete="email">
             </div>
             <div class="input-group">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <label for="password" style="margin:0;">Password</label>
-                <a href="#" onclick="sendForgotPassword(); return false;" style="font-size:.78rem; color:var(--primary);">Forgot password?</a>
+                <label for="password" id="olPasswordLabel" style="margin:0;">Password</label>
+                <a href="#" id="olForgotLink" onclick="sendForgotPassword(); return false;" style="font-size:.78rem; color:var(--primary);">Forgot password?</a>
               </div>
               <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
             </div>
             <p id="loginError" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
-            <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            <button type="submit" id="olSigninBtn" class="btn btn-primary btn-full">Sign In</button>
           </form>
 
           <div id="forgotPanel" style="display:none; margin-top:16px; padding:16px; background:var(--bg); border-radius:var(--radius-sm); border:1px solid var(--border);">
-            <div style="font-weight:600; font-size:.88rem; margin-bottom:10px;">Reset your password</div>
+            <div id="olResetTitle" style="font-weight:600; font-size:.88rem; margin-bottom:10px;">Reset your password</div>
             <div class="input-group" style="margin-bottom:10px;">
-              <label for="forgotEmail">Email address</label>
+              <label for="forgotEmail" id="olForgotEmailLabel">Email address</label>
               <input type="email" id="forgotEmail" placeholder="you@business.com">
             </div>
             <p id="forgotMsg" style="font-size:.82rem; margin-bottom:10px; display:none;"></p>
-            <button class="btn btn-primary btn-full" onclick="sendForgotEmail()">Send Reset Link</button>
-            <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="document.getElementById('forgotPanel').style.display='none'">Cancel</button>
+            <button id="olSendResetBtn" class="btn btn-primary btn-full" onclick="sendForgotEmail()">Send Reset Link</button>
+            <button id="olCancelBtn" class="btn btn-outline btn-full" style="margin-top:8px;" onclick="document.getElementById('forgotPanel').style.display='none'">Cancel</button>
           </div>
 
           <p class="login-footer" style="margin-top:16px;">
-            New owner? <a href="owner-signup.html">Create your account</a>
+            <span id="olNewOwner">New owner?</span> <a href="owner-signup.html" id="olCreateAccount">Create your account</a>
           </p>
           <p class="login-footer">
-            Not an owner? <a href="login.html">Customer login</a>
+            <span id="olNotOwner">Not an owner?</span> <a href="login.html" id="olCustomerLogin">Customer login</a>
           </p>
         </div>
       </div>
@@ -163,6 +163,27 @@
     if (!window.Capacitor?.isNativePlatform() && window.innerWidth > 768) {
       document.body.classList.replace('mode-mobile', 'mode-desktop');
     }
+    function _applyOwnerLoginLang() {
+      const el = id => document.getElementById(id);
+      if (el('olTagline'))         el('olTagline').textContent         = _lang === 'ar' ? 'بوابة الملاك والمديرين' : 'Owner & Admin Portal';
+      if (el('olSubtitle'))        el('olSubtitle').textContent        = _lang === 'ar' ? 'الوصول مقتصر على حسابات الأعمال المعتمدة.' : 'Access is restricted to approved business accounts.';
+      if (el('olEmailLabel'))      el('olEmailLabel').textContent      = t('login.email');
+      if (el('olPasswordLabel'))   el('olPasswordLabel').textContent   = t('login.password');
+      if (el('olForgotLink'))      el('olForgotLink').textContent      = t('login.forgot');
+      if (el('olSigninBtn') && el('olSigninBtn').textContent.trim() !== (_lang === 'ar' ? 'جارٍ الدخول…' : 'Signing in…'))
+        el('olSigninBtn').textContent = t('login.signin');
+      if (el('olResetTitle'))      el('olResetTitle').textContent      = t('login.resetTitle');
+      if (el('olForgotEmailLabel')) el('olForgotEmailLabel').textContent = t('login.resetEmail');
+      if (el('olSendResetBtn'))    el('olSendResetBtn').textContent    = t('login.sendReset');
+      if (el('olCancelBtn'))       el('olCancelBtn').textContent       = t('dialog.cancel');
+      if (el('olNewOwner'))        el('olNewOwner').textContent        = _lang === 'ar' ? 'مالك جديد؟' : 'New owner?';
+      if (el('olCreateAccount'))   el('olCreateAccount').textContent   = _lang === 'ar' ? 'أنشئ حسابك' : 'Create your account';
+      if (el('olNotOwner'))        el('olNotOwner').textContent        = _lang === 'ar' ? 'لست مالكاً؟' : 'Not an owner?';
+      if (el('olCustomerLogin'))   el('olCustomerLogin').textContent   = _lang === 'ar' ? 'دخول العملاء' : 'Customer login';
+    }
+    const _olOrigSetLang = typeof setLang === 'function' ? setLang : null;
+    window.setLang = function(lang) { if (_olOrigSetLang) _olOrigSetLang(lang); _applyOwnerLoginLang(); };
+    document.addEventListener('DOMContentLoaded', _applyOwnerLoginLang);
     // Auto-login: skip login screen if session already exists
     (async () => {
       const { data: { session } } = await _supabase.auth.getSession();
