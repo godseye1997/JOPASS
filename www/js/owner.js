@@ -34,6 +34,44 @@ const ALL_SLOTS = [
 
 const ALL_SERVICE_SLOTS = ALL_SLOTS;
 
+/* ── Duration Picker ── */
+function _parseDuration(str) {
+  if (!str) return { h: 0, m: 0 };
+  const hMatch = str.match(/(\d+)\s*h/i);
+  const mMatch = str.match(/(\d+)\s*m/i);
+  return { h: hMatch ? parseInt(hMatch[1]) : 0, m: mMatch ? parseInt(mMatch[1]) : 0 };
+}
+function _formatDuration(h, m) {
+  h = parseInt(h) || 0; m = parseInt(m) || 0;
+  if (h === 0 && m === 0) return '';
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+function _durationPickerHtml(idPrefix, currentVal) {
+  const { h, m } = _parseDuration(currentVal);
+  const hours   = Array.from({length: 13}, (_, i) => i);
+  const minutes = Array.from({length: 12}, (_, i) => i * 5);
+  const sel = `padding:9px 8px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text); cursor:pointer;`;
+  return `
+    <div style="display:flex; align-items:center; gap:8px;">
+      <select id="${idPrefix}Hours" style="${sel} flex:1;" onchange="_onDurationChange('${idPrefix}')">
+        ${hours.map(v => `<option value="${v}" ${v===h?'selected':''}>${v}h</option>`).join('')}
+      </select>
+      <select id="${idPrefix}Mins" style="${sel} flex:1;" onchange="_onDurationChange('${idPrefix}')">
+        ${minutes.map(v => `<option value="${v}" ${v===m?'selected':''}>${String(v).padStart(2,'0')}m</option>`).join('')}
+      </select>
+    </div>`;
+}
+function _onDurationChange(idPrefix) {
+  const h = document.getElementById(idPrefix + 'Hours')?.value || 0;
+  const m = document.getElementById(idPrefix + 'Mins')?.value || 0;
+  const val = _formatDuration(h, m);
+  if (idPrefix === 'svc')       { /* handled on save */ }
+  if (idPrefix === 'editSvc')   { /* handled on save */ }
+  if (idPrefix === 'addDeal')   { ownerState.addForm.duration = val; }
+}
+
 /* ── Services ── */
 let ownerServices       = [];
 let ownerServicesNextId = 1;
@@ -355,8 +393,7 @@ function renderAddService(container) {
         </div>
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
-          <input id="svcDuration" type="text" placeholder="e.g. 60 min"
-            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+          ${_durationPickerHtml('svc', '')}
         </div>
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
@@ -418,7 +455,7 @@ function toggleNewSvcSlot(slot) {
 
 async function addService() {
   const name       = document.getElementById('svcName').value.trim();
-  const duration   = document.getElementById('svcDuration').value.trim();
+  const duration   = _formatDuration(document.getElementById('svcHours')?.value, document.getElementById('svcMins')?.value);
   const price      = parseFloat(document.getElementById('svcPrice').value);
   const noDiscount = document.getElementById('svcNoDiscount').checked;
   const rawJ       = document.getElementById('svcJopassPrice').value.trim();
@@ -473,8 +510,7 @@ function renderEditService(container, serviceId) {
         </div>
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
-          <input id="editSvcDuration" type="text" value="${s.duration || ''}" placeholder="e.g. 60 min"
-            style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+          ${_durationPickerHtml('editSvc', s.duration || '')}
         </div>
         <div>
           <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Regular Price (JOD)</label>
@@ -531,7 +567,7 @@ function toggleEditSvcSlot(slot) {
 
 async function saveEditService(serviceId) {
   const name        = document.getElementById('editSvcName')?.value.trim();
-  const duration    = document.getElementById('editSvcDuration')?.value.trim();
+  const duration    = _formatDuration(document.getElementById('editSvcHours')?.value, document.getElementById('editSvcMins')?.value);
   const price       = parseFloat(document.getElementById('editSvcPrice')?.value);
   const jopassPrice = parseFloat(document.getElementById('editSvcJopassPrice')?.value);
   const singleSlot  = document.getElementById('editSvcSingleSlot')?.checked || false;
@@ -935,10 +971,7 @@ function renderAddOpening(container) {
         oninput="ownerState.addForm.serviceName = this.value; updateOwnerSubmitBtn()"
         style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
       <label style="font-size:.85rem; font-weight:600; display:block; margin-top:12px; margin-bottom:8px;">Duration <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
-      <input id="ownerDuration" type="text" placeholder="e.g. 60 min"
-        value="${f.duration}"
-        oninput="ownerState.addForm.duration = this.value"
-        style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
+      ${_durationPickerHtml('addDeal', f.duration)}
       <div style="display:flex; gap:10px; margin-top:12px;">
         <div style="flex:1;">
           <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:6px;">Original Price (JOD)</label>
@@ -1099,7 +1132,7 @@ async function ownerSubmitOpening() {
     const opening = await dbAddOpening({
       vendorId:     OWNER_VENDOR.id,
       serviceName:  f.serviceName.trim(),
-      duration:     f.duration.trim() || null,
+      duration:     _formatDuration(document.getElementById('addDealHours')?.value, document.getElementById('addDealMins')?.value) || null,
       originalPrice: op,
       jopassPrice:  jp,
       credits:      Math.round(jp),
