@@ -40,6 +40,8 @@ const TRANSLATIONS = {
     'credits.step2': '2. Browse Deals', 'credits.step2Desc': 'Discover discounted services nearby.',
     'credits.step3': '3. Book & Save', 'credits.step3Desc': 'Use credits to book at up to 50% off.',
     'credits.step4': '4. Enjoy!', 'credits.step4Desc': 'Show up and enjoy the experience.',
+    'credits.custom': 'Custom Amount', 'credits.customDesc': 'Choose exactly how many credits you need',
+    'credits.buyNow': 'Buy', 'credits.purchasing': 'Purchasing',
     /* Profile */
     'profile.title': 'Profile', 'profile.editTitle': 'Edit Profile',
     'profile.creditBalance': 'Credit Balance',
@@ -178,6 +180,8 @@ const TRANSLATIONS = {
     'credits.step2': '٢. تصفح العروض', 'credits.step2Desc': 'اكتشف خدمات مخفضة بالقرب منك.',
     'credits.step3': '٣. احجز ووفّر', 'credits.step3Desc': 'استخدم رصيدك للحجز بخصم يصل إلى ٥٠٪.',
     'credits.step4': '٤. استمتع!', 'credits.step4Desc': 'احضر واستمتع بتجربتك.',
+    'credits.custom': 'مبلغ مخصص', 'credits.customDesc': 'اختر عدد النقاط التي تحتاجها بالضبط',
+    'credits.buyNow': 'شراء', 'credits.purchasing': 'جارٍ الشراء',
     /* Profile */
     'profile.title': 'حسابي', 'profile.editTitle': 'تعديل الملف',
     'profile.creditBalance': 'رصيد الكريدت',

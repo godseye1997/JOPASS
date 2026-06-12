@@ -1226,6 +1226,25 @@ function renderCredits(container) {
         <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
       </div>
     </div>
+    <div class="card" style="margin-bottom:16px; padding:18px;">
+      <h4 style="margin-bottom:4px;">${t('credits.custom')}</h4>
+      <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:14px;">${t('credits.customDesc')}</p>
+      <div style="display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:6px;">
+        <span id="customCreditVal" style="font-size:2.4rem; font-weight:800; color:var(--primary);">25</span>
+        <span style="font-size:1rem; font-weight:600; color:var(--text-muted);">${t('credits.credits')}</span>
+      </div>
+      <div style="text-align:center; font-size:.9rem; color:var(--success); font-weight:600; margin-bottom:14px;">
+        <span id="customCreditPrice">25.00</span> JOD
+      </div>
+      <input id="customCreditSlider" type="range" min="1" max="200" value="25"
+        oninput="updateCustomCredit(this.value)"
+        style="width:100%; accent-color:var(--primary); margin-bottom:6px;">
+      <div style="display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-muted); margin-bottom:14px;">
+        <span>1</span><span>200</span>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="buyCustomCredits()">${t('credits.buyNow')} <span id="customCreditBtnVal">25</span> ${t('credits.credits')}</button>
+    </div>
+
     <h4 style="margin-bottom:12px;">${t('credits.packs')}</h4>
     ${CREDIT_PACKS.map(p => `
       <div class="credit-pack" onclick="buyCredits(${p.id})">
@@ -1263,6 +1282,28 @@ function buyCredits(packId) {
   openPaymentModal(pack);
 }
 
+function updateCustomCredit(val) {
+  const n = parseInt(val);
+  const price = n.toFixed(2); // 1 credit = 1 JOD
+  const valEl   = document.getElementById('customCreditVal');
+  const priceEl = document.getElementById('customCreditPrice');
+  const btnEl   = document.getElementById('customCreditBtnVal');
+  if (valEl)   valEl.textContent   = n;
+  if (priceEl) priceEl.textContent = price;
+  if (btnEl)   btnEl.textContent   = n;
+}
+
+function buyCustomCredits() {
+  const n = parseInt(document.getElementById('customCreditSlider')?.value || 25);
+  openPaymentModal({
+    id: 'custom',
+    credits: n,
+    price: n,             // 1 credit = 1 JOD
+    label: t('credits.custom'),
+    description: '',
+  });
+}
+
 /* ── Payment Modal ── */
 function openPaymentModal(pack) {
   state.selectedPack = pack;
@@ -1270,8 +1311,8 @@ function openPaymentModal(pack) {
 
   body.innerHTML = `
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; color:#fff;">
-      <div style="font-size:.75rem; opacity:.8; margin-bottom:4px;">Purchasing</div>
-      <div style="font-size:1.1rem; font-weight:700;">${pack.label} — ${pack.credits} Credits</div>
+      <div style="font-size:.75rem; opacity:.8; margin-bottom:4px;">${t('credits.purchasing')}</div>
+      <div style="font-size:1.1rem; font-weight:700;">${pack.label} — ${pack.credits} ${t('credits.credits')}</div>
       <div style="font-size:1.5rem; font-weight:800; margin-top:4px;">${pack.price.toFixed(2)} JOD</div>
     </div>
 
@@ -1856,12 +1897,18 @@ async function saveNewPassword() {
 }
 
 /* ── Settings View ── */
-const SETTINGS_SECTIONS = [
+function getSettingsSections() {
+  const ar = _lang === 'ar';
+  return [
   {
     id: 'about',
     icon: '<img src="icon.png" alt="" style="height:22px; vertical-align:middle; margin-right:4px;">',
-    title: 'About JoPass',
-    content: `
+    title: ar ? 'عن جوباس' : 'About JoPass',
+    content: ar ? `
+      <p style="margin-bottom:10px;">جوباس هي منصة حجز قائمة على النقاط تتيح لك اكتشاف وحجز خدمات اللياقة والعافية والتجميل بأسعار مخفضة في جميع أنحاء الأردن.</p>
+      <p style="margin-bottom:10px;">اشترِ باقة نقاط مرة واحدة واستخدم نقاطك لحجز الجلسات في أي مكان شريك — بدون اشتراكات أو رسوم خفية.</p>
+      <p style="color:var(--text-muted); font-size:.8rem;">الإصدار 1.0.0 · صُنع بـ ❤️ في الأردن</p>
+    ` : `
       <p style="margin-bottom:10px;">JoPass is a pass-based booking platform that lets you discover and book fitness, wellness, and beauty services at discounted rates across Jordan.</p>
       <p style="margin-bottom:10px;">Buy a credit pack once and use your credits to book sessions at any partnered venue — no subscriptions, no hidden fees.</p>
       <p style="color:var(--text-muted); font-size:.8rem;">Version 1.0.0 · Built with ❤️ in Jordan</p>
@@ -1870,27 +1917,34 @@ const SETTINGS_SECTIONS = [
   {
     id: 'support',
     icon: '<i data-lucide="headphones"></i>',
-    title: 'Help &amp; Support',
+    title: ar ? 'المساعدة والدعم' : 'Help &amp; Support',
     content: `
-      <p style="margin-bottom:12px;">We're here to help. Reach out through any of the channels below:</p>
+      <p style="margin-bottom:12px;">${ar ? 'نحن هنا لمساعدتك. تواصل معنا عبر أي من القنوات التالية:' : "We're here to help. Reach out through any of the channels below:"}</p>
       <div style="display:flex; flex-direction:column; gap:10px;">
         <a href="mailto:jopasscc@gmail.com" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
           <span style="font-size:1.2rem;">📧</span>
-          <div><div style="font-weight:600; font-size:.88rem;">Email Support</div><div style="font-size:.78rem; color:var(--text-muted);">jopasscc@gmail.com</div></div>
+          <div><div style="font-weight:600; font-size:.88rem;">${ar ? 'الدعم عبر البريد' : 'Email Support'}</div><div style="font-size:.78rem; color:var(--text-muted);">jopasscc@gmail.com</div></div>
         </a>
         <a href="https://wa.me/96279000000" target="_blank" style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); text-decoration:none; color:var(--text);">
           <span style="font-size:1.2rem;">💬</span>
-          <div><div style="font-weight:600; font-size:.88rem;">WhatsApp</div><div style="font-size:.78rem; color:var(--text-muted);">+962 79 000 0000</div></div>
+          <div><div style="font-weight:600; font-size:.88rem;">${ar ? 'واتساب' : 'WhatsApp'}</div><div style="font-size:.78rem; color:var(--text-muted);">+962 79 000 0000</div></div>
         </a>
       </div>
-      <p style="font-size:.78rem; color:var(--text-muted); margin-top:12px;">Support hours: Sun–Thu, 9:00 AM – 6:00 PM (GMT+3)</p>
+      <p style="font-size:.78rem; color:var(--text-muted); margin-top:12px;">${ar ? 'ساعات الدعم: الأحد–الخميس، 9:00 صباحاً – 6:00 مساءً (غرينتش+3)' : 'Support hours: Sun–Thu, 9:00 AM – 6:00 PM (GMT+3)'}</p>
     `,
   },
   {
     id: 'terms',
     icon: '<i data-lucide="file-text"></i>',
-    title: 'Terms &amp; Conditions',
-    content: `
+    title: ar ? 'الشروط والأحكام' : 'Terms &amp; Conditions',
+    content: ar ? `
+      <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">آخر تحديث: أبريل 2026</p>
+      <p style="margin-bottom:8px;"><strong>1. النقاط</strong> — النقاط غير قابلة للاسترداد بعد الشراء. النقاط غير المستخدمة لا تنتهي صلاحيتها.</p>
+      <p style="margin-bottom:8px;"><strong>2. الحجوزات</strong> — يمكنك الإلغاء قبل 12 ساعة من الجلسة لاسترداد كامل النقاط. الإلغاء خلال 12 ساعة غير قابل للاسترداد.</p>
+      <p style="margin-bottom:8px;"><strong>3. تغييرات المكان</strong> — جوباس غير مسؤولة عن إلغاءات الأماكن. تُسترد النقاط كاملة تلقائياً في هذه الحالات.</p>
+      <p style="margin-bottom:8px;"><strong>4. الحساب</strong> — أنت مسؤول عن الحفاظ على بيانات تسجيل الدخول الخاصة بك آمنة.</p>
+      <p style="margin-bottom:8px;"><strong>5. السلوك</strong> — يجب على المستخدمين الالتزام بقواعد كل مكان. تحتفظ جوباس بحق تعليق الحسابات بسبب سوء السلوك.</p>
+    ` : `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
       <p style="margin-bottom:8px;"><strong>1. Credits</strong> — Credits are non-refundable once purchased. Unused credits do not expire.</p>
       <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel up to 12 hours before the session for a full credit refund. Cancellations within 12 hours are non-refundable.</p>
@@ -1902,8 +1956,14 @@ const SETTINGS_SECTIONS = [
   {
     id: 'privacy',
     icon: '<i data-lucide="lock"></i>',
-    title: 'Privacy Policy',
-    content: `
+    title: ar ? 'سياسة الخصوصية' : 'Privacy Policy',
+    content: ar ? `
+      <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">آخر تحديث: أبريل 2026</p>
+      <p style="margin-bottom:8px;"><strong>ما نجمعه</strong> — الاسم، البريد الإلكتروني، رقم الهاتف، وسجل الحجوزات.</p>
+      <p style="margin-bottom:8px;"><strong>كيف نستخدمه</strong> — لمعالجة الحجوزات، وإرسال التذكيرات، وتحسين الخدمة. نحن لا نبيع بياناتك.</p>
+      <p style="margin-bottom:8px;"><strong>تخزين البيانات</strong> — تُخزن بياناتك بشكل آمن ويُحتفظ بها فقط طالما أن حسابك نشط.</p>
+      <p style="margin-bottom:8px;"><strong>حقوقك</strong> — يمكنك طلب حذف حسابك وبياناتك بالتواصل مع الدعم.</p>
+    ` : `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
       <p style="margin-bottom:8px;"><strong>What we collect</strong> — Name, email address, phone number, and booking history.</p>
       <p style="margin-bottom:8px;"><strong>How we use it</strong> — To process bookings, send reminders, and improve the service. We do not sell your data.</p>
@@ -1914,16 +1974,23 @@ const SETTINGS_SECTIONS = [
   {
     id: 'faq',
     icon: '<i data-lucide="help-circle"></i>',
-    title: 'FAQ',
-    content: `
+    title: ar ? 'الأسئلة الشائعة' : 'FAQ',
+    content: ar ? `
       <div style="display:flex; flex-direction:column; gap:12px;">
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do credits work?</p><p style="font-size:.83rem; color:var(--text-muted);">1 JOD = 2 credits. Buy a pack and spend credits on any service. The JoPass price is always lower than the walk-in rate.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف تعمل النقاط؟</p><p style="font-size:.83rem; color:var(--text-muted);">اشترِ باقة وأنفق النقاط على أي خدمة. سعر جوباس دائماً أقل من سعر الزيارة المباشرة.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">هل تنتهي صلاحية النقاط؟</p><p style="font-size:.83rem; color:var(--text-muted);">لا. تبقى نقاطك في حسابك حتى تستخدمها.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف ألغي الحجز؟</p><p style="font-size:.83rem; color:var(--text-muted);">اذهب إلى حجوزاتي واضغط إلغاء على حجز مؤكد. تُسترد النقاط إذا ألغيت قبل 12 ساعة من الجلسة.</p></div>
+      </div>
+    ` : `
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do credits work?</p><p style="font-size:.83rem; color:var(--text-muted);">Buy a pack and spend credits on any service. The JoPass price is always lower than the walk-in rate.</p></div>
         <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">Do credits expire?</p><p style="font-size:.83rem; color:var(--text-muted);">No. Your credits stay in your account until you use them.</p></div>
         <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I cancel a booking?</p><p style="font-size:.83rem; color:var(--text-muted);">Go to My Bookings and tap Cancel on a confirmed booking. Credits are refunded if cancelled 12+ hours before the session.</p></div>
       </div>
     `,
   },
-];
+  ];
+}
 
 function renderSettings(container) {
   container.innerHTML = `
@@ -1933,7 +2000,7 @@ function renderSettings(container) {
       </h2>
     </div>
     <h2 style="margin-bottom:20px;">${t('settings.title')}</h2>
-    ${SETTINGS_SECTIONS.map(s => `
+    ${getSettingsSections().map(s => `
       <div class="card" style="margin-bottom:10px; padding:0; overflow:hidden;">
         <div onclick="toggleSettingsSection('${s.id}')" style="display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer;">
           <span style="font-size:1.2rem; width:28px; text-align:center;">${s.icon}</span>
