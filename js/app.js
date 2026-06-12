@@ -1245,16 +1245,6 @@ function renderCredits(container) {
       <button class="btn btn-primary btn-full" onclick="buyCustomCredits()">${t('credits.buyNow')} <span id="customCreditBtnVal">25</span> ${t('credits.credits')}</button>
     </div>
 
-    <h4 style="margin-bottom:12px;">${t('credits.packs')}</h4>
-    ${CREDIT_PACKS.map(p => `
-      <div class="credit-pack" onclick="buyCredits(${p.id})">
-        <div class="pack-info">
-          <h4 style="font-size:.9rem;">${p.label} — ${p.credits} ${t('credits.credits')}</h4>
-          <p>${p.description}</p>
-        </div>
-        <div class="pack-price">${p.price.toFixed(2)} JOD</div>
-      </div>
-    `).join('')}
     <div class="card" style="margin-top:20px;">
       <h4 style="margin-bottom:12px;">${t('credits.howWorks')}</h4>
       <div style="margin-bottom:12px;">
