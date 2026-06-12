@@ -391,8 +391,15 @@ function _updateLangToggle() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function _applyLangOnLoad() {
   document.documentElement.dir  = _lang === 'ar' ? 'rtl' : 'ltr';
   document.documentElement.lang = _lang;
   _updateLangToggle();
-});
+  _updateNavLabels();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _applyLangOnLoad);
+} else {
+  _applyLangOnLoad();
+}
