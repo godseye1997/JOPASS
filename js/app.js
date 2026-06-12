@@ -377,16 +377,16 @@ async function _fireFollowNotif(vendorName, serviceName, price) {
 async function openNotificationSettings() {
   const LN = window.Capacitor?.Plugins?.LocalNotifications;
   if (!LN) {
-    showToast('Open Settings → Apps → JoPass → Notifications to manage alerts.', 'info');
+    showToast(t('notif.manage'), 'info');
     return;
   }
   try {
     const { display } = await LN.checkPermissions();
     if (display === 'granted') {
       showConfirmDialog({
-        title: 'Notifications Enabled',
-        message: 'JoPass notifications are <strong>enabled</strong>.<br><br>To change notification settings, go to:<br><strong>Settings → Apps → JoPass → Notifications</strong>',
-        confirmLabel: 'OK',
+        title: t('notif.enabledTitle'),
+        message: t('notif.enabledMsg'),
+        confirmLabel: t('notif.ok'),
         confirmStyle: 'background:var(--primary);color:#fff;',
         onConfirm: () => {},
       });
@@ -394,9 +394,9 @@ async function openNotificationSettings() {
     }
     if (display === 'denied') {
       showConfirmDialog({
-        title: 'Notifications Blocked',
-        message: 'Notifications are blocked. To enable them, go to:<br><br><strong>Settings → Apps → JoPass → Notifications</strong><br><br>and turn them on.',
-        confirmLabel: 'OK',
+        title: t('notif.blockedTitle'),
+        message: t('notif.blockedMsg'),
+        confirmLabel: t('notif.ok'),
         confirmStyle: 'background:var(--primary);color:#fff;',
         onConfirm: () => {},
       });
@@ -405,12 +405,12 @@ async function openNotificationSettings() {
     // Not yet asked — show the native system permission dialog
     const { display: result } = await LN.requestPermissions();
     if (result === 'granted') {
-      showToast('Notifications enabled!', 'success');
+      showToast(t('notif.enabled'), 'success');
     } else {
-      showToast('Notifications not enabled. You can turn them on in Settings.', 'info');
+      showToast(t('notif.notEnabled'), 'info');
     }
   } catch (_) {
-    showToast('Open Settings → Apps → JoPass → Notifications to manage alerts.', 'info');
+    showToast(t('notif.manage'), 'info');
   }
 }
 
@@ -1799,48 +1799,48 @@ function renderEditProfile(container) {
         <a href="#" onclick="navigateTo('profile'); return false;" style="color:var(--text-muted); font-size:.9rem;">← Back</a>
       </h2>
     </div>
-    <h2 style="margin-bottom:20px;">Edit Profile</h2>
+    <h2 style="margin-bottom:20px;">${t('editProfile.title')}</h2>
 
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">Personal Info</div>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">${t('editProfile.personalInfo')}</div>
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Full Name</label>
-          <input id="editName" type="text" value="${state.userName || ''}" placeholder="Your name"
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('editProfile.name')}</label>
+          <input id="editName" type="text" value="${state.userName || ''}" placeholder="${t('editProfile.namePlaceholder')}"
             style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Phone <span style="font-weight:400; color:var(--text-muted);">(optional)</span></label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('editProfile.phone')} <span style="font-weight:400; color:var(--text-muted);">${t('editProfile.optional')}</span></label>
           <input id="editPhone" type="tel" value="${state.userPhone || ''}" placeholder="+962 79 123 4567"
             style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Email</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('editProfile.email')}</label>
           <input type="email" value="${state.userEmail || ''}" disabled
             style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--bg); color:var(--text-muted); cursor:not-allowed;">
-          <p style="font-size:.75rem; color:var(--text-muted); margin-top:4px;">Email cannot be changed.</p>
+          <p style="font-size:.75rem; color:var(--text-muted); margin-top:4px;">${t('editProfile.emailNote')}</p>
         </div>
       </div>
       <p id="infoMsg" style="font-size:.82rem; margin-top:12px; display:none;"></p>
-      <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="saveProfileInfo()">Save Changes</button>
+      <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="saveProfileInfo()">${t('editProfile.save')}</button>
     </div>
 
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">Change Password</div>
+      <div style="font-weight:600; font-size:.9rem; margin-bottom:14px;">${t('editProfile.changePassword')}</div>
       <div style="display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">New Password</label>
-          <input id="newPass" type="password" placeholder="At least 6 characters"
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('editProfile.newPassword')}</label>
+          <input id="newPass" type="password" placeholder="${t('editProfile.newPassPlaceholder')}"
             style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
         <div>
-          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">Confirm Password</label>
+          <label style="font-size:.82rem; font-weight:600; display:block; margin-bottom:5px;">${t('editProfile.confirmPassword')}</label>
           <input id="confirmPass" type="password" placeholder="••••••••"
             style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
         </div>
       </div>
       <p id="passMsg" style="font-size:.82rem; margin-top:12px; display:none;"></p>
-      <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="saveNewPassword()">Update Password</button>
+      <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="saveNewPassword()">${t('editProfile.updatePassword')}</button>
     </div>
   `;
 }
@@ -1851,24 +1851,24 @@ async function saveProfileInfo() {
   const msgEl = document.getElementById('infoMsg');
   const btn   = document.querySelector('#infoMsg + button') || document.querySelector('[onclick="saveProfileInfo()"]');
 
-  if (!name) { msgEl.textContent = 'Name cannot be empty.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (!name) { msgEl.textContent = t('editProfile.nameEmpty'); msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
 
-  btn.disabled = true; btn.textContent = 'Saving…';
+  btn.disabled = true; btn.textContent = t('editProfile.saving');
 
   try {
     await _supabase.from('profiles').update({ full_name: name, phone }).eq('id', state.userId);
     state.userName  = name;
     state.userPhone = phone;
     updateUserDisplay();
-    msgEl.textContent = 'Profile updated!';
+    msgEl.textContent = t('editProfile.updated');
     msgEl.style.color = 'var(--success)';
     msgEl.style.display = 'block';
   } catch (err) {
-    msgEl.textContent = 'Failed to save. Please try again.';
+    msgEl.textContent = t('editProfile.failed');
     msgEl.style.color = 'var(--danger)';
     msgEl.style.display = 'block';
   }
-  btn.disabled = false; btn.textContent = 'Save Changes';
+  btn.disabled = false; btn.textContent = t('editProfile.save');
 }
 
 async function saveNewPassword() {
@@ -1877,23 +1877,23 @@ async function saveNewPassword() {
   const msgEl   = document.getElementById('passMsg');
   const btn     = document.querySelector('[onclick="saveNewPassword()"]');
 
-  if (pass.length < 6) { msgEl.textContent = 'Password must be at least 6 characters.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
-  if (pass !== confirm) { msgEl.textContent = 'Passwords do not match.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (pass.length < 6) { msgEl.textContent = t('editProfile.passShort'); msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (pass !== confirm) { msgEl.textContent = t('editProfile.passMismatch'); msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
 
-  btn.disabled = true; btn.textContent = 'Updating…';
+  btn.disabled = true; btn.textContent = t('editProfile.updating');
 
   const { error } = await _supabase.auth.updateUser({ password: pass });
   if (error) {
     msgEl.textContent = error.message;
     msgEl.style.color = 'var(--danger)';
   } else {
-    msgEl.textContent = 'Password updated!';
+    msgEl.textContent = t('editProfile.passUpdated');
     msgEl.style.color = 'var(--success)';
     document.getElementById('newPass').value    = '';
     document.getElementById('confirmPass').value = '';
   }
   msgEl.style.display = 'block';
-  btn.disabled = false; btn.textContent = 'Update Password';
+  btn.disabled = false; btn.textContent = t('editProfile.updatePassword');
 }
 
 /* ── Settings View ── */
