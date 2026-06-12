@@ -8,6 +8,14 @@ const TRANSLATIONS = {
     'browse.title': 'Discover Deals', 'browse.balance': 'Your Balance',
     'browse.buy': '+ Buy Credits', 'browse.search': 'Search venues…',
     'browse.noResults': 'No venues found for',
+    /* Categories */
+    'cat.All': 'All',
+    'cat.Health and Wellness': 'Health and Wellness',
+    'cat.Sports Activities': 'Sports Activities',
+    'cat.Beauty and Care': 'Beauty and Care',
+    'cat.Activities': 'Activities',
+    'cat.Education': 'Education',
+    'cat.Dining': 'Dining',
     /* Vendor */
     'vendor.deals': 'Deals', 'vendor.standard': 'Standard Booking',
     'vendor.everyday': 'Every Day', 'vendor.bookNow': 'Book Now',
@@ -169,6 +177,14 @@ const TRANSLATIONS = {
     'browse.title': 'اكتشف العروض', 'browse.balance': 'رصيدك',
     'browse.buy': '+ شراء رصيد', 'browse.search': 'ابحث عن أماكن…',
     'browse.noResults': 'لا توجد أماكن لـ',
+    /* Categories */
+    'cat.All': 'الكل',
+    'cat.Health and Wellness': 'الصحة والعافية',
+    'cat.Sports Activities': 'الأنشطة الرياضية',
+    'cat.Beauty and Care': 'الجمال والعناية',
+    'cat.Activities': 'الأنشطة',
+    'cat.Education': 'التعليم',
+    'cat.Dining': 'المطاعم',
     /* Vendor */
     'vendor.deals': 'العروض', 'vendor.standard': 'حجز عادي',
     'vendor.everyday': 'كل يوم', 'vendor.bookNow': 'احجز الآن',

@@ -507,20 +507,20 @@ function renderBrowse(container) {
     </div>
     <div class="credit-bar">
       <div>
-        <div class="label">Your Balance</div>
-        <div class="balance" id="creditBarCount">${state.credits} Credits</div>
+        <div class="label">${t('browse.balance')}</div>
+        <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
       </div>
       <button class="btn" onclick="navigateTo('credits')">${t('browse.buy')}</button>
     </div>
     <div style="position:relative; margin-bottom:12px;">
       <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); pointer-events:none;"></i>
-      <input id="browseSearch" type="text" placeholder="Search venues…"
+      <input id="browseSearch" type="text" placeholder="${t('browse.search')}"
         style="width:100%; padding:10px 12px 10px 36px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text); box-sizing:border-box;"
         oninput="filterBrowse()">
     </div>
     <div class="filter-bar" id="filterBar">
       ${categories.map((c, i) => `
-        <button class="filter-btn ${i === 0 ? 'active' : ''}" data-cat="${c}">${c}</button>
+        <button class="filter-btn ${i === 0 ? 'active' : ''}" data-cat="${c}">${t('cat.' + c)}</button>
       `).join('')}
     </div>
     <div class="grid grid-3" id="vendorGrid">
@@ -658,7 +658,7 @@ function getOpeningsForVendor(vendorId) {
 }
 
 function getVendorCategory(vendor) {
-  return parseCategories(vendor.category).join(' · ') || '';
+  return parseCategories(vendor.category).map(c => t('cat.' + c)).join(' · ') || '';
 }
 
 function vendorIcon(vendor, size) {
