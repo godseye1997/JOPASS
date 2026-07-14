@@ -337,7 +337,8 @@ async function scheduleAllReminders() {
 /* ── Push Token Registration ── */
 async function _registerPushToken() {
   const PN = window.Capacitor?.Plugins?.PushNotifications;
-  if (!PN) return;
+  if (!window.Capacitor?.isNativePlatform?.()) return; // web — skip silently
+  if (!PN) { showToast('PUSH DEBUG: plugin not available', 'error'); return; }
   try {
     // Listeners MUST be added before register() so the token event isn't missed
     PN.addListener('registration', async ({ value: token }) => {
@@ -346,18 +347,20 @@ async function _registerPushToken() {
           { user_id: state.userId, token },
           { onConflict: 'user_id,token' }
         );
-        console.log('Push token registered');
-      } catch (e) { console.error('token save failed', e); }
+        showToast('PUSH DEBUG: token saved ✓', 'success');
+      } catch (e) { showToast('PUSH DEBUG: save failed — ' + (e?.message || e), 'error'); }
     });
-    PN.addListener('registrationError', (err) => console.error('Push registration error:', err));
+    PN.addListener('registrationError', (err) => showToast('PUSH DEBUG: reg error — ' + JSON.stringify(err), 'error'));
 
     let { receive } = await PN.checkPermissions();
     if (receive === 'prompt' || receive === 'prompt-with-rationale') {
       receive = (await PN.requestPermissions()).receive;
     }
+    showToast('PUSH DEBUG: permission = ' + receive, 'info');
     if (receive !== 'granted') return;
     await PN.register();
-  } catch (e) { console.error('registerPushToken failed', e); }
+    showToast('PUSH DEBUG: register() called', 'info');
+  } catch (e) { showToast('PUSH DEBUG: ' + (e?.message || e), 'error'); }
 }
 
 const EDGE_BASE = 'https://csqenogssghecrtrzdvs.supabase.co/functions/v1';
