@@ -1476,7 +1476,7 @@ function processPayment() {
     } catch (err) {
       console.error('processPayment error:', err);
       if (btn) { btn.disabled = false; btn.textContent = 'Pay Now'; }
-      showToast('Payment failed. Please try again.', 'error');
+      showToast('Payment error: ' + (err?.message || JSON.stringify(err)), 'error');
     }
   }, 1800);
 }
@@ -1716,7 +1716,7 @@ async function _doCancelBooking(id) {
     renderBookings(document.getElementById('mainContent'));
   } catch (err) {
     console.error(err);
-    showToast('Could not cancel booking. Please try again.', 'error');
+    showToast('Cancel error: ' + (err?.message || JSON.stringify(err)), 'error');
   }
 }
 

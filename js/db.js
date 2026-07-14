@@ -96,7 +96,11 @@ async function dbCreateBooking({ userId, vendorId, service, date, time }) {
 async function dbUpdateBookingStatus(bookingId, status, cancelledBy = null) {
   const patch = { status };
   if (status === 'cancelled' && cancelledBy) patch.cancelled_by = cancelledBy;
-  const { error } = await _supabase.from('bookings').update(patch).eq('id', bookingId);
+  let { error } = await _supabase.from('bookings').update(patch).eq('id', bookingId);
+  // If the cancelled_by column doesn't exist yet, retry without it
+  if (error && patch.cancelled_by && /cancelled_by/.test(error.message || '')) {
+    ({ error } = await _supabase.from('bookings').update({ status }).eq('id', bookingId));
+  }
   if (error) throw error;
 }
 
