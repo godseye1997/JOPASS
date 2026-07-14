@@ -126,10 +126,12 @@ async function _registerOwnerPushToken() {
     if (receive !== 'granted') return;
     await PN.register();
     PN.addListener('registration', async ({ value: token }) => {
-      await _supabase.from('device_tokens').upsert(
-        { user_id: _ownerUserId, token },
-        { onConflict: 'user_id,token' }
-      ).catch(() => {});
+      try {
+        await _supabase.from('device_tokens').upsert(
+          { user_id: _ownerUserId, token },
+          { onConflict: 'user_id,token' }
+        );
+      } catch (_) {}
     });
   } catch (_) {}
 }

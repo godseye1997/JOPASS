@@ -185,7 +185,7 @@
         // Apply referral if came via a referral link
         const refCode = sessionStorage.getItem('jopass_ref');
         if (refCode) {
-          await _supabase.rpc('claim_referral_signup', { p_code: refCode }).catch(() => {});
+          try { await _supabase.rpc('claim_referral_signup', { p_code: refCode }); } catch (_) {}
           sessionStorage.removeItem('jopass_ref');
         }
       }

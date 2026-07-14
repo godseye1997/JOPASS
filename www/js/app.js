@@ -343,10 +343,12 @@ async function _registerPushToken() {
     if (receive !== 'granted') return;
     await PN.register();
     PN.addListener('registration', async ({ value: token }) => {
-      await _supabase.from('device_tokens').upsert(
-        { user_id: state.userId, token },
-        { onConflict: 'user_id,token' }
-      ).catch(() => {});
+      try {
+        await _supabase.from('device_tokens').upsert(
+          { user_id: state.userId, token },
+          { onConflict: 'user_id,token' }
+        );
+      } catch (_) {}
     });
   } catch (_) {}
 }
@@ -1467,7 +1469,7 @@ function processPayment() {
       if (!pack) return;
       state.credits += pack.credits;
       await dbUpdateCredits(state.userId, state.credits).catch(console.error);
-      _supabase.rpc('claim_referral_purchase').catch(() => {});
+      try { await _supabase.rpc('claim_referral_purchase'); } catch (_) {}
       updateCreditDisplay();
       closePaymentModal();
       showToast(`${pack.credits} credits added to your balance!`, 'success');
@@ -1476,7 +1478,7 @@ function processPayment() {
     } catch (err) {
       console.error('processPayment error:', err);
       if (btn) { btn.disabled = false; btn.textContent = 'Pay Now'; }
-      showToast('Payment error: ' + (err?.message || JSON.stringify(err)), 'error');
+      showToast('Payment failed. Please try again.', 'error');
     }
   }, 1800);
 }
@@ -1716,7 +1718,7 @@ async function _doCancelBooking(id) {
     renderBookings(document.getElementById('mainContent'));
   } catch (err) {
     console.error(err);
-    showToast('Cancel error: ' + (err?.message || JSON.stringify(err)), 'error');
+    showToast('Could not cancel booking. Please try again.', 'error');
   }
 }
 
