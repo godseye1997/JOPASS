@@ -345,8 +345,7 @@ async function _registerPushToken() {
         { user_id: state.userId, token },
         { onConflict: 'user_id,token' }
       );
-      if (error) showToast('PUSH DEBUG save error: ' + error.message, 'error');
-      else showToast('PUSH DEBUG: token saved ✓', 'success');
+      if (error) console.error('token save failed', error);
     });
     PN.addListener('registrationError', (err) => console.error('Push registration error:', err));
 
@@ -1012,6 +1011,9 @@ async function _doReserveOpeningSlot(openingId, slot) {
       time:   slot,
       status: 'confirmed',
     });
+
+    // Notify the vendor of the new booking (background push)
+    callSendPush({ type: 'new_booking', vendorId: state.selectedVendor.id, serviceName: opening.service.name, date: localDateStr(new Date(opening.date)), time: slot });
 
     showToast(`Reserved ${slot} for ${opening.service.name}!`, 'success');
     renderVendorDetail(document.getElementById('mainContent'));
