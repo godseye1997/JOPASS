@@ -1553,8 +1553,9 @@ function renderBookings(container) {
 
       const hoursUntil = (getBookingDateTime(b) - new Date()) / 3600000;
       const refundable = hoursUntil >= 12;
-      const action = isCancelled ? '' :
-        isCompleted
+      const action = isCancelled
+        ? `<button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="clearBooking('${b.id}')">${t('bookings.remove')}</button>`
+        : isCompleted
           ? (review
               ? `<span class="booking-status" style="background:rgba(108,92,231,.1); color:var(--primary);">${t('bookings.reviewed')}</span>
                  <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);margin-left:8px;" onclick="clearBooking('${b.id}')">${t('bookings.remove')}</button>`
@@ -1723,10 +1724,11 @@ async function _doCancelBooking(id) {
 }
 
 function clearBooking(id) {
+  const ar = (typeof _lang !== 'undefined' && _lang === 'ar');
   showConfirmDialog({
-    title: 'Remove Booking?',
-    message: 'Remove this completed booking from your history?',
-    confirmLabel: 'Remove',
+    title: ar ? 'حذف الحجز؟' : 'Remove Booking?',
+    message: ar ? 'حذف هذا الحجز من سجلك؟' : 'Remove this booking from your history?',
+    confirmLabel: t('bookings.remove'),
     confirmStyle: 'background:var(--danger);color:#fff;',
     onConfirm: async () => {
       try {
