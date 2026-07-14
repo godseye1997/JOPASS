@@ -79,17 +79,39 @@
     if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()) {
       const AppPlugin = Capacitor.Plugins?.App;
       if (AppPlugin) {
-        AppPlugin.addListener('appUrlOpen', (event) => {
+        AppPlugin.addListener('appUrlOpen', async (event) => {
           const url = event.url;
 
           // Password recovery link
-          if (url.includes('type=recovery')) {
+          if (url.includes('type=recovery') || url.includes('reset-password')) {
+            let established = false;
+
+            // Hash flow: #access_token=...&refresh_token=...&type=recovery
             const hashIdx = url.indexOf('#');
             if (hashIdx !== -1) {
-              const hash = url.slice(hashIdx + 1);
-              history.replaceState(null, '', window.location.pathname + '#' + hash);
-              _supabase.auth.getSession();
+              const params = new URLSearchParams(url.slice(hashIdx + 1));
+              const access_token  = params.get('access_token');
+              const refresh_token = params.get('refresh_token');
+              if (access_token) {
+                const { error } = await _supabase.auth.setSession({
+                  access_token, refresh_token: refresh_token || '',
+                });
+                established = !error;
+              }
             }
+
+            // PKCE flow: ?code=xxx
+            if (!established) {
+              const qIdx = url.indexOf('?');
+              if (qIdx !== -1) {
+                const code = new URLSearchParams(url.slice(qIdx + 1)).get('code');
+                if (code) {
+                  const { error } = await _supabase.auth.exchangeCodeForSession(code);
+                  established = !error;
+                }
+              }
+            }
+
             showPasswordResetOverlay();
             return;
           }
