@@ -122,18 +122,24 @@ async function _registerOwnerPushToken() {
   const PN = window.Capacitor?.Plugins?.PushNotifications;
   if (!PN) return;
   try {
-    const { receive } = await PN.requestPermissions();
-    if (receive !== 'granted') return;
-    await PN.register();
     PN.addListener('registration', async ({ value: token }) => {
       try {
         await _supabase.from('device_tokens').upsert(
           { user_id: _ownerUserId, token },
           { onConflict: 'user_id,token' }
         );
-      } catch (_) {}
+        console.log('Owner push token registered');
+      } catch (e) { console.error('token save failed', e); }
     });
-  } catch (_) {}
+    PN.addListener('registrationError', (err) => console.error('Push registration error:', err));
+
+    let { receive } = await PN.checkPermissions();
+    if (receive === 'prompt' || receive === 'prompt-with-rationale') {
+      receive = (await PN.requestPermissions()).receive;
+    }
+    if (receive !== 'granted') return;
+    await PN.register();
+  } catch (e) { console.error('registerOwnerPushToken failed', e); }
 }
 
 const _EDGE_BASE = 'https://csqenogssghecrtrzdvs.supabase.co/functions/v1';

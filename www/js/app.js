@@ -339,18 +339,25 @@ async function _registerPushToken() {
   const PN = window.Capacitor?.Plugins?.PushNotifications;
   if (!PN) return;
   try {
-    const { receive } = await PN.requestPermissions();
-    if (receive !== 'granted') return;
-    await PN.register();
+    // Listeners MUST be added before register() so the token event isn't missed
     PN.addListener('registration', async ({ value: token }) => {
       try {
         await _supabase.from('device_tokens').upsert(
           { user_id: state.userId, token },
           { onConflict: 'user_id,token' }
         );
-      } catch (_) {}
+        console.log('Push token registered');
+      } catch (e) { console.error('token save failed', e); }
     });
-  } catch (_) {}
+    PN.addListener('registrationError', (err) => console.error('Push registration error:', err));
+
+    let { receive } = await PN.checkPermissions();
+    if (receive === 'prompt' || receive === 'prompt-with-rationale') {
+      receive = (await PN.requestPermissions()).receive;
+    }
+    if (receive !== 'granted') return;
+    await PN.register();
+  } catch (e) { console.error('registerPushToken failed', e); }
 }
 
 const EDGE_BASE = 'https://csqenogssghecrtrzdvs.supabase.co/functions/v1';
