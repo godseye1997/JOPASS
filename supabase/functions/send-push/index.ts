@@ -79,7 +79,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
   try {
-    const { type, vendorId, ownerId, serviceName, price, date, time } = await req.json();
+    const { type, vendorId, ownerId, customerId, vendorName, serviceName, price, date, time } = await req.json();
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -98,6 +98,10 @@ serve(async (req) => {
       userIds = [ownerId];
       title = '🔔 New Booking Received!';
       body  = `${serviceName} on ${date} at ${time}`;
+    } else if (type === 'booking_confirmed') {
+      userIds = [customerId];
+      title = '✅ Booking Confirmed!';
+      body  = `${vendorName ? vendorName + ' confirmed your booking' : 'Your booking is confirmed'}: ${serviceName} on ${date} at ${time}`;
     }
 
     if (userIds.length === 0) return new Response(JSON.stringify({ ok: true, sent: 0 }), { headers: { ...CORS, 'Content-Type': 'application/json' } });

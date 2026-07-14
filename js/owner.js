@@ -774,6 +774,15 @@ function markBookingViewed(bookingId) {
       updateBadge();
       renderReceived(document.getElementById('ownerMain'));
       await dbMarkBookingViewed(bookingId);
+      // Notify the customer that their booking was confirmed
+      _callSendPush({
+        type:        'booking_confirmed',
+        customerId:  b.userId,
+        vendorName:  OWNER_VENDOR.name,
+        serviceName: b.service.name,
+        date:        localDateStr(b.date),
+        time:        b.time,
+      });
     },
   });
 }
