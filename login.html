@@ -154,10 +154,17 @@
     const _origSetLang = typeof setLang === 'function' ? setLang : null;
     window.setLang = function(lang) { if (_origSetLang) _origSetLang(lang); _applyLoginLang(); };
     document.addEventListener('DOMContentLoaded', _applyLoginLang);
-    // Auto-login: skip login screen if session already exists
+    // Auto-login: skip login screen if session already exists.
+    // Route by role so owners/admins don't get sent to the customer app.
     (async () => {
       const { data: { session } } = await _supabase.auth.getSession();
-      if (session) window.location.replace('dashboard.html');
+      if (!session) return;
+      const { data: profile } = await _supabase
+        .from('profiles').select('role').eq('id', session.user.id).single();
+      const role = profile?.role;
+      if (role === 'admin')      window.location.replace('admin.html');
+      else if (role === 'owner') window.location.replace('owner.html');
+      else                       window.location.replace('dashboard.html');
     })();
   </script>
 </body>

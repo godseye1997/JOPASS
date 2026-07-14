@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const d = await dbFetchInitData(state.userId);
 
     if (d.profile) {
+      // Safety guard: owners/admins must not use the customer app
+      if (d.profile.role === 'owner') { window.location.replace('owner.html'); return; }
+      if (d.profile.role === 'admin') { window.location.replace('admin.html'); return; }
+
       state.credits      = d.profile.credits      || 0;
       state.userName     = d.profile.full_name    || '';
       state.userEmail    = d.profile.email        || session.user.email || '';
