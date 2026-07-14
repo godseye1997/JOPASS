@@ -963,6 +963,8 @@ async function removeOpening(id) {
     if (!opening.isEveryday && opening.date) {
       const dateStr = localDateStr(opening.date);
       await dbCancelBookingsForOpening(OWNER_VENDOR.id, opening.service.name, dateStr);
+      // Notify affected customers (background push)
+      _callSendPush({ type: 'booking_cancelled_by_venue', vendorId: OWNER_VENDOR.id, vendorName: OWNER_VENDOR.name, serviceName: opening.service.name, date: dateStr });
     }
     await dbDeleteOpening(id);
 

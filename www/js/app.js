@@ -1705,6 +1705,8 @@ async function _doCancelBooking(id) {
   try {
     await dbUpdateBookingStatus(id, 'cancelled', 'customer');
     cancelBookingReminder(id);
+    // Notify the vendor (background push)
+    callSendPush({ type: 'booking_cancelled_by_customer', vendorId: booking.vendorId, serviceName: booking.service.name, date: localDateStr(booking.date), time: booking.time });
 
     if (refundable && booking.service.credits > 0) {
       state.credits += booking.service.credits;

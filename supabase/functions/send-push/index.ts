@@ -86,6 +86,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
+    // Resolve the vendor's owner user_id from vendorId (robust; don't trust client)
+    async function ownerUserId(vId: any): Promise<string[]> {
+      if (!vId) return [];
+      const { data } = await supabase.from('profiles').select('id').eq('vendor_id', vId).eq('role', 'owner');
+      return (data || []).map((r: any) => r.id);
+    }
+
     let userIds: string[] = [];
     let title = '', body = '';
 
@@ -95,13 +102,28 @@ serve(async (req) => {
       title = '🎯 New Deal Available!';
       body  = `${serviceName}${price ? ' — ' + price + ' JOD' : ''}`;
     } else if (type === 'new_booking') {
-      userIds = [ownerId];
+      userIds = ownerId ? [ownerId] : await ownerUserId(vendorId);
       title = '🔔 New Booking Received!';
       body  = `${serviceName} on ${date} at ${time}`;
     } else if (type === 'booking_confirmed') {
       userIds = [customerId];
       title = '✅ Booking Confirmed!';
       body  = `${vendorName ? vendorName + ' confirmed your booking' : 'Your booking is confirmed'}: ${serviceName} on ${date} at ${time}`;
+    } else if (type === 'booking_cancelled_by_customer') {
+      // Notify the vendor owner
+      userIds = await ownerUserId(vendorId);
+      title = '❌ Booking Cancelled';
+      body  = `A customer cancelled ${serviceName} on ${date}${time ? ' at ' + time : ''}`;
+    } else if (type === 'booking_cancelled_by_venue') {
+      // Notify all customers who had a booking for this vendor/service/date
+      let q = supabase.from('bookings').select('user_id')
+        .eq('vendor_id', vendorId).eq('status', 'cancelled').eq('cancelled_by', 'venue');
+      if (serviceName) q = q.eq('service_name', serviceName);
+      if (date) q = q.eq('date', date);
+      const { data } = await q;
+      userIds = [...new Set((data || []).map((r: any) => r.user_id))];
+      title = '❌ Booking Cancelled';
+      body  = `${vendorName || 'The venue'} cancelled your booking: ${serviceName} on ${date}`;
     }
 
     if (userIds.length === 0) return new Response(JSON.stringify({ ok: true, sent: 0 }), { headers: { ...CORS, 'Content-Type': 'application/json' } });
