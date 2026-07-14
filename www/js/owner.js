@@ -105,6 +105,19 @@ async function _fireOwnerBookingNotif(serviceName, date, time) {
   } catch (_) {}
 }
 
+async function _fireOwnerNotif(title, body) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN) return;
+  try {
+    const { display } = await LN.checkPermissions();
+    if (display !== 'granted') return;
+    await LN.schedule({ notifications: [{
+      id: _ownerNotifCounter++, title, body,
+      channelId: 'jopass-owner', sound: 'default',
+    }]});
+  } catch (_) {}
+}
+
 async function _registerOwnerPushToken() {
   const PN = window.Capacitor?.Plugins?.PushNotifications;
   if (!PN) return;
@@ -216,6 +229,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         _fireOwnerBookingNotif(b.service_name, b.date, b.time);
         if (ownerState.currentView === 'received') {
           renderReceived(document.getElementById('ownerMain'));
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'bookings',
+        filter: `vendor_id=eq.${OWNER_VENDOR.id}`,
+      }, payload => {
+        const nu = payload.new || {}, old = payload.old || {};
+        // Customer cancelled their booking
+        if (nu.status === 'cancelled' && old.status !== 'cancelled' && nu.cancelled_by === 'customer') {
+          const rb = ownerState.receivedBookings.find(x => x.id === nu.id);
+          if (rb) rb.status = 'cancelled';
+          const ar = (typeof _lang !== 'undefined' && _lang === 'ar');
+          showOwnerToast(ar ? `ألغى عميل حجز ${nu.service_name}` : `A customer cancelled ${nu.service_name}`, 'info');
+          _fireOwnerNotif(
+            ar ? '❌ تم إلغاء حجز' : '❌ Booking Cancelled',
+            ar ? `ألغى عميل ${nu.service_name} بتاريخ ${nu.date} الساعة ${nu.time}`
+               : `A customer cancelled ${nu.service_name} on ${nu.date} at ${nu.time}`
+          );
+          updateBadge();
+          if (ownerState.currentView === 'received') {
+            renderReceived(document.getElementById('ownerMain'));
+          }
         }
       })
       .subscribe();

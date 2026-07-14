@@ -93,8 +93,10 @@ async function dbCreateBooking({ userId, vendorId, service, date, time }) {
   return data.id;
 }
 
-async function dbUpdateBookingStatus(bookingId, status) {
-  const { error } = await _supabase.from('bookings').update({ status }).eq('id', bookingId);
+async function dbUpdateBookingStatus(bookingId, status, cancelledBy = null) {
+  const patch = { status };
+  if (status === 'cancelled' && cancelledBy) patch.cancelled_by = cancelledBy;
+  const { error } = await _supabase.from('bookings').update(patch).eq('id', bookingId);
   if (error) throw error;
 }
 
@@ -284,7 +286,7 @@ async function dbDeleteOpening(openingId) {
 async function dbCancelBookingsForOpening(vendorId, serviceName, dateStr) {
   const { error } = await _supabase
     .from('bookings')
-    .update({ status: 'cancelled' })
+    .update({ status: 'cancelled', cancelled_by: 'venue' })
     .eq('vendor_id', vendorId)
     .eq('service_name', serviceName)
     .eq('date', dateStr)

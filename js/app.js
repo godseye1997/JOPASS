@@ -130,6 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     scheduleAllReminders();
     state.follows = await dbFetchFollows(state.userId).catch(() => []);
     _subscribeFollowedOpenings();
+    _subscribeCustomerBookings();
     _registerPushToken();
   } catch (err) {
     console.error('Init error:', err);
@@ -236,6 +237,51 @@ function fmtDateLong(date) {
 /* ── Notifications ── */
 function _bookingNotifId(bookingId) {
   return Math.abs(parseInt(String(bookingId).replace(/-/g, '').slice(0, 7), 16)) % 2000000000;
+}
+
+let _custNotifId = 5000000;
+async function _fireLocalNotif(title, body) {
+  const LN = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!LN) return;
+  try {
+    const { display } = await LN.checkPermissions();
+    if (display !== 'granted') return;
+    await LN.schedule({ notifications: [{
+      id: _custNotifId++, title, body,
+      channelId: 'jopass-reminders', sound: 'default',
+    }]});
+  } catch (_) {}
+}
+
+// Realtime: notify the customer when their booking is confirmed or cancelled by the venue
+function _subscribeCustomerBookings() {
+  const ar = () => (typeof _lang !== 'undefined' && _lang === 'ar');
+  _supabase.channel('customer-bookings')
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'bookings',
+      filter: `user_id=eq.${state.userId}`,
+    }, payload => {
+      const nu = payload.new || {}, old = payload.old || {};
+      // Confirmed by venue
+      if (nu.viewed_by_owner && !old.viewed_by_owner && nu.status !== 'cancelled') {
+        _fireLocalNotif(
+          ar() ? '✅ تم تأكيد الحجز!' : '✅ Booking Confirmed!',
+          ar() ? `تم تأكيد حجزك: ${nu.service_name} بتاريخ ${nu.date} الساعة ${nu.time}`
+               : `Your booking is confirmed: ${nu.service_name} on ${nu.date} at ${nu.time}`
+        );
+        refreshBookings();
+      }
+      // Cancelled by venue
+      if (nu.status === 'cancelled' && old.status !== 'cancelled' && nu.cancelled_by === 'venue') {
+        _fireLocalNotif(
+          ar() ? '❌ تم إلغاء الحجز' : '❌ Booking Cancelled',
+          ar() ? `ألغى المكان حجزك: ${nu.service_name} بتاريخ ${nu.date}`
+               : `The venue cancelled your booking: ${nu.service_name} on ${nu.date}`
+        );
+        refreshBookings();
+      }
+    })
+    .subscribe();
 }
 
 async function _initNotifChannel() {
@@ -1654,7 +1700,7 @@ async function _doCancelBooking(id) {
   const refundable = hoursUntil >= 12;
 
   try {
-    await dbUpdateBookingStatus(id, 'cancelled');
+    await dbUpdateBookingStatus(id, 'cancelled', 'customer');
     cancelBookingReminder(id);
 
     if (refundable && booking.service.credits > 0) {
