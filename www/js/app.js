@@ -618,29 +618,17 @@ function filterBrowse() {
 
 function renderVendorCards(vendors) {
   return vendors.map(v => {
-    const services = getServicesForVendor(v.id);
     const openings = getOpeningsForVendor(v.id);
-    if (!services.length && !openings.length) return '';
+    if (!openings.length) return '';
 
     const reviews   = getReviewsForVendor(v.id);
     const avgRating = reviews.length
       ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
       : null;
 
-    let badge, priceHtml;
-    if (services.length) {
-      const cheapest = services.reduce((a, b) => a.jopassPrice < b.jopassPrice ? a : b);
-      const saving   = (cheapest.price - cheapest.jopassPrice).toFixed(2);
-      const discount = Math.round((1 - cheapest.jopassPrice / cheapest.price) * 100);
-      badge     = discount > 0 ? `<span class="badge">${discount}% OFF</span>` : '';
-      priceHtml = discount > 0
-        ? `<span style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${saving} JOD</span>`
-        : '';
-    } else {
-      const totalSlots = openings.reduce((n, o) => n + o.slots.length, 0);
-      badge     = `<span class="badge" style="background:var(--accent);">${totalSlots} Slot${totalSlots !== 1 ? 's' : ''}</span>`;
-      priceHtml = '';
-    }
+    const totalSlots = openings.reduce((n, o) => n + o.slots.length, 0);
+    const badge     = `<span class="badge" style="background:var(--accent);">${totalSlots} Slot${totalSlots !== 1 ? 's' : ''}</span>`;
+    const priceHtml = '';
 
     const dealsPreview = openings.length > 0 ? `
       <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;">
@@ -844,31 +832,6 @@ async function renderVendorDetail(container) {
           </div>`;
       }).join('')}
     ` : ''}
-
-    ${services.length > 0 ? `<h4 style="margin-bottom:12px;">${t('vendor.standard')}</h4>` : ''}
-    <div class="grid grid-2">
-      ${services.map(s => {
-        const discount = Math.round((1 - s.jopassPrice / s.price) * 100);
-        return `
-        <div class="card" style="cursor:pointer;" onclick="openBookingModal(${v.id}, ${s.id})">
-          <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div>
-              <h4 style="font-size:.9rem;">${s.name}</h4>
-              <p style="font-size:.8rem; color:var(--text-muted);">${s.duration || ''}</p>
-            </div>
-            <div style="text-align:right;">
-              <div class="price" style="font-size:1rem;">${s.credits} credits</div>
-              ${s.price > s.jopassPrice ? `<div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${toJOD(s.price - s.jopassPrice)} JOD</div>` : ''}
-            </div>
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
-            <span style="font-size:.75rem; font-weight:600; color:var(--success);">Save ${discount}%</span>
-            <button class="btn btn-primary btn-sm">${t('vendor.bookNow')}</button>
-          </div>
-        </div>
-      `}).join('')}
-    </div>
-
 
     ${profile?.amenities?.length > 0 ? `
       <div style="margin-top:20px; margin-bottom:16px;">

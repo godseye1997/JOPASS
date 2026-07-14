@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadBookingsAndReviewsFromDB(),
     ]);
 
-    ownerNav('bookingsHub');
+    ownerNav('listings');
     updateBadge();
     _initOwnerNotifChannel();
     _registerOwnerPushToken();
@@ -740,13 +740,8 @@ function setViewMode(mode) {
 
 /* ── Navigation ── */
 const _ownerParent = {
-  listings:     'bookingsHub',
-  services:     'bookingsHub',
-  add:          'bookingsHub',
-  addService:   'services',
+  add:          'listings',
   editProfile:  'profile',
-  editService:  'services',
-  manageSlots:  'services',
 };
 
 function ownerGoBack() {
@@ -763,7 +758,7 @@ function ownerNav(view, param) {
   document.querySelectorAll('.sidebar-nav a').forEach(a => {
     a.classList.toggle('active', a.dataset.view === view);
   });
-  const bottomView = ['listings', 'services', 'add', 'bookingsHub'].includes(view) ? 'bookingsHub' : view;
+  const bottomView = ['listings', 'add'].includes(view) ? 'listings' : view;
   document.querySelectorAll('.bottom-nav-item').forEach(a => {
     a.classList.toggle('active', a.dataset.view === bottomView);
   });
@@ -886,8 +881,6 @@ function renderListings(container) {
     .sort((a, b) => (a.isEveryday ? -1 : b.isEveryday ? 1 : a.date - b.date))
     .map(o => ({ ...o, slots: o.isEveryday ? o.slots : o.slots.filter(s => !slotIsPast(o.date, s)) }));
 
-  const services = ownerServices;
-
   container.innerHTML = `
     <div class="page-header">
       <h2>${t('owner.deals')}</h2>
@@ -898,7 +891,7 @@ function renderListings(container) {
       <span style="font-size:2.2rem;">${OWNER_VENDOR.icon || '🏢'}</span>
       <div style="flex:1;">
         <div style="font-weight:700;">${OWNER_VENDOR.name}</div>
-        <div style="font-size:.8rem; color:var(--text-muted);">${parseCategories(OWNER_VENDOR.category).join(' · ') || 'No category'} · ${services.length} service${services.length !== 1 ? 's' : ''}</div>
+        <div style="font-size:.8rem; color:var(--text-muted);">${parseCategories(OWNER_VENDOR.category).join(' · ') || 'No category'}</div>
       </div>
       <span style="font-size:.75rem; font-weight:600; color:var(--success); background:rgba(0,184,148,.1); padding:4px 10px; border-radius:20px;">Active</span>
     </div>

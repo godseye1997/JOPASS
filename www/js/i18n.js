@@ -369,7 +369,7 @@ function _updateNavLabels() {
     'navLabelProfile':       t('nav.profile'),
     /* Owner nav */
     'ownerNavLabelProfile':  t('owner.navProfile'),
-    'ownerNavLabelBookings': t('owner.navBookings'),
+    'ownerNavLabelBookings': t('owner.deals'),
     'ownerNavLabelReceived': t('owner.navReceived'),
     'ownerPortalLabel':      t('owner.portalLabel'),
     'ownerLogoutLink':       t('owner.logout'),
