@@ -121,7 +121,10 @@
         window.location.href = 'owner.html';
       } else {
         await _supabase.auth.signOut();
-        errorEl.textContent = `Access denied. Role is: "${profile?.role || 'not set'}"`;
+        const ar = (typeof _lang !== 'undefined' && _lang === 'ar');
+        errorEl.innerHTML = ar
+          ? 'هذه بوابة الأماكن المخصّصة لأصحاب الأعمال. إذا كنت عميلاً، يُرجى تسجيل الدخول عبر <a href="login.html" style="color:var(--primary); font-weight:700; text-decoration:underline;">تطبيق العملاء</a>.'
+          : 'This is the venue portal for business owners. If you are a customer, please sign in through the <a href="login.html" style="color:var(--primary); font-weight:700; text-decoration:underline;">customer app</a>.';
         errorEl.style.display = 'block';
         btn.textContent = 'Sign In';
         btn.disabled    = false;
