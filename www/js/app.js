@@ -341,12 +341,12 @@ async function _registerPushToken() {
   try {
     // Listeners MUST be added before register() so the token event isn't missed
     PN.addListener('registration', async ({ value: token }) => {
-      try {
-        await _supabase.from('device_tokens').upsert(
-          { user_id: state.userId, token },
-          { onConflict: 'user_id,token' }
-        );
-      } catch (e) { console.error('token save failed', e); }
+      const { error } = await _supabase.from('device_tokens').upsert(
+        { user_id: state.userId, token },
+        { onConflict: 'user_id,token' }
+      );
+      if (error) showToast('PUSH DEBUG save error: ' + error.message, 'error');
+      else showToast('PUSH DEBUG: token saved ✓', 'success');
     });
     PN.addListener('registrationError', (err) => console.error('Push registration error:', err));
 
