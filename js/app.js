@@ -533,7 +533,6 @@ function navigateTo(view, vendorId) {
         if (followBtn && state.selectedVendor) _renderFollowBtn(followBtn, state.selectedVendor.id);
       });
       return;
-    case 'credits':  renderCredits(main);       break;
     case 'bookings': renderBookings(main);       break;
     case 'profile':      renderProfile(main);      break;
     case 'editProfile':  renderEditProfile(main); break;
@@ -561,13 +560,6 @@ function renderBrowse(container) {
   container.innerHTML = `
     <div class="page-header">
       <h2>${t('browse.title')}</h2>
-    </div>
-    <div class="credit-bar">
-      <div>
-        <div class="label">${t('browse.balance')}</div>
-        <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
-      </div>
-      <button class="btn" onclick="navigateTo('credits')">${t('browse.buy')}</button>
     </div>
     <div style="position:relative; margin-bottom:12px;">
       <i data-lucide="search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); pointer-events:none;"></i>
@@ -635,7 +627,7 @@ function renderVendorCards(vendors) {
         ${openings.slice(0, 2).map(o => `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
             <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${o.service.name}</span>
-            <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${o.credits ? o.credits + ' credits' : fmtDate(o.date)}</span>
+            <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${o.jopassPrice ? o.jopassPrice.toFixed(2) + ' JOD' : fmtDate(o.date)}</span>
           </div>
         `).join('')}
         ${openings.length > 2 ? `<div style="font-size:.68rem; color:var(--accent); font-weight:600;">+${openings.length - 2} more deal${openings.length - 2 > 1 ? 's' : ''}</div>` : ''}
@@ -796,7 +788,6 @@ async function renderVendorDetail(container) {
         const capacity  = o.capacity || 1;
         const dateStr   = o.isEveryday ? t('vendor.everyday') : fmtDate(o.date);
         const hasPrice  = o.jopassPrice > 0;
-        const canAfford = !hasPrice || state.credits >= o.credits;
         return `
           <div class="card" style="margin-bottom:12px;">
             <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
@@ -806,18 +797,17 @@ async function renderVendorDetail(container) {
               </div>
               ${hasPrice ? `
                 <div style="text-align:right;">
-                  <div style="font-weight:700; color:var(--primary); font-size:.98rem;">${o.credits} credits</div>
-                  <div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${(o.originalPrice - o.jopassPrice).toFixed(2)} JOD</div>
+                  <div style="font-weight:700; color:var(--primary); font-size:.98rem;">${o.jopassPrice.toFixed(2)} JOD</div>
+                  ${o.originalPrice > o.jopassPrice ? `<div style="font-size:.75rem; color:var(--success); font-weight:600;">Save ${(o.originalPrice - o.jopassPrice).toFixed(2)} JOD</div>` : ''}
                 </div>
               ` : ''}
             </div>
-            ${hasPrice && !canAfford ? `<p style="font-size:.78rem; color:var(--danger); margin-bottom:8px;">Not enough credits — <a href="#" onclick="navigateTo('credits'); return false;">buy more</a></p>` : ''}
             <div style="display:flex; flex-wrap:wrap; gap:8px;">
               ${o.slots.map(slot => {
                 const bookedCount = o.booked.filter(b => b === slot).length;
                 const isFull   = bookedCount >= capacity;
                 const isPast   = (o.pastSlots || []).includes(slot);
-                const disabled = isFull || !canAfford || isPast;
+                const disabled = isFull || isPast;
                 return `
                   <button
                     onclick="${disabled ? '' : `reserveOpeningSlot('${o.id}', '${slot}')`}"
@@ -910,20 +900,14 @@ function reserveOpeningSlot(openingId, slot) {
   const bookedCount = opening.booked.filter(b => b === slot).length;
   if (bookedCount >= capacity) return;
 
-  const credits = opening.credits || 0;
-  if (credits > 0 && state.credits < credits) {
-    showToast('Not enough credits to book this slot.', 'error');
-    return;
-  }
-
-  const vendor = state.selectedVendor;
-  const dateStr = fmtDate(opening.date);
-  showConfirmDialog({
-    title: 'Confirm Booking',
-    message: `Book <strong>${opening.service.name}</strong> at <strong>${vendor.name}</strong><br>${dateStr} at <strong>${slot}</strong>${credits > 0 ? `<br><br>This will use <strong>${credits} credits</strong> from your balance.` : ''}`,
-    confirmLabel: credits > 0 ? `Book — ${credits} credits` : 'Confirm Booking',
-    onConfirm: () => _doReserveOpeningSlot(openingId, slot),
-  });
+  const amount = opening.jopassPrice || 0;
+  state.pendingBooking = {
+    openingId, slot, amount,
+    serviceName: opening.service.name,
+    vendorName:  state.selectedVendor.name,
+    dateStr:     fmtDate(opening.date),
+  };
+  openBookingPayment();
 }
 
 async function _doReserveOpeningSlot(openingId, slot) {
@@ -933,8 +917,6 @@ async function _doReserveOpeningSlot(openingId, slot) {
     if (found) { opening = found; break; }
   }
   if (!opening) return;
-
-  const credits = opening.credits || 0;
 
   try {
     await dbAppendBookedSlot(openingId, slot);
@@ -951,12 +933,6 @@ async function _doReserveOpeningSlot(openingId, slot) {
       date: opening.date,
       time: slot,
     });
-
-    if (credits > 0) {
-      state.credits -= credits;
-      await dbUpdateCredits(state.userId, state.credits);
-      updateCreditDisplay();
-    }
 
     opening.booked.push(slot);
 
@@ -1237,96 +1213,22 @@ async function _doConfirmBooking() {
   }
 }
 
-/* ── Credits View ── */
-function renderCredits(container) {
-  container.innerHTML = `
-    <div class="page-header">
-      <h2>${t('credits.title')}</h2>
-    </div>
-    <div class="credit-bar">
-      <div>
-        <div class="label">${t('credits.balance')}</div>
-        <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:16px; padding:18px;">
-      <h4 style="margin-bottom:4px;">${t('credits.custom')}</h4>
-      <p style="font-size:.8rem; color:var(--text-muted); margin-bottom:14px;">${t('credits.customDesc')}</p>
-      <div style="display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:6px;">
-        <span id="customCreditVal" style="font-size:2.4rem; font-weight:800; color:var(--primary);">25</span>
-        <span style="font-size:1rem; font-weight:600; color:var(--text-muted);">${t('credits.credits')}</span>
-      </div>
-      <div style="text-align:center; font-size:.9rem; color:var(--success); font-weight:600; margin-bottom:14px;">
-        <span id="customCreditPrice">25.00</span> JOD
-      </div>
-      <input id="customCreditSlider" type="range" min="1" max="200" value="25"
-        oninput="updateCustomCredit(this.value)"
-        style="width:100%; accent-color:var(--primary); margin-bottom:6px;">
-      <div style="display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-muted); margin-bottom:14px;">
-        <span>1</span><span>200</span>
-      </div>
-      <button class="btn btn-primary btn-full" onclick="buyCustomCredits()">${t('credits.buyNow')} <span id="customCreditBtnVal">25</span> ${t('credits.credits')}</button>
-    </div>
-
-    <div class="card" style="margin-top:20px;">
-      <h4 style="margin-bottom:12px;">${t('credits.howWorks')}</h4>
-      <div style="margin-bottom:12px;">
-        <strong>${t('credits.step1')}</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step1Desc')}</p>
-      </div>
-      <div style="margin-bottom:12px;">
-        <strong>${t('credits.step2')}</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step2Desc')}</p>
-      </div>
-      <div style="margin-bottom:12px;">
-        <strong>${t('credits.step3')}</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step3Desc')}</p>
-      </div>
-      <div>
-        <strong>${t('credits.step4')}</strong>
-        <p style="font-size:.8rem; color:var(--text-muted);">${t('credits.step4Desc')}</p>
-      </div>
-    </div>
-  `;
-}
-
-function buyCredits(packId) {
-  const pack = CREDIT_PACKS.find(p => p.id === packId);
-  openPaymentModal(pack);
-}
-
-function updateCustomCredit(val) {
-  const n = parseInt(val);
-  const price = n.toFixed(2); // 1 credit = 1 JOD
-  const valEl   = document.getElementById('customCreditVal');
-  const priceEl = document.getElementById('customCreditPrice');
-  const btnEl   = document.getElementById('customCreditBtnVal');
-  if (valEl)   valEl.textContent   = n;
-  if (priceEl) priceEl.textContent = price;
-  if (btnEl)   btnEl.textContent   = n;
-}
-
-function buyCustomCredits() {
-  const n = parseInt(document.getElementById('customCreditSlider')?.value || 25);
-  openPaymentModal({
-    id: 'custom',
-    credits: n,
-    price: n,             // 1 credit = 1 JOD
-    label: t('credits.custom'),
-    description: '',
-  });
-}
-
-/* ── Payment Modal ── */
-function openPaymentModal(pack) {
-  state.selectedPack = pack;
+/* ── Booking Payment (direct payment sample) ── */
+function openBookingPayment() {
+  const b = state.pendingBooking;
+  if (!b) return;
   const body = document.getElementById('paymentModalBody');
+  const ar = (typeof _lang !== 'undefined' && _lang === 'ar');
 
   body.innerHTML = `
-    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; color:#fff;">
-      <div style="font-size:.75rem; opacity:.8; margin-bottom:4px;">${t('credits.purchasing')}</div>
-      <div style="font-size:1.1rem; font-weight:700;">${pack.label} — ${pack.credits} ${t('credits.credits')}</div>
-      <div style="font-size:1.5rem; font-weight:800; margin-top:4px;">${pack.price.toFixed(2)} JOD</div>
+    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; color:#fff;">
+      <div style="font-size:.75rem; opacity:.8; margin-bottom:4px;">${ar ? 'الحجز' : 'Booking'}</div>
+      <div style="font-size:1.1rem; font-weight:700;">${b.serviceName}</div>
+      <div style="font-size:.82rem; opacity:.85; margin-top:2px;">${b.vendorName} · ${b.dateStr} ${ar ? 'الساعة' : 'at'} ${b.slot}</div>
+      <div style="font-size:1.5rem; font-weight:800; margin-top:8px;">${b.amount.toFixed(2)} JOD</div>
+    </div>
+    <div style="background:rgba(30,207,195,.1); border:1px solid rgba(30,207,195,.3); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:16px; font-size:.78rem; color:var(--accent-dark);">
+      ${ar ? '💳 هذا نموذج تجريبي للدفع. سيتم تفعيل الدفع الفعلي عبر MyFatoorah قريباً.' : '💳 This is a demo checkout. Secure payments via MyFatoorah are coming soon.'}
     </div>
 
     <div id="cardPreview" style="
@@ -1380,7 +1282,7 @@ function openPaymentModal(pack) {
     </div>
   `;
 
-  document.getElementById('payBtn').textContent = `Pay ${pack.price.toFixed(2)} JOD`;
+  document.getElementById('payBtn').textContent = `${(typeof _lang !== 'undefined' && _lang === 'ar') ? 'ادفع' : 'Pay'} ${b.amount.toFixed(2)} JOD`;
   document.getElementById('payBtn').disabled = true;
   document.getElementById('paymentModal').classList.add('open');
 }
@@ -1432,20 +1334,15 @@ function updateCardPreview() {
 function processPayment() {
   const btn = document.getElementById('payBtn');
   btn.disabled    = true;
-  btn.textContent = 'Processing…';
+  btn.textContent = (typeof _lang !== 'undefined' && _lang === 'ar') ? 'جارٍ المعالجة…' : 'Processing…';
 
   setTimeout(async () => {
     try {
-      const pack = state.selectedPack;
-      if (!pack) return;
-      state.credits += pack.credits;
-      await dbUpdateCredits(state.userId, state.credits).catch(console.error);
-      try { await _supabase.rpc('claim_referral_purchase'); } catch (_) {}
-      updateCreditDisplay();
+      const b = state.pendingBooking;
+      if (!b) return;
       closePaymentModal();
-      showToast(`${pack.credits} credits added to your balance!`, 'success');
-      const main = document.getElementById('mainContent');
-      if (main) renderCredits(main);
+      await _doReserveOpeningSlot(b.openingId, b.slot);
+      state.pendingBooking = null;
     } catch (err) {
       console.error('processPayment error:', err);
       if (btn) { btn.disabled = false; btn.textContent = 'Pay Now'; }
@@ -1532,7 +1429,7 @@ function renderBookings(container) {
                  <button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger);margin-left:8px;" onclick="clearBooking('${b.id}')">${t('bookings.remove')}</button>`
               : `<button class="btn btn-sm btn-primary" onclick="openReviewModal('${b.id}')">${t('bookings.review')}</button>`)
           : `<button class="btn btn-sm btn-outline" style="${refundable ? '' : 'color:var(--danger);border-color:var(--danger);'}"
-               title="${refundable ? 'Full credit refund' : 'No refund — within 12-hour window'}"
+               title="${refundable ? 'Full refund' : 'No refund — within 12-hour window'}"
                onclick="cancelBooking('${b.id}')">
                ${refundable ? 'Cancel' : 'Cancel (no refund)'}
              </button>`;
@@ -1658,9 +1555,9 @@ function cancelBooking(id) {
   showConfirmDialog({
     title: 'Cancel Booking?',
     message: refundable
-      ? `Cancel <strong>${booking.service.name}</strong> at <strong>${booking.vendor.name}</strong>?<br><br>You will receive a full refund of <strong>${booking.service.credits} credits</strong>.`
-      : `Cancel <strong>${booking.service.name}</strong> at <strong>${booking.vendor.name}</strong>?<br><br>This booking is within 12 hours — <strong>no credits will be refunded</strong>.`,
-    confirmLabel: refundable ? `Cancel & Refund ${booking.service.credits} credits` : 'Cancel (no refund)',
+      ? `Cancel <strong>${booking.service.name}</strong> at <strong>${booking.vendor.name}</strong>?<br><br>You will receive a <strong>full refund</strong>.`
+      : `Cancel <strong>${booking.service.name}</strong> at <strong>${booking.vendor.name}</strong>?<br><br>This booking is within 12 hours — <strong>no refund will be issued</strong>.`,
+    confirmLabel: refundable ? 'Cancel & Refund' : 'Cancel (no refund)',
     confirmStyle: 'background:var(--danger);color:#fff;',
     onConfirm: () => _doCancelBooking(id),
   });
@@ -1679,16 +1576,13 @@ async function _doCancelBooking(id) {
     // Notify the vendor (background push)
     callSendPush({ type: 'booking_cancelled_by_customer', vendorId: booking.vendorId, serviceName: booking.service.name, date: localDateStr(booking.date), time: booking.time });
 
-    if (refundable && booking.service.credits > 0) {
-      state.credits += booking.service.credits;
-      await dbUpdateCredits(state.userId, state.credits);
-      showToast(`Booking cancelled. ${booking.service.credits} credits refunded.`, 'info');
+    if (refundable) {
+      showToast('Booking cancelled. You will be refunded in full.', 'info');
     } else {
       showToast('Booking cancelled. No refund — cancellation was within the 12-hour window.', 'error');
     }
 
     state.bookings[idx].status = 'cancelled';
-    updateCreditDisplay();
     renderBookings(document.getElementById('mainContent'));
   } catch (err) {
     console.error(err);
@@ -1735,29 +1629,6 @@ function renderProfile(container) {
       </div>
     </div>
 
-    <div class="credit-bar" style="cursor:pointer;" onclick="navigateTo('credits')">
-      <div>
-        <div class="label">${t('profile.creditBalance')}</div>
-        <div class="balance" id="creditBarCount">${state.credits} ${t('credits.credits')}</div>
-      </div>
-      <span style="font-size:1.2rem;">→</span>
-    </div>
-
-    ${state.referralCode ? `
-    <div class="card" style="margin-bottom:12px;">
-      <div style="font-size:.78rem; font-weight:700; color:var(--text-muted); letter-spacing:.05em; margin-bottom:8px;">${t('profile.referTitle')}</div>
-      <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">${t('profile.referDesc')}</p>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div style="flex:1; background:var(--bg); border:1.5px dashed var(--primary); border-radius:var(--radius-sm); padding:10px 14px; font-size:1.1rem; font-weight:800; letter-spacing:.12em; color:var(--primary); text-align:center;">
-          ${state.referralCode}
-        </div>
-        <button class="btn btn-primary" onclick="shareReferral()" style="flex-shrink:0; padding:10px 16px;">
-          <i data-lucide="share-2" style="width:16px;height:16px;"></i>
-        </button>
-      </div>
-    </div>
-    ` : ''}
-
     <div class="profile-menu-item" onclick="navigateTo('editProfile')">
       <span class="pm-icon"><i data-lucide="user-pen"></i></span>
       <span class="pm-label">${t('profile.editProfile')}</span>
@@ -1766,11 +1637,6 @@ function renderProfile(container) {
     <div class="profile-menu-item" onclick="navigateTo('bookings')">
       <span class="pm-icon"><i data-lucide="calendar"></i></span>
       <span class="pm-label">${t('profile.myBookings')}</span>
-      <span class="pm-arrow">›</span>
-    </div>
-    <div class="profile-menu-item" onclick="navigateTo('credits')">
-      <span class="pm-icon"><i data-lucide="credit-card"></i></span>
-      <span class="pm-label">${t('profile.buyCredits')}</span>
       <span class="pm-arrow">›</span>
     </div>
     <div class="profile-menu-item" onclick="openNotificationSettings()" style="cursor:pointer;">
@@ -1922,12 +1788,12 @@ function getSettingsSections() {
     icon: '<img src="icon.png" alt="" style="height:22px; vertical-align:middle; margin-right:4px;">',
     title: ar ? 'عن جوباس' : 'About JoPass',
     content: ar ? `
-      <p style="margin-bottom:10px;">جوباس هي منصة حجز قائمة على النقاط تتيح لك اكتشاف وحجز خدمات اللياقة والعافية والتجميل بأسعار مخفضة في جميع أنحاء الأردن.</p>
-      <p style="margin-bottom:10px;">اشترِ باقة نقاط مرة واحدة واستخدم نقاطك لحجز الجلسات في أي مكان شريك — بدون اشتراكات أو رسوم خفية.</p>
+      <p style="margin-bottom:10px;">جوباس منصة حجز تتيح لك اكتشاف وحجز خدمات اللياقة والعافية والتجميل والمطاعم بأسعار مخفضة في جميع أنحاء الأردن.</p>
+      <p style="margin-bottom:10px;">تصفّح العروض، احجز وادفع بأمان في التطبيق — بدون اشتراكات أو رسوم خفية.</p>
       <p style="color:var(--text-muted); font-size:.8rem;">الإصدار 1.0.0 · صُنع بـ ❤️ في الأردن</p>
     ` : `
-      <p style="margin-bottom:10px;">JoPass is a pass-based booking platform that lets you discover and book fitness, wellness, and beauty services at discounted rates across Jordan.</p>
-      <p style="margin-bottom:10px;">Buy a credit pack once and use your credits to book sessions at any partnered venue — no subscriptions, no hidden fees.</p>
+      <p style="margin-bottom:10px;">JoPass is a booking platform that lets you discover and book fitness, wellness, beauty, and dining deals at discounted rates across Jordan.</p>
+      <p style="margin-bottom:10px;">Browse deals, book, and pay securely right in the app — no subscriptions, no hidden fees.</p>
       <p style="color:var(--text-muted); font-size:.8rem;">Version 1.0.0 · Built with ❤️ in Jordan</p>
     `,
   },
@@ -1956,16 +1822,16 @@ function getSettingsSections() {
     title: ar ? 'الشروط والأحكام' : 'Terms &amp; Conditions',
     content: ar ? `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">آخر تحديث: أبريل 2026</p>
-      <p style="margin-bottom:8px;"><strong>1. النقاط</strong> — النقاط غير قابلة للاسترداد بعد الشراء. النقاط غير المستخدمة لا تنتهي صلاحيتها.</p>
-      <p style="margin-bottom:8px;"><strong>2. الحجوزات</strong> — يمكنك الإلغاء قبل 12 ساعة من الجلسة لاسترداد كامل النقاط. الإلغاء خلال 12 ساعة غير قابل للاسترداد.</p>
-      <p style="margin-bottom:8px;"><strong>3. تغييرات المكان</strong> — جوباس غير مسؤولة عن إلغاءات الأماكن. تُسترد النقاط كاملة تلقائياً في هذه الحالات.</p>
+      <p style="margin-bottom:8px;"><strong>1. الدفع</strong> — تُدفع الحجوزات مباشرةً عند الحجز عبر مزوّد دفع آمن. يظهر السعر الكامل قبل التأكيد والدفع.</p>
+      <p style="margin-bottom:8px;"><strong>2. الحجوزات</strong> — يمكنك الإلغاء قبل 12 ساعة من الجلسة لاسترداد كامل المبلغ. الإلغاء خلال 12 ساعة غير قابل للاسترداد.</p>
+      <p style="margin-bottom:8px;"><strong>3. تغييرات المكان</strong> — جوباس غير مسؤولة عن إلغاءات الأماكن. يُسترد المبلغ كاملاً تلقائياً في هذه الحالات.</p>
       <p style="margin-bottom:8px;"><strong>4. الحساب</strong> — أنت مسؤول عن الحفاظ على بيانات تسجيل الدخول الخاصة بك آمنة.</p>
       <p style="margin-bottom:8px;"><strong>5. السلوك</strong> — يجب على المستخدمين الالتزام بقواعد كل مكان. تحتفظ جوباس بحق تعليق الحسابات بسبب سوء السلوك.</p>
     ` : `
       <p style="margin-bottom:8px; font-weight:600; font-size:.85rem;">Last updated: April 2026</p>
-      <p style="margin-bottom:8px;"><strong>1. Credits</strong> — Credits are non-refundable once purchased. Unused credits do not expire.</p>
-      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel up to 12 hours before the session for a full credit refund. Cancellations within 12 hours are non-refundable.</p>
-      <p style="margin-bottom:8px;"><strong>3. Venue Changes</strong> — JoPass is not responsible for venue cancellations. Full credits are automatically refunded in such cases.</p>
+      <p style="margin-bottom:8px;"><strong>1. Payments</strong> — Bookings are paid for directly at the time of booking through a secure payment provider. The full price is shown before you confirm.</p>
+      <p style="margin-bottom:8px;"><strong>2. Bookings</strong> — You may cancel up to 12 hours before the session for a full refund. Cancellations within 12 hours are non-refundable.</p>
+      <p style="margin-bottom:8px;"><strong>3. Venue Changes</strong> — JoPass is not responsible for venue cancellations. You are refunded in full in such cases.</p>
       <p style="margin-bottom:8px;"><strong>4. Account</strong> — You are responsible for keeping your login credentials secure.</p>
       <p style="margin-bottom:8px;"><strong>5. Conduct</strong> — Users must comply with each venue's rules. JoPass reserves the right to suspend accounts for misconduct.</p>
     `,
@@ -1994,15 +1860,15 @@ function getSettingsSections() {
     title: ar ? 'الأسئلة الشائعة' : 'FAQ',
     content: ar ? `
       <div style="display:flex; flex-direction:column; gap:12px;">
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف تعمل النقاط؟</p><p style="font-size:.83rem; color:var(--text-muted);">اشترِ باقة وأنفق النقاط على أي خدمة. سعر جوباس دائماً أقل من سعر الزيارة المباشرة.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">هل تنتهي صلاحية النقاط؟</p><p style="font-size:.83rem; color:var(--text-muted);">لا. تبقى نقاطك في حسابك حتى تستخدمها.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف ألغي الحجز؟</p><p style="font-size:.83rem; color:var(--text-muted);">اذهب إلى حجوزاتي واضغط إلغاء على حجز مؤكد. تُسترد النقاط إذا ألغيت قبل 12 ساعة من الجلسة.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف تعمل الأسعار؟</p><p style="font-size:.83rem; color:var(--text-muted);">يظهر سعر كل عرض بوضوح. سعر جوباس دائماً أقل من سعر الزيارة المباشرة، وتدفع عند الحجز فقط.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف أدفع؟</p><p style="font-size:.83rem; color:var(--text-muted);">تدفع مباشرةً عند الحجز عبر بوابة دفع آمنة داخل التطبيق.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">كيف ألغي الحجز؟</p><p style="font-size:.83rem; color:var(--text-muted);">اذهب إلى حجوزاتي واضغط إلغاء على حجز مؤكد. يُسترد المبلغ إذا ألغيت قبل 12 ساعة من الجلسة.</p></div>
       </div>
     ` : `
       <div style="display:flex; flex-direction:column; gap:12px;">
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do credits work?</p><p style="font-size:.83rem; color:var(--text-muted);">Buy a pack and spend credits on any service. The JoPass price is always lower than the walk-in rate.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">Do credits expire?</p><p style="font-size:.83rem; color:var(--text-muted);">No. Your credits stay in your account until you use them.</p></div>
-        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I cancel a booking?</p><p style="font-size:.83rem; color:var(--text-muted);">Go to My Bookings and tap Cancel on a confirmed booking. Credits are refunded if cancelled 12+ hours before the session.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How does pricing work?</p><p style="font-size:.83rem; color:var(--text-muted);">Each deal shows its price clearly. The JoPass price is always lower than the walk-in rate, and you only pay when you book.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I pay?</p><p style="font-size:.83rem; color:var(--text-muted);">You pay directly at the time of booking through a secure in-app checkout.</p></div>
+        <div><p style="font-weight:600; font-size:.88rem; margin-bottom:4px;">How do I cancel a booking?</p><p style="font-size:.83rem; color:var(--text-muted);">Go to My Bookings and tap Cancel on a confirmed booking. You're refunded if cancelled 12+ hours before the session.</p></div>
       </div>
     `,
   },

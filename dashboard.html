@@ -31,10 +31,6 @@
             style="background:none; border:1.5px solid var(--border); border-radius:20px; padding:4px 10px; font-size:.75rem; font-weight:700; color:var(--primary); cursor:pointer; margin-right:6px;">
             عر
           </button>
-          <div class="credit-pill" onclick="navigateTo('credits')">
-            <i data-lucide="credit-card" style="width:14px;height:14px;"></i>
-            <span id="creditCountHeader">15</span>
-          </div>
           <div class="user-avatar-sm">TU</div>
         </div>
       </header>
@@ -47,10 +43,6 @@
         <nav class="sidebar-nav">
           <a href="#" class="active" data-view="browse" onclick="navigateTo('browse'); return false;">
             <span class="icon"><i data-lucide="search"></i></span> Browse Deals
-          </a>
-          <a href="#" data-view="credits" onclick="navigateTo('credits'); return false;">
-            <span class="icon"><i data-lucide="credit-card"></i></span> Buy Credits
-            <span style="margin-left:auto; background:var(--primary); color:#fff; font-size:.75rem; padding:2px 8px; border-radius:12px;" id="creditCount">15</span>
           </a>
           <a href="#" data-view="bookings" onclick="navigateTo('bookings'); return false;">
             <span class="icon"><i data-lucide="calendar"></i></span> My Bookings
@@ -78,10 +70,6 @@
         <a href="#" class="bottom-nav-item active" data-view="browse" onclick="navigateTo('browse'); return false;">
           <span class="bottom-nav-icon"><i data-lucide="search"></i></span>
           <span class="bottom-nav-label" id="navLabelBrowse">Browse</span>
-        </a>
-        <a href="#" class="bottom-nav-item" data-view="credits" onclick="navigateTo('credits'); return false;">
-          <span class="bottom-nav-icon"><i data-lucide="credit-card"></i></span>
-          <span class="bottom-nav-label" id="navLabelCredits">Credits</span>
         </a>
         <a href="#" class="bottom-nav-item" data-view="bookings" onclick="navigateTo('bookings'); return false;">
           <span class="bottom-nav-icon"><i data-lucide="calendar"></i></span>

@@ -919,7 +919,6 @@ function renderListings(container) {
               ${o.jopassPrice ? `<div style="font-size:.8rem; margin-top:3px;">
                 <span style="text-decoration:line-through; color:var(--text-muted);">${parseFloat(o.originalPrice).toFixed(2)} JOD</span>
                 <span style="font-weight:700; color:var(--primary); margin-left:6px;">${parseFloat(o.jopassPrice).toFixed(2)} JOD</span>
-                <span style="color:var(--accent-dark); margin-left:4px;">(${o.credits} credits)</span>
               </div>` : ''}
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
@@ -1126,11 +1125,9 @@ function _payoutHtml(jp) {
 }
 
 function _openingPricePreviewHtml(op, jp) {
-  const credits = Math.round(jp);
   const saving  = (op - jp).toFixed(2);
   const pct     = Math.round((1 - jp / op) * 100);
   return `<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-    <span style="font-size:.82rem; background:rgba(30,207,195,.12); color:var(--accent-dark); padding:4px 10px; border-radius:20px; font-weight:600;">${credits} credits</span>
     <span style="font-size:.8rem; color:var(--text-muted); text-decoration:line-through;">${parseFloat(op).toFixed(2)} JOD</span>
     <span style="font-size:.88rem; font-weight:700; color:var(--primary);">${parseFloat(jp).toFixed(2)} JOD</span>
     <span style="font-size:.78rem; color:var(--success); font-weight:600;">Save ${saving} JOD (${pct}% off)</span>
@@ -1439,7 +1436,7 @@ async function renderProfilePreview(container) {
                   <div style="font-weight:600;font-size:.9rem;">${o.service.name}</div>
                   <div style="font-size:.78rem;color:var(--text-muted);">${dateStr}${o.service.duration?' · '+o.service.duration:''}</div>
                 </div>
-                ${o.credits ? `<div style="text-align:right;"><div style="font-weight:700;color:var(--primary);">${o.credits} credits</div><div style="font-size:.72rem;color:var(--success);">Save ${(o.originalPrice-o.jopassPrice).toFixed(2)} JOD</div></div>` : ''}
+                ${o.jopassPrice ? `<div style="text-align:right;"><div style="font-weight:700;color:var(--primary);">${o.jopassPrice.toFixed(2)} JOD</div><div style="font-size:.72rem;color:var(--success);">Save ${(o.originalPrice-o.jopassPrice).toFixed(2)} JOD</div></div>` : ''}
               </div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
                 ${o.slots.map(slot => {
