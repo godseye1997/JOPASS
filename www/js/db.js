@@ -328,12 +328,45 @@ async function dbSaveVendorProfile(vendorId, p) {
 
 /* ─── Storage ─── */
 
+// Compress/resize an image in the browser before upload.
+// Scales down to maxDim on the longest side and re-encodes as JPEG.
+function compressImage(file, maxDim = 1280, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!file || !file.type?.startsWith('image/')) { resolve(file); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else                 { width  = Math.round(width  * maxDim / height); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';           // white bg so transparent PNGs don't go black
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => resolve(blob && blob.size < file.size ? blob : file),
+        'image/jpeg', quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 async function dbUploadImage(file, path) {
+  const compressed = await compressImage(file);
+  // Force .jpg extension since we re-encode to JPEG
+  const jpgPath = path.replace(/\.[^./]+$/, '') + '.jpg';
   const { error } = await _supabase.storage
     .from('jopass-images')
-    .upload(path, file, { upsert: true, contentType: file.type });
+    .upload(jpgPath, compressed, { upsert: true, contentType: 'image/jpeg' });
   if (error) throw error;
-  const { data } = _supabase.storage.from('jopass-images').getPublicUrl(path);
+  const { data } = _supabase.storage.from('jopass-images').getPublicUrl(jpgPath);
   return data.publicUrl;
 }
 
