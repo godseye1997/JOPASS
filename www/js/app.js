@@ -954,7 +954,7 @@ async function _doReserveOpeningSlot(openingId, slot) {
     // Notify the vendor of the new booking (background push)
     callSendPush({ type: 'new_booking', vendorId: state.selectedVendor.id, serviceName: opening.service.name, date: localDateStr(new Date(opening.date)), time: slot });
 
-    showToast(`Reserved ${slot} for ${opening.service.name}!`, 'success');
+    showToast(`Booked! Your reference is ${bookingRef(bookingId)}`, 'success');
     renderVendorDetail(document.getElementById('mainContent'));
   } catch (err) {
     console.error(err);
@@ -1442,6 +1442,7 @@ function renderBookings(container) {
           <div class="booking-details" style="flex:1; min-width:0;">
             <h4>${b.service.name}</h4>
             <p>${b.vendor.name} · ${dateStr} at ${b.time}</p>
+            ${!isCancelled ? `<div style="margin-top:4px;"><span style="font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--primary); background:rgba(12,84,103,.08); border:1px solid rgba(12,84,103,.2); border-radius:6px; padding:2px 7px;">${(typeof _lang!=='undefined'&&_lang==='ar')?'رقم الحجز':'REF'} ${bookingRef(b.id)}</span></div>` : ''}
             ${stars}
           </div>
           <span class="booking-status ${isCompleted ? '' : isCancelled ? '' : 'confirmed'}" style="

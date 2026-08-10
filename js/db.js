@@ -1,5 +1,11 @@
 /* ── JoPass — Supabase Data Layer ── */
 
+// Short human-readable booking reference derived from the booking UUID.
+// Deterministic, so the customer and the vendor always see the same code.
+function bookingRef(id) {
+  return 'JP-' + String(id || '').replace(/-/g, '').slice(0, 6).toUpperCase();
+}
+
 function localDateStr(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');

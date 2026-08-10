@@ -1315,6 +1315,7 @@ function renderReceived(container) {
             <div style="flex:1; min-width:0;">
               <div style="font-weight:${unread ? '700' : '600'}; font-size:.9rem;">${b.service?.name || 'Service'}</div>
               <div style="font-size:.78rem; color:var(--text-muted);">${b.userName} · ${dateStr} at ${b.time}</div>
+              ${!isCancelled ? `<div style="margin-top:4px;"><span style="font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--primary); background:rgba(12,84,103,.08); border:1px solid rgba(12,84,103,.2); border-radius:6px; padding:2px 7px;">${_lang==='ar'?'رقم الحجز':'REF'} ${bookingRef(b.id)}</span></div>` : ''}
             </div>
             <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0;
               background:${statusColor}; color:${statusText};">
