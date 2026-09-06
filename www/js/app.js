@@ -738,7 +738,7 @@ async function renderVendorDetail(container) {
     </div>
 
     ${v.image ? `
-      <div style="width:100%; height:180px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:16px;">
+      <div style="width:100%; height:180px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:16px; cursor:pointer;" onclick="openPhotoViewer('${v.image}')">
         <img src="${v.image}" onerror="this.style.display='none'"
           style="width:100%; height:100%; object-fit:cover;">
       </div>
@@ -747,8 +747,8 @@ async function renderVendorDetail(container) {
     ${photos.length > 0 ? `
       <div style="display:flex; gap:6px; overflow-x:auto; margin-bottom:16px; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
         ${photos.map(url => `
-          <img src="${url}" onerror="this.style.display='none'"
-            style="height:140px; min-width:200px; object-fit:cover; border-radius:var(--radius-sm); flex-shrink:0;">
+          <img src="${url}" onerror="this.style.display='none'" onclick="openPhotoViewer('${url}')"
+            style="height:140px; min-width:200px; object-fit:cover; border-radius:var(--radius-sm); flex-shrink:0; cursor:pointer;">
         `).join('')}
       </div>
     ` : ''}
@@ -1949,6 +1949,21 @@ function shareReferral() {
       showToast(`Your link: ${url}`, 'info');
     });
   }
+}
+
+/* ── Full-screen photo viewer ── */
+function openPhotoViewer(url) {
+  const existing = document.getElementById('photoViewer');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'photoViewer';
+  overlay.style.cssText = 'position:fixed; inset:0; z-index:10001; background:rgba(0,0,0,.92); display:flex; align-items:center; justify-content:center; padding:16px; cursor:zoom-out;';
+  overlay.innerHTML = `
+    <img src="${url}" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:6px;">
+    <button style="position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; border:none; background:rgba(255,255,255,.15); color:#fff; font-size:1.4rem; cursor:pointer; line-height:1;">&times;</button>
+  `;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
 }
 
 /* ── Toast ── */
