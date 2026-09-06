@@ -173,7 +173,8 @@ async function dbGetOwnerBookings(vendorId) {
     .order('date', { ascending: false });
   if (error) throw error;
 
-  const bookings = data || [];
+  // Hide bookings the owner has cleared from their history
+  const bookings = (data || []).filter(b => !b.cleared_by_owner);
 
   // Fetch customer names separately (no direct FK between bookings and profiles)
   const userIds = [...new Set(bookings.map(b => b.user_id))];
@@ -206,6 +207,15 @@ async function dbGetOwnerBookings(vendorId) {
 
 async function dbMarkBookingViewed(bookingId) {
   await _supabase.from('bookings').update({ viewed_by_owner: true }).eq('id', bookingId);
+}
+
+// Clear (hide) all finished bookings — completed or cancelled — for a vendor
+async function dbClearOwnerFinishedBookings(vendorId) {
+  const { error } = await _supabase.from('bookings')
+    .update({ cleared_by_owner: true })
+    .eq('vendor_id', vendorId)
+    .in('status', ['completed', 'cancelled']);
+  if (error) throw error;
 }
 
 async function dbGetOwnerReviews(vendorId) {

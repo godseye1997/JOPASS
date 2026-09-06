@@ -825,6 +825,32 @@ function markBookingViewed(bookingId) {
   });
 }
 
+function clearFinishedBookings() {
+  const ar = _lang === 'ar';
+  showConfirmDialog({
+    title: ar ? 'مسح الحجوزات المنتهية؟' : 'Clear finished bookings?',
+    message: ar
+      ? 'سيتم إخفاء جميع الحجوزات المكتملة والملغاة من هذه القائمة. لن يؤثر ذلك على العملاء.'
+      : 'This hides all completed and cancelled bookings from your list. It does not affect customers.',
+    confirmLabel: ar ? 'مسح' : 'Clear',
+    confirmStyle: 'background:var(--danger);color:#fff;',
+    onConfirm: async () => {
+      try {
+        await dbClearOwnerFinishedBookings(OWNER_VENDOR.id);
+        ownerState.receivedBookings = ownerState.receivedBookings.filter(
+          b => b.status !== 'completed' && b.status !== 'cancelled'
+        );
+        updateBadge();
+        renderReceived(document.getElementById('ownerMain'));
+        showOwnerToast(ar ? 'تم مسح الحجوزات المنتهية.' : 'Finished bookings cleared.', 'success');
+      } catch (err) {
+        console.error(err);
+        showOwnerToast(ar ? 'فشل المسح. حاول مرة أخرى.' : 'Could not clear. Please try again.', 'error');
+      }
+    },
+  });
+}
+
 /* ── Bookings Hub ── */
 function renderBookingsHub(container) {
   container.innerHTML = `
@@ -1239,6 +1265,7 @@ function renderReceived(container) {
   const bookings    = _applyDateFilter(allBookings);
   const completed   = bookings.filter(b => b.status === 'completed').length;
   const reviewed    = bookings.filter(b => ownerState.reviews[b.id]).length;
+  const finishedCount = allBookings.filter(b => b.status === 'completed' || b.status === 'cancelled').length;
 
   const filters = [
     { key: 'all',   label: t('owner.filterAll') },
@@ -1248,8 +1275,9 @@ function renderReceived(container) {
   ];
 
   container.innerHTML = `
-    <div class="page-header">
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
       <h2>${t('owner.receivedTitle')}</h2>
+      ${finishedCount > 0 ? `<button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="clearFinishedBookings()">${_lang==='ar'?'مسح المنتهية':'Clear finished'}</button>` : ''}
     </div>
 
     <div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;">
