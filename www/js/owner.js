@@ -1394,7 +1394,6 @@ async function renderProfilePreview(container) {
         <div style="font-size:.78rem; opacity:.8; margin-bottom:2px;">${t('owner.totalFollowers')}</div>
         <div style="font-size:2rem; font-weight:800; line-height:1;">${followerCount ?? 0}</div>
       </div>
-      <div style="font-size:2.2rem; opacity:.3;">❤️</div>
     </div>
 
     <div style="font-size:.75rem;font-weight:600;color:var(--text-muted);background:rgba(108,92,231,.08);border:1px solid rgba(108,92,231,.2);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:16px;text-align:center;">
