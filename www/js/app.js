@@ -815,7 +815,7 @@ async function renderVendorDetail(container) {
                       border:2px solid ${disabled ? 'var(--border)' : 'var(--primary)'};
                       background:${disabled ? 'var(--bg)' : 'transparent'};
                       color:${disabled ? 'var(--text-muted)' : 'var(--primary)'}; ${isPast ? 'text-decoration:line-through;' : ''}">
-                    ${slot}${capacity > 1 && !isPast ? ` · ${capacity - bookedCount} left` : ''}${isFull ? ' · Full' : ''}${isPast ? ' · Passed' : ''}
+                    <span class="ltr-time">${slot}</span>${capacity > 1 && !isPast ? ` · ${capacity - bookedCount} left` : ''}${isFull ? ' · Full' : ''}${isPast ? ' · Passed' : ''}
                   </button>`;
               }).join('')}
             </div>
@@ -1224,7 +1224,7 @@ function openBookingPayment() {
     <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; color:#fff;">
       <div style="font-size:.75rem; opacity:.8; margin-bottom:4px;">${ar ? 'الحجز' : 'Booking'}</div>
       <div style="font-size:1.1rem; font-weight:700;">${b.serviceName}</div>
-      <div style="font-size:.82rem; opacity:.85; margin-top:2px;">${b.vendorName} · ${b.dateStr} ${ar ? 'الساعة' : 'at'} ${b.slot}</div>
+      <div style="font-size:.82rem; opacity:.85; margin-top:2px;">${b.vendorName} · ${b.dateStr} ${ar ? 'الساعة' : 'at'} <span class="ltr-time">${b.slot}</span></div>
       <div style="font-size:1.5rem; font-weight:800; margin-top:8px;">${b.amount.toFixed(2)} JOD</div>
     </div>
     <div style="background:rgba(30,207,195,.1); border:1px solid rgba(30,207,195,.3); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:16px; font-size:.78rem; color:var(--accent-dark);">
@@ -1441,7 +1441,7 @@ function renderBookings(container) {
           </div>
           <div class="booking-details" style="flex:1; min-width:0;">
             <h4>${b.service.name}</h4>
-            <p>${b.vendor.name} · ${dateStr} at ${b.time}</p>
+            <p>${b.vendor.name} · ${dateStr} <span class="ltr-time">${b.time}</span></p>
             ${!isCancelled ? `<div style="margin-top:4px;"><span style="font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--primary); background:rgba(12,84,103,.08); border:1px solid rgba(12,84,103,.2); border-radius:6px; padding:2px 7px;">${(typeof _lang!=='undefined'&&_lang==='ar')?'رقم الحجز':'REF'} ${bookingRef(b.id)}</span></div>` : ''}
             ${stars}
           </div>

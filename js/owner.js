@@ -965,7 +965,7 @@ function renderListings(container) {
                 background:${slotFull ? 'var(--bg)' : 'rgba(0,184,148,.12)'};
                 color:${slotFull ? 'var(--text-muted)' : 'var(--success)'};
                 border:1px solid ${slotFull ? 'var(--border)' : 'rgba(0,184,148,.3)'};
-              ">${slot} · ${bookedCount}/${capacity}</span>`;
+              "><span class="ltr-time">${slot}</span> · ${bookedCount}/${capacity}</span>`;
             }).join('')}
           </div>
           <div style="font-size:.78rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px; margin-top:2px;">
@@ -1100,7 +1100,7 @@ function renderAddOpening(container) {
         <div class="time-slots">
           ${availableSlots.length > 0 ? availableSlots.map(slot => `
             <div class="time-slot ${f.selectedSlots.includes(slot) ? 'selected' : ''}"
-              onclick="ownerToggleSlot('${slot}')">${slot}</div>
+              onclick="ownerToggleSlot('${slot}')"><span class="ltr-time">${slot}</span></div>
           `).join('') : `<p style="font-size:.85rem; color:var(--danger);">No slots remaining for today. Please select a future date.</p>`}
         </div>
         <p id="ownerSlotCount" style="font-size:.78rem; color:var(--text-muted); margin-top:10px;">
@@ -1342,7 +1342,7 @@ function renderReceived(container) {
             </button>
             <div style="flex:1; min-width:0;">
               <div style="font-weight:${unread ? '700' : '600'}; font-size:.9rem;">${b.service?.name || 'Service'}</div>
-              <div style="font-size:.78rem; color:var(--text-muted);">${b.userName} · ${dateStr} at ${b.time}</div>
+              <div style="font-size:.78rem; color:var(--text-muted);">${b.userName} · ${dateStr} at <span class="ltr-time">${b.time}</span></div>
               ${!isCancelled ? `<div style="margin-top:4px;"><span style="font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--primary); background:rgba(12,84,103,.08); border:1px solid rgba(12,84,103,.2); border-radius:6px; padding:2px 7px;">${_lang==='ar'?'رقم الحجز':'REF'} ${bookingRef(b.id)}</span></div>` : ''}
             </div>
             <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0;

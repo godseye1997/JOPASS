@@ -39,6 +39,8 @@ body {
 [dir="rtl"] .filter-bar { direction: rtl; }
 [dir="rtl"] .bottom-nav { direction: rtl; }
 [dir="rtl"] .mobile-header { flex-direction: row-reverse; }
+/* Keep clock times (8:00 PM) reading left-to-right even in Arabic mode */
+.ltr-time { direction: ltr; unicode-bidi: isolate; display: inline-block; }
 
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
