@@ -1038,7 +1038,7 @@ function renderAddOpening(container) {
 
     <div class="card" style="margin-bottom:14px;">
       <label style="font-size:.85rem; font-weight:600; display:block; margin-bottom:8px;">${t('owner.serviceName')}</label>
-      <input id="ownerServiceName" type="text" placeholder="e.g. Deep Tissue Massage"
+      <input id="ownerServiceName" type="text" placeholder="Enter offer or service here"
         value="${f.serviceName}"
         oninput="ownerState.addForm.serviceName = this.value; updateOwnerSubmitBtn()"
         style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:.9rem; background:var(--surface); color:var(--text);">
