@@ -13,7 +13,8 @@ const TRANSLATIONS = {
     'cat.Health and Wellness': 'Health and Wellness',
     'cat.Sports Activities': 'Sports Activities',
     'cat.Beauty and Care': 'Beauty and Care',
-    'cat.Activities': 'Activities',
+    'cat.Entertainment': 'Entertainment',
+    'cat.Activities': 'Entertainment',
     'cat.Education': 'Education',
     'cat.Dining': 'Dining',
     /* Vendor */
@@ -182,7 +183,8 @@ const TRANSLATIONS = {
     'cat.Health and Wellness': 'الصحة والعافية',
     'cat.Sports Activities': 'الأنشطة الرياضية',
     'cat.Beauty and Care': 'الجمال والعناية',
-    'cat.Activities': 'الأنشطة',
+    'cat.Entertainment': 'الترفيه',
+    'cat.Activities': 'الترفيه',
     'cat.Education': 'التعليم',
     'cat.Dining': 'المطاعم',
     /* Vendor */
