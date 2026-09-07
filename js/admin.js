@@ -20,6 +20,8 @@ async function getAllBookings() {
     id: b.id, vendorId: b.vendor_id,
     vendor: vMap[b.vendor_id] || { name: 'Unknown', icon: '🏢', color: '#0C5467' },
     service: { name: b.service_name, credits: b.service_credits },
+    price: parseFloat(b.service_price) || 0,
+    originalPrice: parseFloat(b.original_price) || 0,
     date: new Date(b.date + 'T00:00:00'), time: b.time, status: b.status,
   }));
 }
@@ -92,6 +94,7 @@ function adminNav(view) {
     case 'owners':   renderOwners(main);   break;
     case 'bookings': renderAllBookings(main); break;
     case 'reviews':  renderAllReviews(main);  break;
+    case 'financials': renderFinancials(main); break;
   }
   main.scrollTop = 0;
   if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -335,6 +338,89 @@ async function renderAllReviews(container) {
       `;
     }).join('')}
   `;
+}
+
+/* ── Financials ── */
+const ADMIN_COMMISSION_RATE = 0.12; // JoPass keeps 12%, vendor gets 88%
+
+async function renderFinancials(container) {
+  container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-muted);">Loading…</div>';
+  const bookings = await getAllBookings();
+
+  // Money is collected on every booking that wasn't cancelled (cancelled = refunded).
+  const paid = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
+
+  const totalCollected = paid.reduce((s, b) => s + b.price, 0);
+  const jopassEarnings = totalCollected * ADMIN_COMMISSION_RATE;
+  const owedToVendors  = totalCollected - jopassEarnings;
+
+  // Group by vendor → what we owe each of them (their 88%).
+  const vMap = {};
+  paid.forEach(b => {
+    const key = b.vendorId;
+    if (!vMap[key]) vMap[key] = { vendor: b.vendor, gross: 0, count: 0 };
+    vMap[key].gross += b.price;
+    vMap[key].count += 1;
+  });
+  const vendorRows = Object.values(vMap)
+    .map(r => ({
+      ...r,
+      commission: r.gross * ADMIN_COMMISSION_RATE,
+      owed: r.gross * (1 - ADMIN_COMMISSION_RATE),
+    }))
+    .sort((a, b) => b.owed - a.owed);
+
+  const money = n => n.toFixed(2) + ' JOD';
+
+  container.innerHTML = `
+    <div class="page-header"><h2>Financials</h2></div>
+    <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:16px;">
+      Based on ${paid.length} paid booking${paid.length === 1 ? '' : 's'} (cancelled bookings excluded). Vendors are paid 88%; JoPass keeps a 12% commission.
+    </p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+      <div class="card" style="padding:14px; grid-column:1 / -1; background:rgba(12,84,103,.06); border-left:3px solid var(--primary);">
+        <div style="font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;">Total Collected</div>
+        <div style="font-size:1.7rem; font-weight:800; color:var(--primary); margin-top:4px;">${money(totalCollected)}</div>
+      </div>
+      <div class="card" style="padding:14px; background:rgba(0,184,148,.08); border-left:3px solid var(--success);">
+        <div style="font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;">We're Making (12%)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--success); margin-top:4px;">${money(jopassEarnings)}</div>
+      </div>
+      <div class="card" style="padding:14px; background:rgba(214,48,49,.06); border-left:3px solid var(--danger);">
+        <div style="font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;">We Owe Vendors (88%)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--danger); margin-top:4px;">${money(owedToVendors)}</div>
+      </div>
+    </div>
+
+    <h4 style="margin-bottom:12px;">What We Owe — by Vendor</h4>
+    ${vendorRows.length === 0 ? `
+      <div class="empty-state">
+        <div class="icon">💰</div>
+        <h3>No Revenue Yet</h3>
+        <p>Vendor payouts will appear here once customers start paying for bookings.</p>
+      </div>
+    ` : vendorRows.map(r => `
+      <div class="card" style="margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+          <span style="font-size:1.4rem;">${r.vendor?.icon || '🏪'}</span>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:600; font-size:.9rem;">${r.vendor?.name || 'Vendor'}</div>
+            <div style="font-size:.72rem; color:var(--text-muted);">${r.count} booking${r.count === 1 ? '' : 's'} · ${money(r.gross)} collected</div>
+          </div>
+          <div style="text-align:right; flex-shrink:0;">
+            <div style="font-size:1.05rem; font-weight:800; color:var(--danger);">${money(r.owed)}</div>
+            <div style="font-size:.66rem; color:var(--text-muted);">owed</div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:6px;">
+          <span>Collected ${money(r.gross)}</span>
+          <span style="color:var(--success);">Our cut ${money(r.commission)}</span>
+        </div>
+      </div>
+    `).join('')}
+  `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Toast ── */
