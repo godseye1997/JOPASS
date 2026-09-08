@@ -423,6 +423,12 @@ async function renderFinancials(container) {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+/* ── Sign Out ── */
+async function adminSignOut() {
+  try { await _supabase.auth.signOut(); } catch (_) {}
+  window.location.replace('owner-login.html');
+}
+
 /* ── Toast ── */
 function showAdminToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
