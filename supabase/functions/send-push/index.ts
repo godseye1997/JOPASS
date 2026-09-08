@@ -106,9 +106,12 @@ serve(async (req) => {
     // could spam every follower/customer with fake deals or confirmations.
     const OWNER_ORIGIN = ['new_deal', 'booking_confirmed', 'booking_cancelled_by_venue'];
     if (OWNER_ORIGIN.includes(type)) {
-      const ok = callerRole === 'admin'
-        || (callerRole === 'owner' && String(callerVendorId) === String(vendorId));
-      if (!ok) return json({ error: 'Forbidden' }, 403);
+      const isOwnerish   = callerRole === 'admin' || callerRole === 'owner';
+      // If a vendorId is supplied, it must be the caller's own vendor.
+      // (Older app builds omit it; the role check above still blocks customers.)
+      const vendorMatches = callerRole === 'admin' || !vendorId
+        || String(callerVendorId) === String(vendorId);
+      if (!isOwnerish || !vendorMatches) return json({ error: 'Forbidden' }, 403);
     }
     // Customer-originated types (new_booking, booking_cancelled_by_customer)
     // only require a valid authenticated user, already verified above.
