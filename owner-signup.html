@@ -89,11 +89,9 @@
       const errorEl = document.getElementById('step1Error');
       if (!email) { errorEl.textContent = 'Please enter your email.'; errorEl.style.display = 'block'; return; }
 
-      const { data } = await _supabase
-        .from('approved_owners')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const { data: rows } = await _supabase
+        .rpc('check_owner_email', { p_email: email });
+      const data = (rows && rows[0]) ? { ...rows[0], email } : null;
 
       if (!data) {
         errorEl.textContent = 'This email is not on the approved list. Contact JoPass admin to get access.';

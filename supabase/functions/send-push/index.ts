@@ -78,6 +78,9 @@ async function fcmSend(token: string, title: string, body: string, accessToken: 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+  const json = (obj: any, status = 200) =>
+    new Response(JSON.stringify(obj), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+
   try {
     const { type, vendorId, ownerId, customerId, vendorName, serviceName, price, date, time } = await req.json();
 
@@ -85,6 +88,30 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // ── Require a valid logged-in caller ──────────────────────────
+    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    if (!jwt) return json({ error: 'Unauthorized' }, 401);
+    const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+    const caller = userData?.user;
+    if (userErr || !caller) return json({ error: 'Unauthorized' }, 401);
+
+    const { data: callerProfile } = await supabase
+      .from('profiles').select('role, vendor_id').eq('id', caller.id).single();
+    const callerRole     = callerProfile?.role;
+    const callerVendorId = callerProfile?.vendor_id;
+
+    // Owner-originated notifications (to followers / customers) may only be
+    // triggered by the vendor's own owner (or an admin) — otherwise anyone
+    // could spam every follower/customer with fake deals or confirmations.
+    const OWNER_ORIGIN = ['new_deal', 'booking_confirmed', 'booking_cancelled_by_venue'];
+    if (OWNER_ORIGIN.includes(type)) {
+      const ok = callerRole === 'admin'
+        || (callerRole === 'owner' && String(callerVendorId) === String(vendorId));
+      if (!ok) return json({ error: 'Forbidden' }, 403);
+    }
+    // Customer-originated types (new_booking, booking_cancelled_by_customer)
+    // only require a valid authenticated user, already verified above.
 
     // Resolve the vendor's owner user_id from vendorId (robust; don't trust client)
     async function ownerUserId(vId: any): Promise<string[]> {

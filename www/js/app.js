@@ -626,8 +626,8 @@ function renderVendorCards(vendors) {
       <div style="border-top:1px solid var(--border); margin-top:6px; padding-top:6px;">
         ${openings.slice(0, 2).map(o => `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-            <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${o.service.name}</span>
-            <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${o.jopassPrice ? o.jopassPrice.toFixed(2) + ' JOD' : fmtDate(o.date)}</span>
+            <span style="font-size:.7rem; font-weight:600; color:var(--primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${escapeHtml(o.service.name)}</span>
+            <span style="font-size:.68rem; color:var(--text-muted); flex-shrink:0;">${o.jopassPrice ? o.jopassPrice.toFixed(2) + ' JOD' : (o.isEveryday || !o.date ? t('vendor.everyday') : fmtDate(o.date))}</span>
           </div>
         `).join('')}
         ${openings.length > 2 ? `<div style="font-size:.68rem; color:var(--accent); font-weight:600;">+${openings.length - 2} more deal${openings.length - 2 > 1 ? 's' : ''}</div>` : ''}
@@ -636,12 +636,12 @@ function renderVendorCards(vendors) {
 
     return `
       <div class="vendor-card" onclick="navigateTo('vendor', ${v.id})">
-        <div class="thumb" style="background-image:url('${v.image}')">
+        <div class="thumb" style="background-image:url('${escapeHtml(v.image)}')">
           ${badge}
         </div>
         <div class="card-body">
-          <h3>${vendorIcon(v, '20px')} ${v.name}</h3>
-          <p class="category">${getVendorCategory(v)}</p>
+          <h3>${vendorIcon(v, '20px')} ${escapeHtml(v.name)}</h3>
+          <p class="category">${escapeHtml(getVendorCategory(v))}</p>
           <p>${priceHtml}</p>
           ${avgRating ? `<p style="font-size:.78rem; color:#f4b942; margin-top:4px;">★ ${avgRating} <span style="color:var(--text-muted);">(${reviews.length})</span></p>` : ''}
           ${dealsPreview}
@@ -738,8 +738,8 @@ async function renderVendorDetail(container) {
     </div>
 
     ${v.image ? `
-      <div style="width:100%; height:180px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:16px; cursor:pointer;" onclick="openPhotoViewer('${v.image}')">
-        <img src="${v.image}" onerror="this.style.display='none'"
+      <div style="width:100%; height:180px; border-radius:var(--radius-sm); overflow:hidden; margin-bottom:16px; cursor:pointer;" onclick="openPhotoViewer('${escapeHtml(v.image)}')">
+        <img src="${escapeHtml(v.image)}" onerror="this.style.display='none'"
           style="width:100%; height:100%; object-fit:cover;">
       </div>
     ` : ''}
@@ -747,7 +747,7 @@ async function renderVendorDetail(container) {
     ${photos.length > 0 ? `
       <div style="display:flex; gap:6px; overflow-x:auto; margin-bottom:16px; padding-bottom:4px; -webkit-overflow-scrolling:touch;">
         ${photos.map(url => `
-          <img src="${url}" onerror="this.style.display='none'" onclick="openPhotoViewer('${url}')"
+          <img src="${escapeHtml(url)}" onerror="this.style.display='none'" onclick="openPhotoViewer('${escapeHtml(url)}')"
             style="height:140px; min-width:200px; object-fit:cover; border-radius:var(--radius-sm); flex-shrink:0; cursor:pointer;">
         `).join('')}
       </div>
@@ -755,18 +755,18 @@ async function renderVendorDetail(container) {
 
     <div style="margin-bottom:16px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-        <h3 style="margin:0;">${vendorIcon(v, '24px')} ${v.name}</h3>
+        <h3 style="margin:0;">${vendorIcon(v, '24px')} ${escapeHtml(v.name)}</h3>
         <button id="followBtn" onclick="toggleFollow(${v.id})"
           style="padding:7px 14px; border-radius:20px; font-size:.8rem; font-weight:600; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--text-muted); flex-shrink:0;">
           ${t('vendor.follow')}
         </button>
       </div>
-      <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${profile?.about || v.description || ''}</p>
+      <p style="font-size:.8rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(profile?.about || v.description || '')}</p>
 
       ${profile?.phone || profile?.website ? `
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
-          ${profile.phone ? `<a href="tel:${profile.phone}" style="font-size:.82rem; color:var(--primary);">📞 ${profile.phone}</a>` : ''}
-          ${profile.website ? `<a href="${profile.website}" target="_blank" style="font-size:.82rem; color:var(--primary);">🌐 Website</a>` : ''}
+          ${profile.phone ? `<a href="${safeUrl('tel:' + String(profile.phone).replace(/[^\d+]/g,''))}" style="font-size:.82rem; color:var(--primary);">📞 ${escapeHtml(profile.phone)}</a>` : ''}
+          ${profile.website && safeUrl(profile.website) ? `<a href="${safeUrl(profile.website)}" target="_blank" rel="noopener noreferrer" style="font-size:.82rem; color:var(--primary);">🌐 Website</a>` : ''}
         </div>
       ` : ''}
 
@@ -792,8 +792,8 @@ async function renderVendorDetail(container) {
           <div class="card" style="margin-bottom:12px;">
             <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
               <div>
-                <div style="font-weight:600; font-size:.9rem;">${o.service.name}</div>
-                <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${dateStr}${o.service.duration ? ' · ' + o.service.duration : ''}</div>
+                <div style="font-weight:600; font-size:.9rem;">${escapeHtml(o.service.name)}</div>
+                <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(dateStr)}${o.service.duration ? ' · ' + escapeHtml(o.service.duration) : ''}</div>
               </div>
               ${hasPrice ? `
                 <div style="text-align:right;">
@@ -828,7 +828,7 @@ async function renderVendorDetail(container) {
         <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">${t('vendor.amenities')}</div>
         <div style="display:flex; flex-wrap:wrap; gap:6px;">
           ${profile.amenities.map(a => `
-            <span style="padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; background:var(--bg); border:1px solid var(--border);">${a}</span>
+            <span style="padding:4px 10px; border-radius:20px; font-size:.75rem; font-weight:500; background:var(--bg); border:1px solid var(--border);">${escapeHtml(a)}</span>
           `).join('')}
         </div>
       </div>
@@ -837,7 +837,7 @@ async function renderVendorDetail(container) {
     ${profile?.location?.address || profile?.location?.lat ? `
       <div style="margin-bottom:16px;">
         <div style="font-size:.82rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">${t('vendor.location')}</div>
-        ${profile.location.address ? `<p style="font-size:.85rem; margin-bottom:8px;">📍 ${profile.location.address}</p>` : ''}
+        ${profile.location.address ? `<p style="font-size:.85rem; margin-bottom:8px;">📍 ${escapeHtml(profile.location.address)}</p>` : ''}
         ${profile.location.lat ? `
           <iframe
             src="https://www.openstreetmap.org/export/embed.html?bbox=${profile.location.lng-0.008},${profile.location.lat-0.008},${profile.location.lng+0.008},${profile.location.lat+0.008}&layer=mapnik&marker=${profile.location.lat},${profile.location.lng}"
@@ -876,12 +876,12 @@ function renderVendorReviews(vendorId) {
             <div>
               <div style="color:#f4b942; font-size:.95rem;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
               <div style="font-size:.75rem; color:var(--text-muted); margin-top:2px;">
-                ${r.service ? r.service + ' · ' : ''}${fmtDate(r.date)}
+                ${r.service ? escapeHtml(r.service) + ' · ' : ''}${fmtDate(r.date)}
               </div>
             </div>
             <span style="font-size:.7rem; color:var(--text-muted); background:var(--bg); padding:2px 8px; border-radius:20px;">Verified</span>
           </div>
-          ${r.comment ? `<p style="font-size:.85rem; color:var(--text); margin:0;">"${r.comment}"</p>` : ''}
+          ${r.comment ? `<p style="font-size:.85rem; color:var(--text); margin:0;">"${escapeHtml(r.comment)}"</p>` : ''}
         </div>
       `).join('')}
     </div>
@@ -901,11 +901,13 @@ function reserveOpeningSlot(openingId, slot) {
   if (bookedCount >= capacity) return;
 
   const amount = opening.jopassPrice || 0;
+  // Everyday deals have no fixed date — they book for today.
+  const bookingDate = opening.isEveryday || !opening.date ? new Date() : opening.date;
   state.pendingBooking = {
     openingId, slot, amount,
     serviceName: opening.service.name,
     vendorName:  state.selectedVendor.name,
-    dateStr:     fmtDate(opening.date),
+    dateStr:     fmtDate(bookingDate),
   };
   openBookingPayment();
 }
@@ -917,6 +919,9 @@ async function _doReserveOpeningSlot(openingId, slot) {
     if (found) { opening = found; break; }
   }
   if (!opening) return;
+
+  // Everyday deals have no fixed date — they book for today.
+  const bookingDate = opening.isEveryday || !opening.date ? new Date() : opening.date;
 
   try {
     await dbAppendBookedSlot(openingId, slot);
@@ -930,7 +935,7 @@ async function _doReserveOpeningSlot(openingId, slot) {
         jopassPrice: opening.jopassPrice,
         price:       opening.originalPrice || opening.jopassPrice,
       },
-      date: opening.date,
+      date: bookingDate,
       time: slot,
     });
 
@@ -946,13 +951,13 @@ async function _doReserveOpeningSlot(openingId, slot) {
         jopassPrice: opening.jopassPrice,
         price:       opening.originalPrice || opening.jopassPrice,
       },
-      date:   new Date(opening.date),
+      date:   new Date(bookingDate),
       time:   slot,
       status: 'confirmed',
     });
 
     // Notify the vendor of the new booking (background push)
-    callSendPush({ type: 'new_booking', vendorId: state.selectedVendor.id, serviceName: opening.service.name, date: localDateStr(new Date(opening.date)), time: slot });
+    callSendPush({ type: 'new_booking', vendorId: state.selectedVendor.id, serviceName: opening.service.name, date: localDateStr(new Date(bookingDate)), time: slot });
 
     showToast(`Booked! Your reference is ${bookingRef(bookingId)}`, 'success');
     renderVendorDetail(document.getElementById('mainContent'));

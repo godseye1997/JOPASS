@@ -155,8 +155,8 @@ async function renderOverview(container) {
         <div class="card" style="margin-bottom:10px; display:flex; align-items:center; gap:12px;">
           <span style="font-size:1.5rem;">${s.v.icon}</span>
           <div style="flex:1;">
-            <div style="font-weight:600; font-size:.9rem;">${s.v.name}</div>
-            <div style="font-size:.75rem; color:var(--text-muted);">${s.v.category}</div>
+            <div style="font-weight:600; font-size:.9rem;">${escapeHtml(s.v.name)}</div>
+            <div style="font-size:.75rem; color:var(--text-muted);">${escapeHtml(s.v.category)}</div>
           </div>
           <div style="display:flex; gap:14px; text-align:center;">
             <div><div style="font-weight:700; color:var(--primary);">${s.bookings}</div><div style="font-size:.68rem; color:var(--text-muted);">bookings</div></div>
@@ -211,12 +211,12 @@ async function renderOwners(container) {
         <div class="card" style="margin-bottom:10px;">
           <div style="display:flex; align-items:center; gap:12px;">
             <div style="width:38px; height:38px; border-radius:50%; background:var(--primary)20; color:var(--primary); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0;">
-              ${(o.name || o.email)[0].toUpperCase()}
+              ${escapeHtml((o.name || o.email)[0].toUpperCase())}
             </div>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:600; font-size:.88rem;">${o.name || '—'}</div>
-              <div style="font-size:.75rem; color:var(--text-muted);">${o.email}</div>
-              ${o.phone ? `<div style="font-size:.72rem; color:var(--text-muted);">${o.phone}</div>` : ''}
+              <div style="font-weight:600; font-size:.88rem;">${escapeHtml(o.name || '—')}</div>
+              <div style="font-size:.75rem; color:var(--text-muted);">${escapeHtml(o.email)}</div>
+              ${o.phone ? `<div style="font-size:.72rem; color:var(--text-muted);">${escapeHtml(o.phone)}</div>` : ''}
               <div style="font-size:.7rem; margin-top:3px;">
                 ${o.claimed ? `<span style="color:var(--success);">✓ Account created</span>` : `<span style="color:var(--warning);">Pending signup</span>`}
               </div>
@@ -275,8 +275,8 @@ async function renderAllBookings(container) {
           <div style="display:flex; align-items:center; gap:12px;">
             <span style="font-size:1.4rem;">${vendor?.icon || '🏪'}</span>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:600; font-size:.88rem;">${b.service?.name || 'Service'}</div>
-              <div style="font-size:.75rem; color:var(--text-muted);">${vendor?.name || 'Vendor'} · ${adminFmtDate(b.date)} at ${b.time}</div>
+              <div style="font-weight:600; font-size:.88rem;">${escapeHtml(b.service?.name || 'Service')}</div>
+              <div style="font-size:.75rem; color:var(--text-muted);">${escapeHtml(vendor?.name || 'Vendor')} · ${adminFmtDate(b.date)} at ${escapeHtml(b.time)}</div>
             </div>
             <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0;
               background:${isComp ? 'rgba(0,184,148,.1)' : 'rgba(108,92,231,.1)'};
@@ -328,12 +328,12 @@ async function renderAllReviews(container) {
             <div>
               <div style="color:#f4b942; font-size:1rem;">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
               <div style="font-size:.75rem; color:var(--text-muted); margin-top:3px;">
-                ${vendor ? vendor.icon + ' ' + vendor.name : 'Venue'} · ${r.booking ? adminFmtDate(r.booking.date) : ''}
+                ${vendor ? escapeHtml(vendor.icon + ' ' + vendor.name) : 'Venue'} · ${r.booking ? adminFmtDate(r.booking.date) : ''}
               </div>
             </div>
             <span style="font-size:.7rem; background:var(--bg); color:var(--text-muted); padding:2px 8px; border-radius:20px;">Verified</span>
           </div>
-          ${r.comment ? `<p style="font-size:.85rem; color:var(--text);">"${r.comment}"</p>` : '<p style="font-size:.8rem; color:var(--text-muted); font-style:italic;">No comment left.</p>'}
+          ${r.comment ? `<p style="font-size:.85rem; color:var(--text);">"${escapeHtml(r.comment)}"</p>` : '<p style="font-size:.8rem; color:var(--text-muted); font-style:italic;">No comment left.</p>'}
         </div>
       `;
     }).join('')}
@@ -405,7 +405,7 @@ async function renderFinancials(container) {
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
           <span style="font-size:1.4rem;">${r.vendor?.icon || '🏪'}</span>
           <div style="flex:1; min-width:0;">
-            <div style="font-weight:600; font-size:.9rem;">${r.vendor?.name || 'Vendor'}</div>
+            <div style="font-weight:600; font-size:.9rem;">${escapeHtml(r.vendor?.name || 'Vendor')}</div>
             <div style="font-size:.72rem; color:var(--text-muted);">${r.count} booking${r.count === 1 ? '' : 's'} · ${money(r.gross)} collected</div>
           </div>
           <div style="text-align:right; flex-shrink:0;">

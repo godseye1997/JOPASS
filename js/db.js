@@ -1,5 +1,25 @@
 /* ── JoPass — Supabase Data Layer ── */
 
+// Escape user/DB-supplied text before inserting into innerHTML, to
+// prevent stored XSS (e.g. a malicious review comment or vendor name).
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Only allow safe http(s)/mailto/tel links; blocks javascript: etc.
+function safeUrl(value) {
+  const s = String(value || '').trim();
+  if (/^(https?:|mailto:|tel:)/i.test(s)) return escapeHtml(s);
+  if (/^(www\.|[\w-]+\.[\w-]{2,})/i.test(s) && !/^[a-z]+:/i.test(s)) return escapeHtml('https://' + s);
+  return '';
+}
+
 // Short human-readable booking reference derived from the booking UUID.
 // Deterministic, so the customer and the vendor always see the same code.
 function bookingRef(id) {

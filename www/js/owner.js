@@ -816,6 +816,7 @@ function markBookingViewed(bookingId) {
       _callSendPush({
         type:        'booking_confirmed',
         customerId:  b.userId,
+        vendorId:    OWNER_VENDOR.id,
         vendorName:  OWNER_VENDOR.name,
         serviceName: b.service.name,
         date:        localDateStr(b.date),
@@ -940,10 +941,10 @@ function renderListings(container) {
         <div class="card" style="margin-bottom:12px; ${allSlotsPast ? 'opacity:.55;' : ''}">
           <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
             <div>
-              <div style="font-weight:600; font-size:.9rem;">${o.service.name}</div>
-              <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${dateStr}${o.service.duration ? ' · ' + o.service.duration : ''}</div>
+              <div style="font-weight:600; font-size:.9rem;">${escapeHtml(o.service.name)}</div>
+              <div style="font-size:.8rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(dateStr)}${o.service.duration ? ' · ' + escapeHtml(o.service.duration) : ''}</div>
               ${o.jopassPrice ? `<div style="font-size:.8rem; margin-top:3px;">
-                <span style="text-decoration:line-through; color:var(--text-muted);">${parseFloat(o.originalPrice).toFixed(2)} JOD</span>
+                ${o.originalPrice > o.jopassPrice ? `<span style="text-decoration:line-through; color:var(--text-muted);">${parseFloat(o.originalPrice).toFixed(2)} JOD</span>` : ''}
                 <span style="font-weight:700; color:var(--primary); margin-left:6px;">${parseFloat(o.jopassPrice).toFixed(2)} JOD</span>
               </div>` : ''}
             </div>
@@ -1326,7 +1327,7 @@ function renderReceived(container) {
       const reviewBlock = review ? `
         <div style="margin-top:10px; padding:10px 12px; background:var(--bg); border-radius:var(--radius-sm); border-left:3px solid #f4b942;">
           <div style="color:#f4b942; font-size:.95rem; margin-bottom:4px;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</div>
-          ${review.comment ? `<p style="font-size:.8rem; color:var(--text-muted); margin:0;">"${review.comment}"</p>` : ''}
+          ${review.comment ? `<p style="font-size:.8rem; color:var(--text-muted); margin:0;">"${escapeHtml(review.comment)}"</p>` : ''}
         </div>` : (isComp ? `<p style="font-size:.75rem; color:var(--text-muted); margin-top:6px; font-style:italic;">No review yet</p>` : '');
 
       const statusColor = isComp ? 'rgba(0,184,148,.1)' : isCancelled ? 'rgba(225,112,85,.1)' : 'rgba(108,92,231,.1)';
@@ -1341,8 +1342,8 @@ function renderReceived(container) {
               ${unread ? '' : `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`}
             </button>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:${unread ? '700' : '600'}; font-size:.9rem;">${b.service?.name || 'Service'}</div>
-              <div style="font-size:.78rem; color:var(--text-muted);">${b.userName} · ${dateStr} at <span class="ltr-time">${b.time}</span></div>
+              <div style="font-weight:${unread ? '700' : '600'}; font-size:.9rem;">${escapeHtml(b.service?.name || 'Service')}</div>
+              <div style="font-size:.78rem; color:var(--text-muted);">${escapeHtml(b.userName)} · ${dateStr} at <span class="ltr-time">${escapeHtml(b.time)}</span></div>
               ${!isCancelled ? `<div style="margin-top:4px;"><span style="font-size:.7rem; font-weight:700; letter-spacing:.08em; color:var(--primary); background:rgba(12,84,103,.08); border:1px solid rgba(12,84,103,.2); border-radius:6px; padding:2px 7px;">${_lang==='ar'?'رقم الحجز':'REF'} ${bookingRef(b.id)}</span></div>` : ''}
             </div>
             <span style="font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; flex-shrink:0;
