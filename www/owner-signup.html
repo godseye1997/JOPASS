@@ -80,6 +80,7 @@
   <script src="js/supabase-client.js"></script>
   <script>
     let _approvedOwner = null;
+    const VENDOR_TERMS_VERSION = '2026-10'; // bump when vendor-terms.html changes materially
 
     function setLoginViewMode(mode) {
       document.body.className = `login-body mode-${mode}`;
@@ -156,11 +157,13 @@
         return;
       }
 
-      // Update profile with name and phone
+      // Update profile with name, phone, and recorded terms acceptance
       await _supabase.from('profiles').update({
         full_name: name,
         phone: _approvedOwner.phone || '',
         email,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: VENDOR_TERMS_VERSION,
       }).eq('id', data.user.id);
 
       // Mark as claimed
