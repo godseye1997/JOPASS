@@ -59,6 +59,10 @@
               <label for="ownerConfirm">Confirm Password</label>
               <input type="password" id="ownerConfirm" placeholder="••••••••">
             </div>
+            <label style="display:flex; align-items:flex-start; gap:9px; font-size:.8rem; color:var(--text-muted); line-height:1.5; margin-bottom:14px; cursor:pointer;">
+              <input type="checkbox" id="ownerAgree" style="margin-top:2px; width:16px; height:16px; flex-shrink:0; accent-color:var(--primary);" onchange="document.getElementById('step2Error').style.display='none'">
+              <span>I have read and agree to the <a href="vendor-terms.html" target="_blank" style="color:var(--primary); font-weight:600;">Vendor Terms &amp; Conditions</a>.</span>
+            </label>
             <p id="step2Error" style="color:var(--danger); font-size:.82rem; margin-bottom:12px; display:none;"></p>
             <button class="btn btn-primary btn-full" onclick="createOwnerAccount()">Create Account</button>
           </div>
@@ -121,6 +125,7 @@
       if (!name || !password) { errorEl.textContent = 'Please fill in all fields.'; errorEl.style.display = 'block'; return; }
       if (password.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = 'block'; return; }
       if (password !== confirm) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+      if (!document.getElementById('ownerAgree').checked) { errorEl.textContent = 'Please agree to the Vendor Terms & Conditions to continue.'; errorEl.style.display = 'block'; return; }
 
       btn.textContent = 'Creating account…';
       btn.disabled = true;
