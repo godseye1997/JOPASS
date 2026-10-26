@@ -1485,7 +1485,44 @@ async function renderProfilePreview(container) {
         <p>Add your details so customers know what to expect.</p>
         <button class="btn btn-primary" style="margin-top:16px;" onclick="ownerNav('editProfile')">Complete Profile</button>
       </div>` : ''}
+
+    <div onclick="confirmDeleteOwnerAccount()" style="margin-top:28px; text-align:center; font-size:.82rem; color:var(--text-muted); cursor:pointer; padding:10px;">
+      <i data-lucide="trash-2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>
+      ${_lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}
+    </div>
   `;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function confirmDeleteOwnerAccount() {
+  const ar = _lang === 'ar';
+  showConfirmDialog({
+    title:   ar ? 'حذف الحساب' : 'Delete Account',
+    message: ar
+      ? 'سيتم حذف حسابك ومكانك وجميع العروض والحجوزات المرتبطة به نهائياً. لا يمكن التراجع عن هذا الإجراء.'
+      : 'This permanently deletes your account, your venue, and all its deals and bookings. This cannot be undone.',
+    confirmLabel: ar ? 'حذف نهائي' : 'Delete Permanently',
+    confirmStyle: 'background:var(--danger);color:#fff;',
+    onConfirm: deleteOwnerAccount,
+  });
+}
+
+async function deleteOwnerAccount() {
+  const ar = _lang === 'ar';
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) { window.location.href = 'owner-login.html'; return; }
+    showOwnerToast(ar ? 'جارٍ حذف الحساب…' : 'Deleting account…', 'info');
+    const res = await fetch(`${_EDGE_BASE}/delete-account`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) throw new Error('delete failed');
+    await _supabase.auth.signOut();
+    window.location.href = 'owner-login.html';
+  } catch (e) {
+    showOwnerToast(ar ? 'تعذّر حذف الحساب. حاول مجدداً.' : 'Could not delete account. Please try again.', 'error');
+  }
 }
 
 /* ── Business Profile ── */

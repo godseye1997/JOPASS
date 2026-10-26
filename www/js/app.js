@@ -1676,6 +1676,11 @@ function renderProfile(container) {
       <span class="pm-label" style="color:var(--danger);">${t('profile.logout')}</span>
       <span class="pm-arrow">›</span>
     </div>
+    <div class="profile-menu-item" onclick="confirmDeleteAccount()" style="cursor:pointer;">
+      <span class="pm-icon"><i data-lucide="trash-2" style="color:var(--text-muted);"></i></span>
+      <span class="pm-label" style="color:var(--text-muted);">${_lang === 'ar' ? 'حذف الحساب' : 'Delete Account'}</span>
+      <span class="pm-arrow">›</span>
+    </div>
   `;
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -1942,6 +1947,37 @@ function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmSt
 async function signOutUser() {
   await _supabase.auth.signOut();
   window.location.href = 'login.html';
+}
+
+function confirmDeleteAccount() {
+  const ar = _lang === 'ar';
+  showConfirmDialog({
+    title:   ar ? 'حذف الحساب' : 'Delete Account',
+    message: ar
+      ? 'سيتم حذف حسابك وجميع بياناتك (الحجوزات والتقييمات والمتابعات) نهائياً. لا يمكن التراجع عن هذا الإجراء.'
+      : 'This permanently deletes your account and all your data — bookings, reviews, and follows. This cannot be undone.',
+    confirmLabel: ar ? 'حذف نهائي' : 'Delete Permanently',
+    confirmStyle: 'background:var(--danger);color:#fff;',
+    onConfirm: deleteMyAccount,
+  });
+}
+
+async function deleteMyAccount() {
+  const ar = _lang === 'ar';
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
+    showToast(ar ? 'جارٍ حذف الحساب…' : 'Deleting account…', 'info');
+    const res = await fetch(`${EDGE_BASE}/delete-account`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!res.ok) throw new Error('delete failed');
+    await _supabase.auth.signOut();
+    window.location.href = 'login.html';
+  } catch (e) {
+    showToast(ar ? 'تعذّر حذف الحساب. حاول مجدداً.' : 'Could not delete account. Please try again.', 'error');
+  }
 }
 
 function shareReferral() {

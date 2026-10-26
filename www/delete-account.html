@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Your Account — JoPass</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --primary:#0C5467; --accent:#1ECFC3; --text:#1a2332; --muted:#6b7280; --surface:#fff; --bg:#f7f9fb; --border:#e5e7eb; --radius:12px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: var(--surface); }
+    nav { position:sticky; top:0; z-index:100; background:rgba(255,255,255,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); padding:0 48px; display:flex; align-items:center; height:64px; gap:32px; }
+    nav .logo img { height:32px; }
+    nav .links { display:flex; gap:24px; margin-left:auto; align-items:center; }
+    nav .links a { text-decoration:none; font-size:.9rem; color:var(--muted); font-weight:500; }
+    nav .links a:hover { color:var(--primary); }
+    .page-hero { background:linear-gradient(135deg,var(--primary) 0%,#0a7a8e 100%); color:#fff; padding:60px 48px 52px; text-align:center; }
+    .page-hero h1 { font-size:2.2rem; font-weight:800; margin-bottom:10px; }
+    .page-hero p { font-size:.95rem; color:rgba(255,255,255,.8); }
+    .content { max-width:760px; margin:0 auto; padding:56px 48px 80px; }
+    h2 { font-size:1.05rem; font-weight:700; margin:32px 0 10px; color:var(--primary); }
+    p { font-size:.93rem; color:#444; line-height:1.8; margin-bottom:12px; }
+    ol, ul { margin:0 0 12px 22px; }
+    li { font-size:.93rem; color:#444; line-height:1.8; margin-bottom:6px; }
+    a { color:var(--primary); }
+    .box { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; margin:20px 0; }
+    footer { background:#0a1628; color:rgba(255,255,255,.6); padding:48px; display:flex; flex-wrap:wrap; gap:32px; justify-content:space-between; align-items:center; }
+    footer .brand .brand-name { font-size:1.2rem; font-weight:800; color:#fff; }
+    footer .brand p { font-size:.82rem; margin-top:8px; }
+    footer nav.footer-nav { display:flex; gap:24px; flex-wrap:wrap; background:transparent; position:static; height:auto; padding:0; border:none; backdrop-filter:none; }
+    footer nav.footer-nav a { color:rgba(255,255,255,.6); text-decoration:none; font-size:.85rem; }
+    footer nav.footer-nav a:hover { color:#fff; }
+    footer .copy { font-size:.78rem; width:100%; text-align:center; border-top:1px solid rgba(255,255,255,.1); padding-top:24px; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo"><a href="index.html"><img src="logo.png" alt="JoPass"></a></div>
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="privacy.html">Privacy Policy</a>
+    </div>
+  </nav>
+
+  <div class="page-hero">
+    <h1>Delete Your Account</h1>
+    <p>How to permanently delete your JoPass account and data.</p>
+  </div>
+
+  <div class="content">
+    <p>You can delete your JoPass account and all associated data at any time. There are two ways to do this.</p>
+
+    <h2>Option 1 — Delete in the app (fastest)</h2>
+    <ol>
+      <li>Open the JoPass app and sign in.</li>
+      <li><strong>Customers:</strong> go to the <strong>Profile</strong> tab and tap <strong>Delete Account</strong>.</li>
+      <li><strong>Venue owners:</strong> go to the <strong>Profile</strong> tab in the owner portal and tap <strong>Delete Account</strong>.</li>
+      <li>Confirm. Your account is deleted immediately.</li>
+    </ol>
+
+    <h2>Option 2 — Request by email</h2>
+    <p>If you can't access the app, email us from the address on your account and we will delete it for you.</p>
+    <div class="box">
+      <p style="margin:0;">Send a message with the subject <strong>"Delete my account"</strong> to:<br>
+      <a href="mailto:jopasscc@gmail.com?subject=Delete%20my%20account">jopasscc@gmail.com</a></p>
+    </div>
+    <p>We will verify your request and complete the deletion within 7 days.</p>
+
+    <h2>What gets deleted</h2>
+    <p>When you delete your account, we permanently remove:</p>
+    <ul>
+      <li>Your profile (name, email, phone number)</li>
+      <li>Your bookings and booking history</li>
+      <li>Your reviews, ratings, and followed venues</li>
+      <li>Your notification/device tokens</li>
+      <li>For venue owners: your venue listing, deals, and associated bookings</li>
+    </ul>
+    <p>Some records may be retained for a limited period only where required by law (for example, financial or tax records of completed transactions). These are not used for any other purpose and are deleted when no longer required.</p>
+
+    <h2>Questions</h2>
+    <p>For any questions about account deletion or your data, contact <a href="mailto:jopasscc@gmail.com">jopasscc@gmail.com</a>.</p>
+  </div>
+
+  <footer>
+    <div class="brand">
+      <div class="brand-name">JoPass</div>
+      <p>Jordan's pass-based booking platform.</p>
+    </div>
+    <nav class="footer-nav">
+      <a href="index.html">Home</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="vendor-terms.html">Vendor Terms</a>
+    </nav>
+    <div class="copy">© 2025 JoPass. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>
