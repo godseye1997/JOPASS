@@ -106,6 +106,8 @@
       const s = document.createElement('script');
       s.src = `${HP_BASE}/v1/paymentWidgets.js?checkoutId=${encodeURIComponent(checkoutId)}`;
       s.crossOrigin = 'anonymous';
+      const integrity = params.get('integrity');
+      if (integrity) s.integrity = integrity; // Subresource Integrity (tamper protection)
       s.onerror = () => show('loaderr');
       document.body.appendChild(s);
     })();

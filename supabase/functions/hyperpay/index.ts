@@ -74,6 +74,7 @@ serve(async (req) => {
       params.set('billing.state',    body.state    || 'Amman');
       params.set('billing.country',  body.country  || 'JO');
       params.set('billing.postcode', body.postcode || '11118');
+      params.set('integrity', 'true'); // ask for the widget-script SRI hash
       if (IS_TEST) {
         params.set('testMode', 'EXTERNAL');
         params.set('customParameters[3DS2_enrolled]', 'true');
@@ -86,6 +87,7 @@ serve(async (req) => {
       });
       const data = await res.json();
       if (!data.id) return json({ error: data.result?.description || 'Could not start payment', raw: data }, 502);
+      const integrity = data.integrity || '';
 
       const { error: piErr } = await db.from('payment_intents').insert({
         checkout_id: data.id, merchant_tx: mtx, user_id: user.id,
@@ -93,7 +95,7 @@ serve(async (req) => {
       });
       if (piErr) return json({ error: `Could not save payment: ${piErr.message}` }, 500);
 
-      return json({ checkoutId: data.id, amount });
+      return json({ checkoutId: data.id, amount, integrity });
     }
 
     // ── STATUS: verify a payment, then create the booking ──────────

@@ -930,7 +930,7 @@ async function startHyperPayCheckout(openingId, slot, amount) {
       showToast(out.error || (ar ? 'تعذّر بدء الدفع.' : 'Could not start payment.'), 'error');
       return;
     }
-    window.location.href = `pay.html?checkoutId=${encodeURIComponent(out.checkoutId)}&amount=${encodeURIComponent(out.amount || amount.toFixed(2))}`;
+    window.location.href = `pay.html?checkoutId=${encodeURIComponent(out.checkoutId)}&amount=${encodeURIComponent(out.amount || amount.toFixed(2))}&integrity=${encodeURIComponent(out.integrity || '')}`;
   } catch (e) {
     showToast(ar ? 'تعذّر بدء الدفع. حاول مجدداً.' : 'Could not start payment. Please try again.', 'error');
   }
