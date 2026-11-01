@@ -22,6 +22,7 @@ async function getAllBookings() {
     service: { name: b.service_name, credits: b.service_credits },
     price: parseFloat(b.service_price) || 0,
     originalPrice: parseFloat(b.original_price) || 0,
+    settled: !!b.settled_at,
     date: new Date(b.date + 'T00:00:00'), time: b.time, status: b.status,
   }));
 }
@@ -349,16 +350,20 @@ async function renderFinancials(container) {
 
   // Money is collected on every booking that wasn't cancelled (cancelled = refunded).
   const paid = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
+  // Outstanding = not yet settled (paid out to the vendor).
+  const outstanding = paid.filter(b => !b.settled);
+  const settled     = paid.filter(b => b.settled);
 
-  const totalCollected = paid.reduce((s, b) => s + b.price, 0);
+  const totalCollected = outstanding.reduce((s, b) => s + b.price, 0);
   const jopassEarnings = totalCollected * ADMIN_COMMISSION_RATE;
   const owedToVendors  = totalCollected - jopassEarnings;
+  const settledTotal   = settled.reduce((s, b) => s + b.price, 0);
 
-  // Group by vendor → what we owe each of them (their 88%).
+  // Group OUTSTANDING by vendor → what we currently owe each of them (88%).
   const vMap = {};
-  paid.forEach(b => {
+  outstanding.forEach(b => {
     const key = b.vendorId;
-    if (!vMap[key]) vMap[key] = { vendor: b.vendor, gross: 0, count: 0 };
+    if (!vMap[key]) vMap[key] = { vendorId: key, vendor: b.vendor, gross: 0, count: 0 };
     vMap[key].gross += b.price;
     vMap[key].count += 1;
   });
@@ -375,12 +380,12 @@ async function renderFinancials(container) {
   container.innerHTML = `
     <div class="page-header"><h2>Financials</h2></div>
     <p style="font-size:.82rem; color:var(--text-muted); margin-bottom:16px;">
-      Based on ${paid.length} paid booking${paid.length === 1 ? '' : 's'} (cancelled bookings excluded). Vendors are paid 88%; JoPass keeps a 12% commission.
+      Outstanding across ${outstanding.length} unsettled booking${outstanding.length === 1 ? '' : 's'}. Vendors are paid 88%; JoPass keeps a 12% commission. ${settledTotal > 0 ? `<br><span style="color:var(--text-muted);">${money(settledTotal)} already settled to date.</span>` : ''}
     </p>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
       <div class="card" style="padding:14px; grid-column:1 / -1; background:rgba(12,84,103,.06); border-left:3px solid var(--primary);">
-        <div style="font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;">Total Collected</div>
+        <div style="font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;">Outstanding Collected</div>
         <div style="font-size:1.7rem; font-weight:800; color:var(--primary); margin-top:4px;">${money(totalCollected)}</div>
       </div>
       <div class="card" style="padding:14px; background:rgba(0,184,148,.08); border-left:3px solid var(--success);">
@@ -393,12 +398,18 @@ async function renderFinancials(container) {
       </div>
     </div>
 
+    ${vendorRows.length > 0 ? `
+      <button onclick="settlePayouts()" class="btn btn-primary btn-full" style="margin-bottom:20px;">
+        ✓ Settle All — mark everything paid &amp; reset to zero
+      </button>
+    ` : ''}
+
     <h4 style="margin-bottom:12px;">What We Owe — by Vendor</h4>
     ${vendorRows.length === 0 ? `
       <div class="empty-state">
         <div class="icon">💰</div>
-        <h3>No Revenue Yet</h3>
-        <p>Vendor payouts will appear here once customers start paying for bookings.</p>
+        <h3>All Settled Up</h3>
+        <p>Nothing is currently owed. New paid bookings will appear here.</p>
       </div>
     ` : vendorRows.map(r => `
       <div class="card" style="margin-bottom:10px;">
@@ -413,14 +424,34 @@ async function renderFinancials(container) {
             <div style="font-size:.66rem; color:var(--text-muted);">owed</div>
           </div>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:6px;">
-          <span>Collected ${money(r.gross)}</span>
-          <span style="color:var(--success);">Our cut ${money(r.commission)}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:.72rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px;">
+          <span>Our cut ${money(r.commission)}</span>
+          <button onclick="settlePayouts(${r.vendorId})" class="btn btn-sm btn-outline" style="font-size:.72rem; padding:4px 10px;">Mark paid</button>
         </div>
       </div>
     `).join('')}
   `;
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Mark paid bookings as settled (paid out). Pass a vendorId to settle one
+// vendor, or omit to settle everyone. Resets the owed amounts to zero.
+async function settlePayouts(vendorId = null) {
+  const label = vendorId
+    ? "Mark this vendor's outstanding bookings as paid?"
+    : 'Mark ALL outstanding bookings as paid and reset everything to zero?';
+  if (!window.confirm(label + '\n\nThis records that you have paid out these amounts. It cannot be undone.')) return;
+
+  let q = _supabase.from('bookings')
+    .update({ settled_at: new Date().toISOString() })
+    .in('status', ['confirmed', 'completed'])
+    .is('settled_at', null);
+  if (vendorId) q = q.eq('vendor_id', vendorId);
+
+  const { error } = await q;
+  if (error) { showAdminToast('Could not settle: ' + error.message, 'error'); return; }
+  showAdminToast('Settled. Balances reset.', 'success');
+  renderFinancials(document.getElementById('adminMain'));
 }
 
 /* ── Sign Out ── */
