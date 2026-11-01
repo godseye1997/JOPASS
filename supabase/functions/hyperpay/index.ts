@@ -18,7 +18,8 @@ const CORS = {
 };
 
 const URL         = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Prefer the legacy service_role JWT (honored by PostgREST) if provided.
+const SERVICE_KEY = Deno.env.get('SB_SERVICE_ROLE_JWT') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const noPersist   = { auth: { persistSession: false, autoRefreshToken: false } };
 
 serve(async (req) => {
