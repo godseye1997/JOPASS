@@ -2,9 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ── HyperPay config ──────────────────────────────────────────────
-// Test server. For go-live: change BASE to https://eu-prod.oppwa.com,
-// set HYPERPAY_ENTITY_ID + HYPERPAY_ACCESS_TOKEN to live values,
-// and set HYPERPAY_TEST=false in the function secrets.
+// Test server. For go-live: BASE=https://eu-prod.oppwa.com, set
+// HYPERPAY_ENTITY_ID + HYPERPAY_ACCESS_TOKEN to live values, HYPERPAY_TEST=false.
 const BASE      = Deno.env.get('HYPERPAY_BASE')      || 'https://eu-test.oppwa.com';
 const ENTITY_ID = Deno.env.get('HYPERPAY_ENTITY_ID') || '8ac7a4d9a18c939b01a19607cd92106e';
 const TOKEN     = Deno.env.get('HYPERPAY_ACCESS_TOKEN') || '';
@@ -17,10 +16,8 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, content-type',
 };
 
-const URL         = Deno.env.get('SUPABASE_URL')!;
-// Prefer the legacy service_role JWT (honored by PostgREST) if provided.
-const SERVICE_KEY = Deno.env.get('SB_SERVICE_ROLE_JWT') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const noPersist   = { auth: { persistSession: false, autoRefreshToken: false } };
+const URL  = Deno.env.get('SUPABASE_URL')!;
+const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -29,15 +26,15 @@ serve(async (req) => {
     new Response(JSON.stringify(obj), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
   try {
-    // DB client stays pure service-role (full access). Never call .auth on it.
-    const db = createClient(URL, SERVICE_KEY, noPersist);
-    // Separate client just to identify the caller from their JWT.
-    const authClient = createClient(URL, SERVICE_KEY, noPersist);
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader) return json({ error: 'Unauthorized' }, 401);
 
-    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    if (!jwt) return json({ error: 'Unauthorized' }, 401);
-    const { data: userData, error: userErr } = await authClient.auth.getUser(jwt);
-    const user = userData?.user;
+    // Run all DB work as the signed-in user; their JWT establishes the role.
+    const db = createClient(URL, ANON, {
+      global: { headers: { Authorization: authHeader } },
+      auth:   { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: { user }, error: userErr } = await db.auth.getUser();
     if (userErr || !user) return json({ error: 'Unauthorized' }, 401);
 
     const body   = await req.json();
@@ -50,7 +47,7 @@ serve(async (req) => {
 
       const { data: opening, error: oErr } = await db
         .from('openings').select('*').eq('id', openingId).maybeSingle();
-      if (oErr)     return json({ error: `DB err: ${oErr.message} | key:${(SERVICE_KEY||'').slice(0,9)} len:${(SERVICE_KEY||'').length}` }, 500);
+      if (oErr)     return json({ error: `Deal lookup error: ${oErr.message}` }, 500);
       if (!opening) return json({ error: 'Deal not found' }, 404);
 
       const capacity = opening.capacity || 1;
@@ -90,10 +87,11 @@ serve(async (req) => {
       const data = await res.json();
       if (!data.id) return json({ error: data.result?.description || 'Could not start payment', raw: data }, 502);
 
-      await db.from('payment_intents').insert({
+      const { error: piErr } = await db.from('payment_intents').insert({
         checkout_id: data.id, merchant_tx: mtx, user_id: user.id,
         opening_id: openingId, slot, vendor_id: opening.vendor_id, amount, status: 'created',
       });
+      if (piErr) return json({ error: `Could not save payment: ${piErr.message}` }, 500);
 
       return json({ checkoutId: data.id, amount });
     }

@@ -20,7 +20,14 @@ create table if not exists public.payment_intents (
   created_at   timestamptz default now()
 );
 alter table public.payment_intents enable row level security;
--- (no policies on purpose — only the Edge Function's service role touches it)
+
+-- The Edge Function runs as the signed-in user, so let a user manage
+-- only their own payment rows.
+grant select, insert, update on public.payment_intents to authenticated;
+drop policy if exists "Own payment intents" on public.payment_intents;
+create policy "Own payment intents" on public.payment_intents
+  for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- Links a booking to the payment that created it (idempotency + proof).
 alter table public.bookings add column if not exists payment_ref text;
