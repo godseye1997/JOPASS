@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C5467">
+  <title>JoPass — Secure Payment</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f9fb;color:#1a2332;min-height:100vh;}
+    .wrap{max-width:480px;margin:0 auto;padding:24px 18px 60px;}
+    .head{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+    .head img{height:30px;}
+    .card{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.06);padding:20px;}
+    .summary{background:linear-gradient(135deg,#0C5467,#0a7a8e);border-radius:12px;padding:16px 18px;color:#fff;margin-bottom:18px;}
+    .summary .lbl{font-size:.72rem;opacity:.8;}
+    .summary .amt{font-size:1.6rem;font-weight:800;margin-top:6px;}
+    .state{text-align:center;padding:48px 20px;}
+    .spinner{width:38px;height:38px;border:3px solid #e5e7eb;border-top-color:#0C5467;border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .msg{font-size:.95rem;color:#444;}
+    .btn{display:inline-block;margin-top:18px;padding:12px 22px;border-radius:10px;background:#0C5467;color:#fff;text-decoration:none;font-weight:700;font-size:.9rem;border:none;cursor:pointer;}
+    .err{color:#d63031;font-weight:600;}
+    /* HyperPay widget tweaks */
+    .wpwl-form{max-width:100%;}
+    .wpwl-group{margin-bottom:12px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head"><img src="logo.png" alt="JoPass"><span style="font-weight:700;color:#0C5467;">Secure Payment</span></div>
+
+    <div id="summary" class="summary" hidden>
+      <div class="lbl">Amount due</div>
+      <div class="amt" id="amt">— JOD</div>
+    </div>
+
+    <div id="payArea" class="card" hidden>
+      <form id="payForm" class="paymentWidgets" data-brands="VISA MASTER"></form>
+    </div>
+
+    <div id="verifying" class="state" hidden>
+      <div class="spinner"></div>
+      <div class="msg">Verifying your payment…</div>
+    </div>
+
+    <div id="failed" class="state" hidden>
+      <div class="msg err" id="failMsg">Payment was not completed.</div>
+      <a class="btn" href="dashboard.html">Back to app</a>
+    </div>
+
+    <div id="loaderr" class="state" hidden>
+      <div class="msg err">Something went wrong loading the payment page.</div>
+      <a class="btn" href="dashboard.html">Back to app</a>
+    </div>
+  </div>
+
+  <script src="js/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script>
+    const HP_BASE   = 'https://eu-test.oppwa.com';
+    const EDGE_HP   = SUPABASE_URL + '/functions/v1/hyperpay';
+    const params    = new URLSearchParams(location.search);
+    const show = id => { const e = document.getElementById(id); if (e) e.hidden = false; };
+
+    (async () => {
+      // ── RESULT MODE: HyperPay redirected back with a resourcePath ──
+      const resourcePath = params.get('resourcePath');
+      if (resourcePath) {
+        show('verifying');
+        try {
+          const { data: { session } } = await _supabase.auth.getSession();
+          if (!session) { location.href = 'login.html'; return; }
+          const res = await fetch(EDGE_HP, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ action: 'status', resourcePath }),
+          });
+          const out = await res.json();
+          if (out.ok) { location.href = 'dashboard.html?pay=success'; return; }
+          document.getElementById('verifying').hidden = true;
+          document.getElementById('failMsg').textContent = out.description || 'Payment was not completed.';
+          show('failed');
+        } catch (e) {
+          document.getElementById('verifying').hidden = true;
+          show('failed');
+        }
+        return;
+      }
+
+      // ── WIDGET MODE: show the card form for a prepared checkout ──
+      const checkoutId = params.get('checkoutId');
+      const amount     = params.get('amount');
+      if (!checkoutId) { show('loaderr'); return; }
+
+      if (amount) { document.getElementById('amt').textContent = amount + ' JOD'; show('summary'); }
+      show('payArea');
+
+      // Where HyperPay sends the shopper after paying (this same page).
+      document.getElementById('payForm').setAttribute('action', location.origin + location.pathname);
+
+      // Force full-page 3D Secure redirect inside this page.
+      window.wpwlOptions = { paymentTarget: '_top' };
+
+      const s = document.createElement('script');
+      s.src = `${HP_BASE}/v1/paymentWidgets.js?checkoutId=${encodeURIComponent(checkoutId)}`;
+      s.crossOrigin = 'anonymous';
+      s.onerror = () => show('loaderr');
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

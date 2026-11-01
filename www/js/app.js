@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCreditDisplay();
     updateUserDisplay();
     navigateTo('browse');
+    handlePaymentReturn();
 
     setInterval(() => { checkBookingStatuses(); refreshBookings(); }, 30000);
     _initNotifChannel();
@@ -901,15 +902,38 @@ function reserveOpeningSlot(openingId, slot) {
   if (bookedCount >= capacity) return;
 
   const amount = opening.jopassPrice || 0;
-  // Everyday deals have no fixed date — they book for today.
-  const bookingDate = opening.isEveryday || !opening.date ? new Date() : opening.date;
-  state.pendingBooking = {
-    openingId, slot, amount,
-    serviceName: opening.service.name,
-    vendorName:  state.selectedVendor.name,
-    dateStr:     fmtDate(bookingDate),
-  };
-  openBookingPayment();
+  startHyperPayCheckout(openingId, slot, amount);
+}
+
+// Prepare a HyperPay checkout on the server, then open the secure payment page.
+async function startHyperPayCheckout(openingId, slot, amount) {
+  const ar = _lang === 'ar';
+  try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) { window.location.href = 'login.html'; return; }
+    showToast(ar ? 'جارٍ فتح الدفع الآمن…' : 'Opening secure checkout…', 'info');
+
+    const nameParts = (state.userName || '').trim().split(/\s+/);
+    const res = await fetch(`${EDGE_BASE}/hyperpay`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({
+        action: 'prepare',
+        openingId, slot,
+        email:     state.userEmail || session.user.email || '',
+        givenName: nameParts[0] || 'JoPass',
+        surname:   nameParts.slice(1).join(' ') || 'Customer',
+      }),
+    });
+    const out = await res.json();
+    if (!res.ok || !out.checkoutId) {
+      showToast(out.error || (ar ? 'تعذّر بدء الدفع.' : 'Could not start payment.'), 'error');
+      return;
+    }
+    window.location.href = `pay.html?checkoutId=${encodeURIComponent(out.checkoutId)}&amount=${encodeURIComponent(out.amount || amount.toFixed(2))}`;
+  } catch (e) {
+    showToast(ar ? 'تعذّر بدء الدفع. حاول مجدداً.' : 'Could not start payment. Please try again.', 'error');
+  }
 }
 
 async function _doReserveOpeningSlot(openingId, slot) {
@@ -1947,6 +1971,22 @@ function showConfirmDialog({ title, message, confirmLabel = 'Confirm', confirmSt
 async function signOutUser() {
   await _supabase.auth.signOut();
   window.location.href = 'login.html';
+}
+
+// Handle returning from the HyperPay payment page (dashboard.html?pay=success|fail).
+function handlePaymentReturn() {
+  const p = new URLSearchParams(location.search);
+  const pay = p.get('pay');
+  if (!pay) return;
+  history.replaceState({}, '', location.pathname);
+  const ar = _lang === 'ar';
+  if (pay === 'success') {
+    showToast(ar ? 'تم الدفع! تم تأكيد حجزك.' : 'Payment successful — your booking is confirmed!', 'success');
+    refreshBookings();
+    navigateTo('bookings');
+  } else {
+    showToast(ar ? 'لم يكتمل الدفع. لم يتم إجراء أي حجز.' : 'Payment was not completed. No booking was made.', 'error');
+  }
 }
 
 function confirmDeleteAccount() {
