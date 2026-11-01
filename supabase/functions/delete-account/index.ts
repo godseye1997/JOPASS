@@ -15,15 +15,23 @@ serve(async (req) => {
     new Response(JSON.stringify(obj), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
   try {
+    const noPersist = { auth: { persistSession: false, autoRefreshToken: false } };
+    // DB client stays pure service-role; never call .auth on it.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      noPersist,
+    );
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      noPersist,
     );
 
     // Identify the caller from their JWT — users can only delete themselves.
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     if (!jwt) return json({ error: 'Unauthorized' }, 401);
-    const { data: userData, error: userErr } = await supabase.auth.getUser(jwt);
+    const { data: userData, error: userErr } = await authClient.auth.getUser(jwt);
     const user = userData?.user;
     if (userErr || !user) return json({ error: 'Unauthorized' }, 401);
 
