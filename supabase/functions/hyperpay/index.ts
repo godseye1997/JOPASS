@@ -49,7 +49,7 @@ serve(async (req) => {
 
       const { data: opening, error: oErr } = await db
         .from('openings').select('*').eq('id', openingId).maybeSingle();
-      if (oErr)     return json({ error: `Deal lookup error: ${oErr.message}` }, 500);
+      if (oErr)     return json({ error: `DB err: ${oErr.message} | key:${(SERVICE_KEY||'').slice(0,9)} len:${(SERVICE_KEY||'').length}` }, 500);
       if (!opening) return json({ error: 'Deal not found' }, 404);
 
       const capacity = opening.capacity || 1;
